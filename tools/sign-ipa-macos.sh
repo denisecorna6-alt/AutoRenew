@@ -40,7 +40,7 @@ trap cleanup EXIT
 # Inspect the ZIP central directory and reject traversal, symlinks and ZIP bombs.
 python3 "$ROOT/tools/validate-signing-inputs.py" --inspect-ipa "$IPA_PATH"
 
-# Do not import PKCS#12 here: security import -P would expose its password in process arguments.
+# PKCS#12 import is deliberately left to Keychain Access, which prompts securely for its password.
 # The user imports the identity interactively into Keychain Access before running this script.
 security find-identity -v -p codesigning > "$WORK/identities.txt"
 IDENTITY_SHA1="$(printf '%s' "$IDENTITY_SHA1" | tr '[:lower:]' '[:upper:]')"
