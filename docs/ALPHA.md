@@ -1,39 +1,39 @@
 # AutoRenew Alpha
 
-Esta compilação de avaliação valida a navegação, o painel, o histórico e os fluxos locais. Ela ainda não renova aplicativos.
+Esta compilação de avaliação permite cadastrar manualmente aplicativos, acompanhar as datas informadas e receber lembretes locais. Ela ainda não lê apps instalados nem renova assinaturas.
 
 ## O que pode ser avaliado
 
-- Interface SwiftUI do painel, lista de itens de demonstração e histórico.
-- Preferências locais e persistência.
-- Agendamento e notificações, sujeitos às regras e decisões do iOS.
-- Registro transparente de tentativas não executadas.
+- Interface SwiftUI para cadastro manual de nome, Bundle ID e data informada de expiração.
+- Painel com estados calculados a partir dessa data manual.
+- Persistência local e histórico limitado.
+- Lembretes 48h/24h/6h antes da data cadastrada.
+- Agendamento em segundo plano, sujeito às regras e decisões do iOS.
 
 ## O que NÃO está implementado
 
-- Login Apple, autenticação de dois fatores ou integração real com AltSign/minimuxer.
+- Login Apple, autenticação de dois fatores ou integração real com SideSign/AltSign/minimuxer.
+- Leitura automática da lista de apps instalados.
+- Extração de datas reais de certificados e provisioning profiles.
 - Reassinatura, reinstalação ou renovação real de IPA.
-- Inventário real de certificados/perfis e leitura confiável da validade.
-- Revogação de certificados.
-- Instalação silenciosa ou bypass dos limites do iOS.
+- Revogação de certificados, instalação silenciosa ou bypass dos limites do iOS.
 
-O backend `StubSigningBackend` falha com `notImplemented`. Ele não simula uma nova data de expiração, não altera a validade e não registra sucesso. Os itens e datas atuais são dados de demonstração.
+O backend `StubSigningBackend` informa que a integração não está implementada. Ele não simula uma nova data de expiração, não altera a validade e não registra sucesso. Os estados no painel derivam exclusivamente das datas inseridas manualmente.
 
 ## Segurança e limites
 
 - Esta Alpha não solicita nem persiste senha Apple ID, códigos 2FA, cookies, tokens de sessão ou chaves privadas.
-- A tela de Ajustes não oferece campos para credenciais Apple.
 - Na primeira inicialização desta versão, o app remove do Keychain o item legado `applePassword` que versões anteriores podiam ter gravado.
 - Provedores Anisette configurados precisam usar HTTPS e retornar HTTP 2xx com metadados esperados.
+- O cache Anisette é isolado por actor para evitar acessos concorrentes.
 - Não envie credenciais em issues, logs ou mensagens.
 - Não use certificados compartilhados, endpoints privados/não documentados ou automação que burle controles da Apple.
 - Falhas de rede devem permanecer como estado desconhecido; nunca devem ser interpretadas como revogação.
-- Qualquer futura ação de revogação deve ser explícita e precedida de verificação de dependências.
 - Contas Apple gratuitas têm limites e prazos impostos pela Apple; a Alpha não os contorna.
 
 ## Próximas etapas
 
-1. Inventário local e não destrutivo de perfis/certificados reais.
+1. Importação explícita e inventário local não destrutivo de perfis/certificados reais.
 2. Estados verificáveis: válido, próximo do vencimento, expirado, revogado e desconhecido.
 3. Integração com fluxo de assinatura documentado e suportado, condicionado a pareamento, dispositivo e autenticação explícita.
 4. Testes automatizados, depois testes em iPhone físico com logs sem dados sensíveis.
