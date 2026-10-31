@@ -218,9 +218,10 @@ actor RefreshCoordinator {
     }
 
     private func rescheduleNotifications() async {
-        await MainActor.run {
-            Notifier.reschedule(AppStore.shared.apps)
+        let (apps, thresholdHours) = await MainActor.run {
+            (AppStore.shared.apps, AppStore.shared.settings.thresholdHours)
         }
+        await Notifier.reschedule(apps, thresholdHours: thresholdHours)
     }
 
     private func fail(_ app: ManagedApp, _ trigger: String, _ message: String) async {
