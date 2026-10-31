@@ -42,7 +42,7 @@ enum Notifier {
 
                 let content = UNMutableNotificationContent()
                 content.title = "\(app.name) expira em aproximadamente \(Int(hours))h"
-                content.body = "Abra o AutoRenew para conferir a data cadastrada. O app não renova automaticamente."
+                content.body = "A renovação automática não está disponível nesta versão. Abra o AutoRenew para conferir a data cadastrada."
                 content.sound = settings.soundSetting == .enabled ? .default : nil
 
                 let components = Calendar.current.dateComponents(
