@@ -42,6 +42,9 @@ targets:
       path: Installer-Info.plist
       properties:
         NSLocalNetworkUsageDescription: Necessário para comunicar com o próprio dispositivo.
+        CFBundleURLTypes:
+          - CFBundleURLName: app.autorenew.Installer.import
+            CFBundleURLSchemes: [autorenewinstaller]
   AutoRenewTests:
     type: bundle.unit-test
     platform: iOS
