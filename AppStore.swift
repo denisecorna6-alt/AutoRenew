@@ -102,7 +102,7 @@ final class AppStore: ObservableObject {
         let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedID = bundleID.trimmingCharacters(in: .whitespacesAndNewlines)
         let validBundleID = normalizedID.range(
-            of: #"^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$"#,
+            of: #"^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$"#,
             options: .regularExpression
         ) != nil
         guard !normalizedName.isEmpty, normalizedName.count <= 80,
