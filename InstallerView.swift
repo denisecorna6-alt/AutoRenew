@@ -592,4 +592,3 @@ struct InstallerView: View {
         }
     }
 }
-}
