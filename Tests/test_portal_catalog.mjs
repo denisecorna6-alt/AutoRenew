@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { channelFor, isUnsignedRelease, latestRunForChannel, matchesBuildBranch } from "../docs/catalog.mjs";
 
 const runs = [
@@ -19,4 +20,12 @@ assert.equal(channelFor({ tag_name: "v1.0.0", prerelease: false }), "stable");
 assert.equal(isUnsignedRelease({ body: "IMPORTANTE: os dois IPAs são unsigned" }), true);
 assert.equal(isUnsignedRelease({ body: "Assinatura não verificada" }), false);
 
-console.log("Portal catalog regression tests passed.");
+const html = readFileSync(new URL("../docs/index.html", import.meta.url), "utf8");
+assert.match(html, /<script type="module">/);
+assert.match(html, /latestRunForChannel\(j\.workflow_runs/);
+assert.match(html, /runs\?per_page=100/);
+assert.match(html, /aria-live="polite"/);
+assert.match(html, /não assina nem instala por conta própria/);
+assert.match(html, /IPA UNSIGNED/);
+assert.doesNotMatch(html, /fluxo oficial do instalador/);
+console.log("Portal catalog and page regression tests passed.");
