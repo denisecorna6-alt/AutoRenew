@@ -1,6 +1,7 @@
 import datetime
 import hashlib
 import os
+from pathlib import Path
 import plistlib
 import subprocess
 import sys
@@ -10,6 +11,7 @@ import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VALIDATOR = os.path.join(ROOT, "tools", "validate-signing-inputs.py")
+VAULT = os.path.join(ROOT, "SigningIdentityVault.swift")
 
 class SigningInputValidationTests(unittest.TestCase):
     def setUp(self):
@@ -23,7 +25,7 @@ class SigningInputValidationTests(unittest.TestCase):
         self.cert = b"synthetic-test-certificate"
         self.identity = hashlib.sha1(self.cert).hexdigest().upper()
         profile = {
-            "ExpirationDate": datetime.datetime.utcnow() + datetime.timedelta(days=5),
+            "ExpirationDate": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=5),
             "TeamIdentifier": ["ABCDE12345"],
             "ApplicationIdentifierPrefix": ["ABCDE12345"],
             "ProvisionedDevices": ["TEST-DEVICE"],
@@ -77,8 +79,11 @@ class SigningInputValidationTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("DeveloperCertificates", result.stderr)
 
+    def test_signing_vault_source_exists(self):
+        self.assertTrue(Path(VAULT).is_file(), VAULT)
+
     def test_signing_vault_uses_explicit_certificate_status_guards(self):
-        source = open(VAULT, encoding="utf-8").read()
+        source = Path(VAULT).read_text(encoding="utf-8")
         self.assertIn("let certificateStatus = SecIdentityCopyCertificate(identity, &certificate)", source)
         self.assertIn("guard certificateStatus == errSecSuccess else", source)
         self.assertIn("guard let certificate else", source)
