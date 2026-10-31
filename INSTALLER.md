@@ -16,6 +16,17 @@ O Installer é um app iOS independente. Para obter o pacote de avaliação mais 
 
 A pré-verificação não confirma que o IPA é válido, seguro, compatível ou assinado corretamente. O AutoRenew não recebe confirmação do resultado da instalação.
 
+## Instalação assistida por Mac (IPA já assinado)
+
+Se você tiver um Mac com Xcode, o repositório inclui `tools/install-to-iphone.sh`. Ele usa `xcrun devicectl` para solicitar instalação no iPhone:
+
+```sh
+xcrun devicectl list devices
+./tools/install-to-iphone.sh <identificador-do-iphone> /caminho/para/app-assinado.ipa
+```
+
+O iPhone precisa estar pareado/confiado pelo Mac e o IPA precisa ter assinatura de desenvolvimento válida e perfil que inclua o dispositivo. Esta ferramenta não assina o IPA. A confirmação do comando não substitui o teste de abertura no aparelho.
+
 ## O que há no Installer
 
 - Navegação de Releases públicas Stable/Beta/Alpha do AutoRenew.
