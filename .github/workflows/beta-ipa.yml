@@ -2,14 +2,14 @@ name: AutoRenew Beta IPA
 
 on:
   push:
-    branches: [beta]
+    branches: [beta, codex/ipa-packaging-validation]
     tags: ['beta-v*']
   pull_request:
     branches: [beta]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: beta-ipa-${{ github.ref }}
@@ -25,16 +25,29 @@ jobs:
         run: brew install xcodegen
       - name: Generate Xcode project
         run: xcodegen generate
-      - name: Archive unsigned iOS app
+      - name: Archive unsigned beta app (separate bundle ID)
         run: |
-          xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -archivePath build/AutoRenew-Beta.xcarchive CODE_SIGNING_ALLOWED=NO archive
-      - name: Package unsigned IPA for SideStore/AltStore signing
+          set -euo pipefail
+          xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -archivePath build/AutoRenew-Beta.xcarchive -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO PRODUCT_BUNDLE_IDENTIFIER=app.autorenew.AutoRenew.beta INFOPLIST_KEY_CFBundleDisplayName='AutoRenew Beta' archive
+      - name: Validate and package beta IPA
         run: |
-          mkdir -p build/ipa/Payload
-          APP_PATH=$(find build/AutoRenew-Beta.xcarchive/Products/Applications -maxdepth 1 -name '*.app' -print -quit)
+          set -euo pipefail
+          APP_PATH="$(find build/AutoRenew-Beta.xcarchive/Products/Applications -maxdepth 1 -type d -name '*.app' -print -quit)"
           test -n "$APP_PATH"
-          cp -R "$APP_PATH" build/ipa/Payload/
-          (cd build/ipa && /usr/bin/zip -qry ../AutoRenew-Beta-unsigned.ipa Payload)
+          test -s "$APP_PATH/AutoRenew"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist" | grep -Fx 'app.autorenew.AutoRenew.beta'
+          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP_PATH/Info.plist" | grep -Fx '17.0'
+          file "$APP_PATH/AutoRenew"
+          mkdir -p build/beta/Payload
+          ditto "$APP_PATH" build/beta/Payload/AutoRenew Beta.app
+          mv "build/beta/Payload/AutoRenew Beta.app" build/beta/Payload/AutoRenew.app
+          (cd build/beta && /usr/bin/zip -qry ../AutoRenew-Beta-unsigned.ipa Payload)
+          /usr/bin/unzip -t build/AutoRenew-Beta-unsigned.ipa
+          test "$(stat -f%z build/AutoRenew-Beta-unsigned.ipa)" -gt 20000
+          echo "IPA bytes: $(stat -f%z build/AutoRenew-Beta-unsigned.ipa)"
+          echo "Executable bytes: $(stat -f%z "$APP_PATH/AutoRenew")"
+          echo "App bundle files:"
+          find "$APP_PATH" -maxdepth 2 -type f -print
       - name: Upload Beta IPA
         uses: actions/upload-artifact@v4
         with:
@@ -42,9 +55,3 @@ jobs:
           path: build/AutoRenew-Beta-unsigned.ipa
           if-no-files-found: error
           retention-days: 30
-      - name: Publish public Beta pre-release
-        if: startsWith(github.ref, 'refs/tags/beta-v')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "${GITHUB_REF_NAME}" build/AutoRenew-Beta-unsigned.ipa --prerelease --title "AutoRenew ${GITHUB_REF_NAME} (Beta)" --notes "Build Beta experimental. IPA sem assinatura; importe no SideStore/AltStore para assinar com seu Apple ID. Pode conter bugs. Não é versão oficial."
