@@ -270,6 +270,7 @@ struct SettingsView: View {
                     Text("O bloqueio de domínios por VPN também não está implementado e exigiria permissões específicas.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                SideStoreAutomationGuide()
             }
             .navigationTitle("Ajustes")
             .onChange(of: store.settings.thresholdHours) { _, _ in
