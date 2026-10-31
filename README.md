@@ -64,7 +64,7 @@ Referências:
 ## Limites atuais da Alpha
 
 - O catálogo baixa e guarda os IPAs. **Ainda não assina nem instala aplicativos**.
-- Login Apple, autenticação 2FA, assinatura própria no dispositivo e instalação direta dentro do AutoRenew ainda não estão implementados. A Alpha oferece pré-verificação e encaminhamento para AltStore/SideStore.
+- Login Apple, autenticação 2FA, provisionamento Anisette V3, assinatura própria no dispositivo e instalação direta dentro do AutoRenew ainda não estão implementados. A Alpha oferece pré-verificação e encaminhamento para AltStore/SideStore; nenhum servidor Anisette é contatado por padrão.
 - A importação de .p12 e .mobileprovision no Installer é armazenamento/gestão local; ainda não comprova compatibilidade nem produz assinatura.
 - Não envie senha Apple ID, códigos 2FA, cookies, tokens ou chaves privadas.
 - Não há Releases públicas oficiais até que uma publicação seja aprovada. Builds de Actions não são Releases públicas.
