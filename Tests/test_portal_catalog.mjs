@@ -10,7 +10,7 @@ const runs = [
 
 assert.equal(latestRunForChannel(runs, "Alpha").id, "alpha-latest");
 assert.equal(latestRunForChannel(runs, "Beta").id, "beta");
-assert.equal(latestRunForChannel(runs, "Oficial").id, "main");
+assert.equal(latestRunForChannel(runs, "Oficial").id, "main-newer");
 assert.equal(latestRunForChannel([], "Alpha"), null);
 assert.equal(matchesBuildBranch(runs[0], "Alpha"), false);
 assert.equal(channelFor({ tag_name: "alpha-2026.10.31", prerelease: true }), "alpha");
