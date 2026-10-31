@@ -394,4 +394,77 @@ final class AlphaSafetyTests: XCTestCase {
         ))
     }
 
+
+    func testAnisetteV3ProvisioningProtocolEnforcesDocumentedMessageSequence() throws {
+        var machine = AnisetteV3ProvisioningStateMachine()
+        XCTAssertEqual(
+            try machine.receive(json: Data(#"{"result":"GiveIdentifier"}"#.utf8)),
+            .sendIdentifier
+        )
+        XCTAssertEqual(
+            try machine.receive(json: Data(#"{"result":"GiveStartProvisioningData"}"#.utf8)),
+            .requestStartProvisioning
+        )
+        XCTAssertEqual(
+            try machine.receive(json: Data(#"{"result":"GiveEndProvisioningData","cpim":"client-metadata"}"#.utf8)),
+            .requestFinishProvisioning(cpim: "client-metadata")
+        )
+        let adi = Data(repeating: 0x5A, count: 64)
+        let encoded = adi.base64EncodedString()
+        XCTAssertEqual(
+            try machine.receive(json: Data(#"{"result":"ProvisioningSuccess","adi_pb":"\#(encoded)"}"#.utf8)),
+            .completed(adiPB: adi)
+        )
+        XCTAssertThrowsError(try machine.receive(json: Data(#"{"result":"GiveIdentifier"}"#.utf8))) { error in
+            XCTAssertEqual(error as? AnisetteV3ProvisioningProtocolError, .alreadyCompleted)
+        }
+    }
+
+    func testAnisetteV3ProvisioningProtocolRejectsOutOfOrderAndTimeout() throws {
+        var machine = AnisetteV3ProvisioningStateMachine()
+        XCTAssertThrowsError(try machine.receive(json: Data(#"{"result":"GiveStartProvisioningData"}"#.utf8))) { error in
+            XCTAssertEqual(error as? AnisetteV3ProvisioningProtocolError, .unexpectedMessage)
+        }
+        XCTAssertThrowsError(try machine.receive(json: Data(#"{"result":"Timeout"}"#.utf8))) { error in
+            XCTAssertEqual(error as? AnisetteV3ProvisioningProtocolError, .timedOut)
+        }
+    }
+
+    func testAnisetteV3ProvisioningProtocolRejectsMalformedAndOversizedMessages() {
+        for payload in [
+            Data(#"{"result":"UnknownStep"}"#.utf8),
+            Data(#"{"result":"GiveEndProvisioningData","cpim":""}"#.utf8),
+            Data(#"{"result":"ProvisioningSuccess","adi_pb":"not-base64!"}"#.utf8),
+            Data(#"{"result":"ProvisioningSuccess","adi_pb":""}"#.utf8),
+            Data(#"{"result":"GiveEndProvisioningData"}"#.utf8)
+        ] {
+            XCTAssertThrowsError(try JSONDecoder().decode(AnisetteV3ProvisioningMessage.self, from: payload))
+        }
+    }
+
+    func testAnisetteV3ProvisioningRepliesUseExactJSONFieldsAndBase64Identifier() throws {
+        let identifier = Data(repeating: 0xA5, count: 16)
+        let identifierObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: AnisetteV3ProvisioningReply.identifier(identifier).jsonData()) as? [String: String]
+        )
+        XCTAssertEqual(identifierObject["identifier"], identifier.base64EncodedString())
+
+        let startObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: AnisetteV3ProvisioningReply.spim("spim-value").jsonData()) as? [String: String]
+        )
+        XCTAssertEqual(startObject["spim"], "spim-value")
+
+        let finishObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: AnisetteV3ProvisioningReply.finish(ptm: "ptm-value", tk: "tk-value").jsonData()) as? [String: String]
+        )
+        XCTAssertEqual(finishObject["ptm"], "ptm-value")
+        XCTAssertEqual(finishObject["tk"], "tk-value")
+    }
+
+    func testAnisetteV3ProvisioningRepliesRejectInvalidSensitivePayloads() {
+        XCTAssertThrowsError(try AnisetteV3ProvisioningReply.identifier(Data([1])).jsonData())
+        XCTAssertThrowsError(try AnisetteV3ProvisioningReply.spim("").jsonData())
+        XCTAssertThrowsError(try AnisetteV3ProvisioningReply.finish(ptm: "", tk: "tk").jsonData())
+    }
+
 }
