@@ -17,6 +17,7 @@ struct ImportedProfile: Codable, Identifiable, Hashable {
 enum ProfileImportError: LocalizedError, Equatable {
     case unsupportedFile
     case fileTooLarge
+    case emptyFile
     case duplicate
     case unreadable
     case storage
@@ -25,6 +26,7 @@ enum ProfileImportError: LocalizedError, Equatable {
         switch self {
         case .unsupportedFile: return "Selecione um arquivo .mobileprovision."
         case .fileTooLarge: return "O arquivo excede o limite de 25 MB."
+        case .emptyFile: return "O arquivo selecionado está vazio."
         case .duplicate: return "Este arquivo já foi importado (mesmo SHA-256)."
         case .unreadable: return "Não foi possível ler o arquivo selecionado."
         case .storage: return "Não foi possível guardar uma cópia local do perfil."
@@ -49,11 +51,17 @@ enum ProfileImporter {
             if didAccess { sourceURL.stopAccessingSecurityScopedResource() }
         }
 
+        guard let fileSize = try? sourceURL.resourceValues(forKeys: [.fileSizeKey]).fileSize else {
+            throw ProfileImportError.unreadable
+        }
+        guard fileSize <= maximumFileSize else {
+            throw ProfileImportError.fileTooLarge
+        }
         guard let data = try? Data(contentsOf: sourceURL, options: .mappedIfSafe) else {
             throw ProfileImportError.unreadable
         }
-        guard !data.isEmpty, data.count <= maximumFileSize else {
-            throw ProfileImportError.fileTooLarge
+        guard !data.isEmpty else {
+            throw ProfileImportError.emptyFile
         }
 
         do {
