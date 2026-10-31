@@ -32,6 +32,9 @@ final class AppStore: ObservableObject {
 
     func log(_ app: ManagedApp, trigger: String, success: Bool, message: String) {
         attempts.append(RefreshAttempt(bundleID: app.bundleID, trigger: trigger, success: success, message: message))
+        if attempts.count > 500 {
+            attempts.removeFirst(attempts.count - 500)
+        }
     }
 
     func didRefresh(_ app: ManagedApp, newExpiry: Date, trigger: String) {
