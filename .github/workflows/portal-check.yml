@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/portal-catalog-safety-20261031
+      - codex/policy-artifact-scope-20261031
     paths:
       - 'docs/index.html'
       - 'docs/catalog.mjs'
