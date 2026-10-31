@@ -2,6 +2,10 @@ name: Build IPA
 on:
   workflow_dispatch:
   push: { branches: [main] }
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: macos-15
@@ -12,10 +16,15 @@ jobs:
           xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew -configuration Release \
             -sdk iphoneos -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
-      - run: |
-          mkdir Payload
+      - name: Package explicitly unsigned IPA
+        run: |
+          mkdir -p Payload
           cp -R build/Build/Products/Release-iphoneos/AutoRenew.app Payload/
-          zip -qr AutoRenew.ipa Payload
-      - uses: actions/upload-artifact@v4
-        with: { name: AutoRenew-ipa, path: AutoRenew.ipa }
-         
+          zip -qr AutoRenew-unsigned.ipa Payload
+      - name: Upload explicitly unsigned IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoRenew-ipa-unsigned
+          path: AutoRenew-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
