@@ -114,14 +114,19 @@ struct SettingsView: View {
                 Section("Lembretes") {
                     Stepper("Avisar com menos de \(Int(store.settings.thresholdHours))h",
                             value: $store.settings.thresholdHours, in: 6...120, step: 6)
-                    Button("Ativar lembretes") {
-                        Task {
-                            let granted = await Notifier.requestAuthorization()
-                            await Notifier.reschedule(store.apps, thresholdHours: store.settings.thresholdHours)
-                            notificationMessage = granted
-                                ? "Permissão concedida. Os lembretes futuros foram programados quando possível."
-                                : "Permissão não concedida. Ative as notificações do AutoRenew nos Ajustes do iPhone."
+                    if store.apps.contains(where: { $0.isActive && $0.isDemo != true }) {
+                        Button("Ativar lembretes") {
+                            Task {
+                                let granted = await Notifier.requestAuthorization()
+                                await Notifier.reschedule(store.apps, thresholdHours: store.settings.thresholdHours)
+                                notificationMessage = granted
+                                    ? "Permissão concedida. Os lembretes futuros foram programados quando possível."
+                                    : "Permissão não concedida. Ative as notificações do AutoRenew nos Ajustes do iPhone."
+                            }
                         }
+                    } else {
+                        Text("Não há apps reais cadastrados. Dados de demonstração não geram notificações.")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
                     if let notificationMessage {
                         Text(notificationMessage).font(.caption).foregroundStyle(.secondary)
