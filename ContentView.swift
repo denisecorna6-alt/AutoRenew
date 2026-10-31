@@ -39,7 +39,7 @@ struct DashboardView: View {
                 Section {
                     Label("Integração de assinatura pendente", systemImage: "info.circle")
                         .font(.headline)
-                    Text("Esta versão ainda usa um backend simulado. O botão de teste não assina nem reinstala aplicativos. A integração com SideSign e Minimuxer ainda precisa ser concluída.")
+                    Text("A assinatura real ainda não está disponível. O AutoRenew não renova nem reinstala aplicativos até a integração com SideSign e Minimuxer ser concluída.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
