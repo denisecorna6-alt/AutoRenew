@@ -1,4 +1,5 @@
 import CoreFoundation
+import CryptoKit
 import Foundation
 import Security
 
@@ -76,7 +77,7 @@ enum SigningIdentityProfileMatcher {
         }
 
         let certificateData = SecCertificateCopyData(certificate) as Data
-        let digest = SHA256Digest.hex(certificateData)
+        let digest = SHA256.hash(data: certificateData).map { String(format: "%02x", $0) }.joined()
         let subject = SecCertificateCopySubjectSummary(certificate) as String? ?? "Certificado sem nome"
         let profileReport = profile.metadataReport(for: bundleIdentifier, now: now)
 
@@ -90,13 +91,3 @@ enum SigningIdentityProfileMatcher {
     }
 }
 
-private enum SHA256Digest {
-    static func hex(_ data: Data) -> String {
-        // CommonCrypto is available on iOS and macOS through the system SDK.
-        var digest = [UInt8](repeating: 0, count: 32)
-        data.withUnsafeBytes { bytes in
-            _ = CC_SHA256(bytes.baseAddress, CC_LONG(data.count), &digest)
-        }
-        return digest.map { String(format: "%02x", $0) }.joined()
-    }
-}
