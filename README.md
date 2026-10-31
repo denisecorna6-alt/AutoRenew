@@ -1,12 +1,14 @@
 # AutoRenew
 
-**Aplicativo iOS para acompanhar a validade de apps instalados por sideloading e preparar um fluxo seguro de renovação.**
+**Aplicativo iOS para acompanhar datas de validade de apps instalados por sideloading e preparar um fluxo seguro de organização.**
 
-> **Estado atual:** projeto em desenvolvimento. A renovação real ainda não está implementada. O backend atual é um stub de demonstração; não trate esta versão como renovador automático funcional.
+> **Estado atual:** protótipo em desenvolvimento. O backend de renovação é indisponível por padrão; o app não assina, não reinstala e não altera datas de validade como se uma renovação tivesse ocorrido.
 
 ## Comece aqui
 
 - [Estado do projeto e roadmap](docs/ROADMAP.md)
+- [Notas da Alpha](docs/ALPHA.md)
+- [Portal público](https://xlightxt.github.io/AutoRenew/)
 - [Issues abertas](https://github.com/xlightxt/AutoRenew/issues)
 - [Pull requests](https://github.com/xlightxt/AutoRenew/pulls)
 - [Execuções e builds](https://github.com/xlightxt/AutoRenew/actions)
@@ -16,36 +18,38 @@
 
 | Área | Situação |
 |---|---|
-| Interface SwiftUI e painel | Estrutura inicial |
-| Lembretes e acompanhamento de validade | Parcial; depende da branch/versão |
-| Assinatura de IPA | Não implementada no backend atual |
+| Interface SwiftUI e painel | Protótipo inicial com dados de demonstração |
+| Lembretes e acompanhamento de validade | Lembretes locais; não lê automaticamente apps instalados |
+| Assinatura de IPA | Não implementada |
 | Renovação e reinstalação automáticas | Não implementadas |
-| Monitoramento de certificados Apple | Planejado; não conectado a uma API real |
-| Revogação automática | Não implementada; exige suporte oficial, propriedade verificada e autorização explícita |
-| Portal de downloads | Em revisão; ainda não é um site publicado |
-| IPA de CI | Artefatos de teste sem assinatura; não são releases instaláveis diretamente |
+| Monitoramento de certificados Apple | Não implementado |
+| Revogação automática | Não implementada |
+| Portal de downloads | Público no GitHub Pages; catálogo de Releases dinâmico |
+| Releases públicas | Uma pré-release Alpha; nenhuma Beta ou Stable |
+| IPA público | Os IPAs Alpha publicados são unsigned e não instaláveis diretamente |
 
 ## Gerar o projeto (macOS)
 
-```bash
+\`\`\`bash
 brew install xcodegen
 xcodegen generate
 open AutoRenew.xcodeproj
-```
+\`\`\`
 
-A geração e a compilação precisam ser verificadas no Xcode e em um iPhone real antes de declarar uma versão pronta.
+Uma compilação bem-sucedida não comprova assinatura válida, instalação ou primeiro lançamento em iPhone real.
 
-## Instalar builds
+## Builds e instalação
 
-Os artefatos atuais de CI são **unsigned**. Eles não podem ser instalados diretamente como se fossem um IPA assinado. Use um fluxo legítimo de assinatura no dispositivo, como SideStore/AltStore, e siga as limitações da conta Apple utilizada. Uma conta Apple gratuita não fornece certificados permanentes nem garante renovação silenciosa ilimitada.
+Os artefatos de CI e os IPAs da Alpha pública são **unsigned**. São pacotes de teste, não instaladores prontos para abrir diretamente no iPhone. A instalação exige assinatura válida e um método compatível, como um fluxo legítimo do SideStore/AltStore. A conta Apple gratuita tem limites e prazos definidos pela Apple.
 
 ## Segurança
 
-- Nunca envie Apple ID, senha, códigos 2FA, cookies, tokens, certificados privados ou arquivos de pareamento em Issues/PRs.
-- Não centralize credenciais Apple ou chaves privadas.
-- Falha de rede ou indisponibilidade de serviço deve resultar em estado **desconhecido**, nunca em falso diagnóstico de certificado revogado.
-- Revogação deve ser desativada por padrão, limitada a certificados próprios e só ocorrer com mecanismo oficialmente suportado e autorização explícita.
+- A Alpha não solicita nem armazena Apple ID, senha, códigos 2FA, cookies, tokens, certificados privados ou chaves privadas.
+- A migração de segurança remove o item de senha legado criado por versões anteriores e regrava o estado local sem os campos antigos de Apple ID/Anisette.
+- Nenhum servidor Anisette é consultado enquanto não existir um backend revisado.
 - Não use endpoints privados/não documentados da Apple.
+- Falha de rede deve resultar em estado desconhecido, nunca em falso diagnóstico de certificado revogado.
+- Não revogue certificados de terceiros ou compartilhados.
 
 ## Fluxo de desenvolvimento
 
