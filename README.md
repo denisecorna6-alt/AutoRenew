@@ -38,9 +38,20 @@ xcrun devicectl list devices
 ./tools/install-to-iphone.sh <identificador-do-iphone> /caminho/para/app-assinado.ipa
 ```
 
-Requisitos: Mac com Xcode instalado, iPhone pareado/confiado pelo computador, Developer Mode quando exigido e IPA assinado com certificado/perfil compatíveis com esse dispositivo. O helper extrai o IPA, exige um único app principal, verifica a assinatura com `codesign`, valida que o perfil CMS pode ser lido e solicita a instalação pelo `devicectl`.
+Requisitos: Mac com Xcode instalado, iPhone pareado/confiado pelo computador, Developer Mode quando exigido e IPA assinado com certificado/perfil compatíveis com esse dispositivo. O helper extrai o IPA, exige um único app principal, verifica a assinatura com `codesign`, verifica a assinatura CMS do perfil e confere Bundle ID/Team ID e solicita a instalação pelo `devicectl`.
 
 O helper não cria certificados, não registra dispositivos, não assina IPAs e não contorna o provisionamento. O sucesso do comando também não comprova que o app abriu corretamente no iPhone.
+
+## Assinatura local assistida por Mac (experimental)
+
+Há um pipeline local opcional em `tools/sign-ipa-macos.sh`. Ele exige um IPA, uma identidade de desenvolvimento importada pelo usuário no Acesso às Chaves, perfis e entitlements para cada bundle e um manifesto JSON. O fluxo não é executado pelo app iOS.
+
+1. Importe o `.p12` pelo **Acesso às Chaves (Keychain Access)**; a senha é digitada no diálogo do macOS.
+2. Liste as identidades válidas com `security find-identity -v -p codesigning` e copie o SHA-1 da identidade correta.
+3. Siga o modelo de manifesto em `Projects/AutoRenewSigningKit/SIGNING_PIPELINE.md`.
+4. Execute `tools/sign-ipa-macos.sh unsigned.ipa SHA1_DA_IDENTIDADE signing-manifest.json signed.ipa`.
+
+O helper verifica a estrutura ZIP, CMS dos perfis, Bundle ID, Team ID, validade, certificado e entitlements, depois assina e verifica os bundles. Não recebe senha PKCS#12, não altera a lista global de keychains e não envia material à rede. Este caminho ainda precisa ser validado com certificados/perfis reais e em iPhone físico; não equivale a renovação automática.
 
 ## Compatibilidade de fontes
 
