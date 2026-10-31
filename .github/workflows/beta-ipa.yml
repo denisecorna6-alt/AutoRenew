@@ -1,10 +1,6 @@
 name: AutoRenew Beta IPA
 
 on:
-  push:
-    branches: [beta]
-  pull_request:
-    branches: [beta]
   workflow_dispatch:
 
 permissions:
@@ -16,6 +12,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.ref == 'refs/heads/beta'
     runs-on: macos-latest
     timeout-minutes: 45
     steps:

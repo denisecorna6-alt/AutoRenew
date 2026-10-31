@@ -6,8 +6,8 @@ Audit date: 2026-10-31.
 
 - URL: https://xlightxt.github.io/AutoRenew/
 - The portal is public and reads GitHub Releases and Actions metadata dynamically.
-- Last functional portal deployment before the documentation refresh: run [#41244510524](https://github.com/xlightxt/AutoRenew/actions/runs/41244510524), success, main commit bcdeb0b. The documentation refresh merged in PR #31 (commit `104988b`) was published by Pages run [#41244958973](https://github.com/xlightxt/AutoRenew/actions/runs/41244958973).
-- The live portal now filters Alpha/Beta/Official by exact branch, labels unsigned and unverified releases, restricts dynamic links to GitHub HTTPS, and includes keyboard skip/focus and screen-reader status support.
+- Last verified portal deployment before this artifact-policy change: Pages run [#41246887159](https://github.com/xlightxt/AutoRenew/actions/runs/41246887159), success, main commit `df85d28`.
+- Before this policy change, the portal filtered Alpha/Beta/Official by exact branch, labeled unsigned and unverified releases, restricted dynamic links to GitHub HTTPS, and included keyboard skip/focus and screen-reader status support, but still exposed direct links to unsigned Alpha assets. The policy below removes those links.
 
 ## Release catalog observed
 
@@ -25,16 +25,16 @@ Audit date: 2026-10-31.
 | Alpha | [#41242635812](https://github.com/xlightxt/AutoRenew/actions/runs/41242635812) | Success; 23 Swift tests passed | Alpha app/Installer build ran on Xcode 16.4 / iOS 18.5; produced two unsigned Actions artifacts |
 | Beta | [#41181299910](https://github.com/xlightxt/AutoRenew/actions/runs/41181299910) | Success | Workflow ran on the actual beta branch; no Beta Release exists |
 | Beta PR | [#41182023247](https://github.com/xlightxt/AutoRenew/actions/runs/41182023247) | Success | This was a PR branch (codex/ipa-packaging-validation), not the beta branch; it must not be shown as the Beta channel's latest build |
-| Official CI | [#41244510526](https://github.com/xlightxt/AutoRenew/actions/runs/41244510526) | Success on Xcode 26.6 / iOS Simulator SDK 26.5; 11 Python regression/policy tests passed | Simulator compile plus repository policy tests; main still has no XCTest target |
-| Official IPA | [#41244510519](https://github.com/xlightxt/AutoRenew/actions/runs/41244510519) | Success on Xcode 26.6 / iOS SDK 26.5 | Uploaded `AutoRenew-Official-unsigned-IPA` (70,958 bytes); no signature or installation validation |
-| Main build | [#41244510725](https://github.com/xlightxt/AutoRenew/actions/runs/41244510725) | Success on Xcode 16.4 / iOS SDK 18.5 | Uploaded `AutoRenew-ipa-unsigned` (106,133 bytes); legacy runner remains older than Official CI |
-| Portal deploy | [#41244510524](https://github.com/xlightxt/AutoRenew/actions/runs/41244510524) | Success | GitHub Pages deployment completed for main commit bcdeb0b |
+| Official CI | [#41246887155](https://github.com/xlightxt/AutoRenew/actions/runs/41246887155) | Success on Xcode 26.6 / iOS Simulator SDK 26.5; 13 Python regression/policy tests passed | Simulator compile plus repository policy tests; main still has no XCTest target |
+| Official IPA | [#41246887168](https://github.com/xlightxt/AutoRenew/actions/runs/41246887168) | Success on Xcode 26.6 / iOS SDK 26.5 | Uploaded `AutoRenew-Official-unsigned-IPA` (81,541 bytes); no signature or installation validation |
+| Main build | [#41246887182](https://github.com/xlightxt/AutoRenew/actions/runs/41246887182) | Success on Xcode 16.4 / iOS SDK 18.5 | Uploaded `AutoRenew-ipa-unsigned` (117,386 bytes); last automatic main push artifact before this policy gate |
+| Portal deploy | [#41246887159](https://github.com/xlightxt/AutoRenew/actions/runs/41246887159) | Success | GitHub Pages deployment completed for main commit df85d28 |
 
 An Actions artifact is a temporary CI output. An IPA is only an archive. An unsigned IPA has no valid Apple code signature and embedded provisioning profile, so it is not an installable deliverable. A signed IPA still needs a valid certificate/profile/entitlement match and device eligibility. An installation is validated only after installation on a physical iPhone/iPad. First launch is a separate validation step: the app must open successfully on that device. None of the current runs proves the last three states.
 
 The portal only reads release/build metadata. It does not inspect code signatures, install apps, or observe first launch.
 
-The `All interface orientations must be supported unless the app requires full screen` warning is absent from the post-merge Xcode 26.6/26.5 archive and simulator logs after explicit iPhone/iPad orientation declarations. The app now asks for notification permission only after the user taps **Ativar lembretes**, respects the current authorization state, caps scheduled reminders at 60, and excludes demo records from real expiry notifications. Settings also contains an informational Shortcuts guide for SideStore's public `Refresh All Apps` App Intent; AutoRenew does not invoke SideStore APIs or handle Apple credentials. Since main still has no manual app registration, no real-app reminder is scheduled yet. Remaining benign warnings: Xcode selects the first of multiple matching simulator destinations; AppIntents metadata extraction is skipped because the app does not link AppIntents; Node `punycode`/`url.parse` deprecation warnings originate in the GitHub Actions artifact action runtime, not AutoRenew source.
+The `All interface orientations must be supported unless the app requires full screen` warning is absent from the post-merge Xcode 26.6/26.5 archive and simulator logs after explicit iPhone/iPad orientation declarations. The app now asks for notification permission only after the user taps **Ativar lembretes**, respects the current authorization state, caps scheduled reminders at 60, and excludes demo records from real expiry notifications. Settings also contains an informational Shortcuts guide for SideStore's public `Refresh All Apps` App Intent; AutoRenew does not invoke SideStore APIs or handle Apple credentials. Since main still has no manual app registration, no real-app reminder is scheduled yet. Remaining benign warnings: Xcode selects the first of multiple matching simulator destinations; AppIntents metadata extraction is skipped because the app does not link AppIntents; after the Node 24 action upgrade, the `url.parse` warning is gone, but `actions/deploy-pages@v5.0.1` still emits Node DEP0040 `punycode` from a transitive dependency (upstream issue #413), not AutoRenew source.
 
 ## Repository shape
 
@@ -43,7 +43,7 @@ The `All interface orientations must be supported unless the app requires full s
 - The Alpha feature branch codex/alpha-installer-download-hardening-20261031 contains the separate AutoRenewInstaller app target and AutoRenewTests. Its latest successful run reports 23 Swift tests. Installer UI-specific end-to-end tests and physical device tests remain outstanding.
 - PacketTunnelProvider.swift is excluded from the project; no Network Extension target or entitlement is configured.
 - The Projects/ folders in the Alpha feature branch are architecture/readme placeholders, not independently buildable Swift packages. No Package.swift dependency graph is present in AutoRenew.
-- Main's build.yml produces an unsigned app archive; this PR changes its filename/artifact to `AutoRenew-unsigned.ipa` / `AutoRenew-ipa-unsigned` and adds a regression assertion. The separate Beta/Official workflows already use explicit unsigned labels.
+- The artifact policy restricts automatic `build.yml` runs to Alpha branches and names the file `AutoRenew-unsigned.ipa` / artifact `AutoRenew-ipa-unsigned`. Beta/Official IPA workflows are manual-only and branch-guarded.
 
 ## External architecture and policy research
 
@@ -73,3 +73,18 @@ Apple released iOS 27.2 on 2026-10-26 and Xcode 27.2 (27B52) on 2026-10-29; Xcod
 - The signing pipeline remains Draft pending DER/profile validation and physical-device checks.
 - The AI central workflow remains Draft; provider secrets cannot be verified from this audit, and no Claude/Gemini API calls were made.
 - Social content was not published.
+
+
+## Artifact and portal policy proposed by this PR
+
+- Automatic `build.yml` runs are restricted to `codex/alpha-*`; manual dispatch is accepted only when the selected ref is Alpha. It runs regression/safety tests before building on macOS 26 / Xcode 26.6, disables signing, verifies the IPA ZIP and uploads the unsigned artifact only after all prior steps pass.
+- `beta-ipa.yml` and `official-ipa.yml` become manual-only and require exact `beta` or `main` refs. No automatic Beta/Official IPA artifacts are produced on push or PR.
+- The portal stops exposing direct IPA `browser_download_url` links. It will show metadata and asset names but block downloads until signing, physical installation and first launch are validated. Existing GitHub Release assets are preserved; this PR does not delete history.
+- The existing Alpha Release remains unsigned. No signed IPA, Beta/Stable Release, installation or first launch is created by this change.
+- The Alpha Installer branch's artifact names include `unsigned`, but the IPA filenames inside those older artifacts do not. They must be renamed before any future Alpha artifact is offered.
+
+## Additional blockers found in open Alpha proposals
+
+- The separate Installer chain still contains PKCS#12 import/storage and an Anisette transport; keep it Draft and do not execute or merge those flows.
+- The AI implementation proposal executes Python tests from `Tests/` while provider keys and a write-capable GitHub token are present in the same environment. Generated tests could exfiltrate those variables; a diff allowlist is not a sandbox.
+- The Anisette V3 `/get_headers` proposal sends ADI/Anisette state to a configurable remote service and is not a documented public Apple API; it is blocked by the no-private-endpoints/no-auth-material rule.
