@@ -8,7 +8,7 @@ Esta etapa é uma implementação experimental inspirada na separação de fases
 
 1. inspeciona o ZIP/IPA e bloqueia path traversal, links simbólicos, entradas duplicadas, arquivos excessivos e taxa de compressão suspeita;
 2. pede ao macOS para verificar a assinatura CMS de cada provisioning profile (`security cms -V`) antes de decodificar o plist;
-3. importa o PKCS#12 em um keychain temporário e remove esse keychain ao sair;
+3. usa uma identidade de assinatura já importada pelo usuário no app Acesso às Chaves; não recebe a senha PKCS#12 nem altera a lista global de keychains;
 4. exige um manifesto com um perfil e um plist de entitlements para cada `.app` e `.appex`;
 5. verifica Bundle ID, validade do perfil, Team ID, escopo de dispositivo, DeveloperCertificates e correspondência da identidade;
 6. valida que cada entitlement solicitado está autorizado pelo perfil, exige application-identifier/Team ID exatos e permite reduzir privilégios, não elevá-los;
@@ -36,19 +36,27 @@ Crie um arquivo JSON ao lado dos perfis e dos plists, por exemplo:
 }
 ```
 
-O manifesto deve listar exatamente cada `.app` e `.appex` contido no IPA. Os caminhos de perfil e entitlements são relativos à pasta do manifesto; `bundle_path` é relativo à raiz extraída do IPA. Cada extensão precisa do seu próprio perfil e entitlements mínimos. Todos os perfis devem autorizar a mesma identidade PKCS#12 usada nesta etapa.
+O manifesto deve listar exatamente cada `.app` e `.appex` contido no IPA. Os caminhos de perfil e entitlements são relativos à pasta do manifesto; `bundle_path` é relativo à raiz extraída do IPA. Cada extensão precisa do seu próprio perfil e entitlements mínimos. Todos os perfis devem autorizar a mesma identidade de assinatura selecionada nesta etapa.
 
 ## Uso
 
 Em um Mac com Xcode e ferramentas de linha de comando:
 
-```sh
-export P12_PASSWORD='senha-do-arquivo-p12'
-tools/sign-ipa-macos.sh AutoRenew-unsigned.ipa Developer.p12 signing-manifest.json AutoRenew-signed.ipa
-unset P12_PASSWORD
-```
+1. Abra o app **Acesso às Chaves (Keychain Access)** e importe o arquivo `.p12` no keychain do usuário. Digite a senha somente no diálogo do sistema.
+2. Liste as identidades de assinatura válidas:
 
-A senha não deve ser colocada no histórico do shell, issue, log ou CI. Prefira entrada segura por prompt/gerenciador de segredos local. O helper não envia o P12, perfil ou senha à rede.
+   ```sh
+   security find-identity -v -p codesigning
+   ```
+
+3. Copie o SHA-1 de 40 caracteres da identidade que corresponde ao certificado dos perfis.
+4. Execute o helper com IPA, SHA-1, manifesto e destino:
+
+   ```sh
+   tools/sign-ipa-macos.sh AutoRenew-unsigned.ipa SHA1_DA_IDENTIDADE signing-manifest.json AutoRenew-signed.ipa
+   ```
+
+O script não importa `.p12`, não recebe senha, não cria nem altera keychains e não envia material à rede. A chave privada permanece no keychain selecionado pelo usuário. O macOS pode solicitar autorização para que `codesign` use a chave.
 
 ## Limites deliberados desta versão
 
