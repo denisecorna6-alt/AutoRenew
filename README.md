@@ -8,6 +8,7 @@
 
 - [Estado do projeto e roadmap](docs/ROADMAP.md)
 - [Notas da Alpha](docs/ALPHA.md)
+- [Portal público](https://xlightxt.github.io/AutoRenew/)
 - [Publicação do portal de downloads](docs/DEPLOYMENT.md)
 - [Kit de comunicação e colaboração](docs/social/2026-10-31.md)
 - [Issues abertas](https://github.com/xlightxt/AutoRenew/issues)
@@ -26,9 +27,9 @@
 | Renovação e reinstalação automáticas | Não implementadas |
 | Monitoramento real de certificados Apple | Não implementado |
 | Revogação de certificados | Não implementada |
-| Portal de downloads | HTML e workflow existem; GitHub Pages ainda não foi habilitado para o repositório |
-| Releases públicas | Nenhuma publicada |
-| Artefatos de CI | Builds sem assinatura; não são instaladores prontos |
+| Portal de downloads | Publicado em GitHub Pages; catálogo dinâmico e builds por branch |
+| Releases públicas | Uma pré-release Alpha; nenhuma Beta ou Stable |
+| Artefatos de CI | Separados das Releases; IPAs unsigned, sem instalação validada |
 
 ## Gerar o projeto (macOS)
 
@@ -42,9 +43,9 @@ A geração e a compilação precisam ser verificadas no Xcode. Uma compilação
 
 ## Builds e instalação
 
-Consulte [GitHub Actions](https://github.com/xlightxt/AutoRenew/actions) para ver as execuções e os artefatos. Os IPAs gerados pela CI são **unsigned** (sem assinatura de desenvolvimento). Eles não podem ser instalados diretamente como se fossem um IPA assinado. Não há Release pública neste momento.
+Consulte o [portal público](https://xlightxt.github.io/AutoRenew/) e [GitHub Actions](https://github.com/xlightxt/AutoRenew/actions). Em 31/10/2026 existe uma pré-release Alpha, `alpha-2026.10.31-c1feeb6`, com `AutoRenew.ipa` e `AutoRenew-Installer.ipa`; ambos são **unsigned**. Os artefatos de Actions são itens separados das Releases e têm retenção limitada. Não existe IPA assinado, instalação em iPhone validada ou primeiro lançamento confirmado.
 
-A instalação de um IPA exige assinatura válida e um método compatível, como um fluxo legítimo do SideStore/AltStore. Os limites variam conforme a conta e o método; uma conta Apple gratuita não oferece certificado permanente nem garante renovação silenciosa ilimitada.
+A instalação de um IPA exige assinatura válida e um método compatível, como um fluxo legítimo do SideStore/AltStore. O AutoRenew Installer ainda não assina nem instala por conta própria. Uma compilação, artefato ou Release não comprova instalação nem primeiro lançamento. Os limites variam conforme a conta e o método; uma conta Apple gratuita não oferece certificado permanente nem garante renovação silenciosa ilimitada.
 
 ## Segurança
 
