@@ -43,6 +43,14 @@ class EcosystemSafetyPolicy(unittest.TestCase):
         self.assertIn("guard selectedBackend.isAvailable", coordinator)
         self.assertIn("Nenhuma alteração foi feita", coordinator)
 
+    def test_app_records_reject_invalid_bundle_ids_and_past_expiry(self):
+        store = read("AppStore.swift")
+        self.assertIn('of: #\"^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$\"#', store)
+        self.assertIn("normalizedName.count <= 80", store)
+        self.assertIn("normalizedID.count <= 255", store)
+        self.assertIn("expiresAt > Date()", store)
+        self.assertIn("func removeApps(at offsets: IndexSet)", store)
+
     def test_manual_refresh_forces_all_apps_and_reports_result(self):
         dashboard = read("ContentView.swift")
         self.assertIn('trigger: "manual", budget: .seconds(30), force: true', dashboard)
