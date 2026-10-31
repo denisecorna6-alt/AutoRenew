@@ -60,6 +60,10 @@ enum ProfileImporter {
         guard let data = try? Data(contentsOf: sourceURL, options: .mappedIfSafe) else {
             throw ProfileImportError.unreadable
         }
+        // Recheck the bytes actually read: the source could change after the metadata check.
+        guard data.count <= maximumFileSize else {
+            throw ProfileImportError.fileTooLarge
+        }
         guard !data.isEmpty else {
             throw ProfileImportError.emptyFile
         }
