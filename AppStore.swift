@@ -15,9 +15,9 @@ final class AppStore: ObservableObject {
         var settings: AppSettings
     }
     private let url: URL = {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("store.json")
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory.appendingPathComponent("store.json")
     }()
     private var loading = true
 
@@ -45,18 +45,30 @@ final class AppStore: ObservableObject {
     func log(_ app: ManagedApp, trigger: String, success: Bool, message: String) {
         attempts.append(RefreshAttempt(bundleID: app.bundleID, trigger: trigger,
                                        success: success, message: message))
+        if attempts.count > 500 {
+            attempts.removeFirst(attempts.count - 500)
+        }
     }
 
     func didRefresh(_ app: ManagedApp, newExpiry: Date, trigger: String) {
         guard let index = apps.firstIndex(where: { $0.id == app.id }) else { return }
         apps[index].expiresAt = newExpiry
-        log(app, trigger: trigger, success: true, message: "Renovação confirmada até \(newExpiry.formatted())")
+        log(app, trigger: trigger, success: true,
+            message: "Renovação confirmada até \(newExpiry.formatted())")
     }
 
-    func addDemoApp() {
-        let suffix = UUID().uuidString.prefix(8).lowercased()
-        apps.append(ManagedApp(bundleID: "demo.\(suffix)", name: "App de demonstração",
-                               expiresAt: Date(timeIntervalSinceNow: 2 * 86_400)))
+    @discardableResult
+    func addApp(name: String, bundleID: String, expiresAt: Date) -> Bool {
+        let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedID = bundleID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedName.isEmpty, !normalizedID.isEmpty,
+              !apps.contains(where: {
+                  $0.bundleID.caseInsensitiveCompare(normalizedID) == .orderedSame
+              }) else {
+            return false
+        }
+        apps.append(ManagedApp(bundleID: normalizedID, name: normalizedName, expiresAt: expiresAt))
         Notifier.reschedule(apps)
+        return true
     }
 }
