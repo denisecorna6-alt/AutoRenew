@@ -139,4 +139,86 @@ final class AlphaSafetyTests: XCTestCase {
         }
     }
 
+
+    func testProvisioningProfileParserExtractsMetadataAndMatchesBundleID() throws {
+        let expiration = Date(timeIntervalSince1970: 2_000_000_000)
+        let data = try makeProvisioningProfilePayload(
+            applicationIdentifier: "ABCDE12345.com.example.reader",
+            expirationDate: expiration
+        )
+
+        let profile = try ProvisioningProfileParser.parse(data)
+        XCTAssertEqual(profile.name, "Alpha Development")
+        XCTAssertEqual(profile.uuid, "PROFILE-UUID")
+        XCTAssertEqual(profile.teamIdentifiers, ["ABCDE12345"])
+        XCTAssertTrue(profile.matches(bundleIdentifier: "com.example.reader"))
+        XCTAssertFalse(profile.matches(bundleIdentifier: "com.example.other"))
+
+        let report = profile.metadataReport(for: "com.example.reader", now: Date(timeIntervalSince1970: 1_900_000_000))
+        XCTAssertTrue(report.metadataIsCompatible)
+        XCTAssertFalse(report.cmsSignatureVerified)
+        XCTAssertTrue(report.hasDeviceInstallScope)
+    }
+
+    func testProvisioningProfileParserSupportsWildcardBundleIDSafely() throws {
+        let data = try makeProvisioningProfilePayload(
+            applicationIdentifier: "ABCDE12345.com.example.*",
+            expirationDate: Date(timeIntervalSince1970: 2_000_000_000)
+        )
+        let profile = try ProvisioningProfileParser.parse(data)
+
+        XCTAssertTrue(profile.matches(bundleIdentifier: "com.example.reader"))
+        XCTAssertFalse(profile.matches(bundleIdentifier: "com.example"))
+        XCTAssertFalse(profile.matches(bundleIdentifier: "com.examples.reader"))
+        XCTAssertFalse(profile.matches(bundleIdentifier: "com.example.*"))
+    }
+
+    func testProvisioningProfileMetadataReportsExpiredProfiles() throws {
+        let data = try makeProvisioningProfilePayload(
+            applicationIdentifier: "ABCDE12345.com.example.reader",
+            expirationDate: Date(timeIntervalSince1970: 1_000)
+        )
+        let profile = try ProvisioningProfileParser.parse(data)
+        let report = profile.metadataReport(
+            for: "com.example.reader",
+            now: Date(timeIntervalSince1970: 2_000)
+        )
+
+        XCTAssertTrue(report.isExpired)
+        XCTAssertFalse(report.metadataIsCompatible)
+        XCTAssertFalse(report.cmsSignatureVerified)
+    }
+
+    func testProvisioningProfileParserRejectsMissingCMSPlistPayload() {
+        XCTAssertThrowsError(try ProvisioningProfileParser.parse(Data("not a profile".utf8))) { error in
+            XCTAssertEqual(error as? ProvisioningProfileParseError, .payloadNotFound)
+        }
+    }
+
+    private func makeProvisioningProfilePayload(
+        applicationIdentifier: String,
+        expirationDate: Date
+    ) throws -> Data {
+        let plist: [String: Any] = [
+            "Name": "Alpha Development",
+            "UUID": "PROFILE-UUID",
+            "CreationDate": Date(timeIntervalSince1970: 1_700_000_000),
+            "ExpirationDate": expirationDate,
+            "TeamIdentifier": ["ABCDE12345"],
+            "ApplicationIdentifierPrefix": ["ABCDE12345"],
+            "ProvisionedDevices": ["00008030-TEST-DEVICE"],
+            "Entitlements": [
+                "application-identifier": applicationIdentifier,
+                "get-task-allow": true,
+                "com.apple.developer.team-identifier": "ABCDE12345"
+            ]
+        ]
+        let plistData = try PropertyListSerialization.data(
+            fromPropertyList: plist,
+            format: .xml,
+            options: 0
+        )
+        return Data("CMS-ENVELOPE-TEST".utf8) + plistData + Data("CMS-TRAILER".utf8)
+    }
+
 }
