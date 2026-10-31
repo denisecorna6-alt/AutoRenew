@@ -14,8 +14,12 @@ def fail(message):
 def validate(profile_path, bundle_id, devices_path, requested_id):
     with open(profile_path, "rb") as f:
         profile = plistlib.load(f)
+    if not isinstance(profile, dict):
+        fail("O perfil decodificado não contém um plist de dicionário.")
 
     entitlements = profile.get("Entitlements", {})
+    if not isinstance(entitlements, dict):
+        fail("O perfil não contém entitlements válidos.")
     application_id = entitlements.get("application-identifier", "")
     if not isinstance(application_id, str) or "." not in application_id:
         fail("Perfil sem application-identifier válido.")
