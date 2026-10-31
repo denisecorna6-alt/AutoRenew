@@ -61,6 +61,21 @@ def validate_patch(patch):
         raise ValueError("Patch contém caminhos duplicados.")
     return files
 
+def validate_workspace_paths(files, root=None):
+    base = Path(root or Path.cwd()).resolve()
+    for name in files:
+        current = base
+        for part in Path(name).parts:
+            current = current / part
+            if current.is_symlink():
+                raise ValueError("Symlink existente no caminho de destino: " + name)
+            resolved = current.resolve(strict=False)
+            try:
+                resolved.relative_to(base)
+            except ValueError:
+                raise ValueError("Caminho de destino sai do workspace: " + name) from None
+    return True
+
 def changed_paths():
     result = subprocess.run(
         ["git", "status", "--porcelain=v1", "-z"],
