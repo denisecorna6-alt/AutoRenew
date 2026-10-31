@@ -12,7 +12,7 @@ Construir um app iOS que acompanhe a validade de aplicativos sideloaded e, quand
 - Estrutura inicial de interface, configurações e logs.
 - Backend demonstrativo (`StubSigningBackend`) que simula uma nova expiração; não autentica, não assina e não reinstala apps.
 - Workflows de CI que geram artefatos IPA sem assinatura. O sucesso de um build ou a integridade de um ZIP não comprovam instalação ou funcionamento.
-- Portal de downloads publicado em [GitHub Pages](https://xlightxt.github.io/AutoRenew/); o catálogo consulta Releases e os workflows por canal/branch.
+- Portal público no [GitHub Pages](https://xlightxt.github.io/AutoRenew/); o catálogo de Releases funciona. A página live ainda não filtra os builds por branch, então pode classificar um run de PR como Beta/Alpha; a correção está na PR #9 e aguarda merge/deploy.
 - Uma pré-release Alpha pública, `alpha-2026.10.31-c1feeb6`, com dois IPAs unsigned (`AutoRenew.ipa` e `AutoRenew-Installer.ipa`). Não há Release Beta ou Stable.
 - Os artefatos Actions são distintos das Releases e expiram conforme a retenção do workflow. Nenhum IPA assinado, instalação em iPhone ou primeiro lançamento foi validado. Consulte [DEPLOYMENT.md](DEPLOYMENT.md).
 
@@ -25,7 +25,7 @@ Construir um app iOS que acompanhe a validade de aplicativos sideloaded e, quand
 - Verificação diária de estado com fonte suportada e distinção confiável entre válido, expirado, revogado e desconhecido.
 - Revogação automatizada. Para Apple IDs gratuitos, a automação pode não estar disponível; nesse caso, oferecer instruções manuais, sem contornar APIs privadas.
 - Testes de ponta a ponta em iPhone físico, incluindo assinatura, instalação, renovação comprovada e recuperação de falhas.
-- Validação contínua do portal e dos filtros de branch do catálogo.
+- Validação contínua do portal e dos filtros de branch do catálogo; a correção do filtro está pendente na PR #9.
 
 ## Sequência recomendada
 
@@ -69,4 +69,4 @@ Essas propostas continuam sujeitas a revisão; este documento não implica aprov
 - [Pull requests](https://github.com/xlightxt/AutoRenew/pulls)
 - [Actions](https://github.com/xlightxt/AutoRenew/actions)
 - [Releases](https://github.com/xlightxt/AutoRenew/releases)
-- [Portal (ainda não publicado)](https://xlightxt.github.io/AutoRenew/)
+- [Portal público (GitHub Pages)](https://xlightxt.github.io/AutoRenew/)
