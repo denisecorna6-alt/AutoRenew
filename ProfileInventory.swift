@@ -76,7 +76,8 @@ enum ProfileImporter {
             )
             var directoryValues = URLResourceValues()
             directoryValues.isExcludedFromBackup = true
-            try directory.setResourceValues(directoryValues)
+            var protectedDirectory = directory
+            try protectedDirectory.setResourceValues(directoryValues)
             let id = UUID().uuidString
             let storedName = "\(id).mobileprovision"
             let destination = directory.appendingPathComponent(storedName, isDirectory: false)
@@ -84,7 +85,8 @@ enum ProfileImporter {
                 try data.write(to: destination, options: [.atomic, .completeFileProtection])
                 var fileValues = URLResourceValues()
                 fileValues.isExcludedFromBackup = true
-                try destination.setResourceValues(fileValues)
+                var protectedDestination = destination
+                try protectedDestination.setResourceValues(fileValues)
                 return ImportedProfile(
                     id: id,
                     originalFileName: sourceURL.lastPathComponent,
