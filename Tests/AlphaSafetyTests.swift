@@ -51,7 +51,7 @@ final class AlphaSafetyTests: XCTestCase {
     }
 
     func testLegacyAppSettingsDecodeWithRemoteAnisetteDisabled() throws {
-        let legacy = Data(#"{"anisetteURLs":[],"thresholdHours":48}"#.utf8)
+        let legacy = Data("{\"anisetteURLs\":[],\"thresholdHours\":48}".utf8)
         let settings = try JSONDecoder().decode(AppSettings.self, from: legacy)
         XCTAssertFalse(settings.allowRemoteAnisette)
         XCTAssertTrue(settings.anisetteURLs.isEmpty)
