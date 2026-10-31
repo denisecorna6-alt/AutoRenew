@@ -42,10 +42,16 @@ final class AppStore: ObservableObject {
         log(app, trigger: trigger, success: true, message: "Renovado até \(newExpiry.formatted())")
     }
 
-    func addDemoApp() {
-        let n = apps.count + 1
-        apps.append(ManagedApp(bundleID: "demo.app\(n)", name: "App Demo \(n)",
-                               expiresAt: Date(timeIntervalSinceNow: 2 * 86_400)))
+    @discardableResult
+    func addApp(name: String, bundleID: String, expiresAt: Date) -> Bool {
+        let normalizedID = bundleID.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedName.isEmpty, !normalizedID.isEmpty,
+              !apps.contains(where: { $0.bundleID.caseInsensitiveCompare(normalizedID) == .orderedSame }) else {
+            return false
+        }
+        apps.append(ManagedApp(bundleID: normalizedID, name: normalizedName, expiresAt: expiresAt))
         Notifier.reschedule(apps)
+        return true
     }
 }
