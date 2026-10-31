@@ -11,6 +11,7 @@ import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VALIDATOR = os.path.join(ROOT, "tools", "validate-signing-inputs.py")
+INSTALLER = os.path.join(ROOT, "tools", "install-to-iphone.sh")
 VAULT = os.path.join(ROOT, "SigningIdentityVault.swift")
 
 class SigningInputValidationTests(unittest.TestCase):
@@ -78,6 +79,26 @@ class SigningInputValidationTests(unittest.TestCase):
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("DeveloperCertificates", result.stderr)
+
+    def test_rejects_expired_profile(self):
+        with open(self.profile, "rb") as f: values = plistlib.load(f)
+        values["ExpirationDate"] = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)
+        with open(self.profile, "wb") as f: plistlib.dump(values, f)
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("expirado", result.stderr)
+
+    def test_device_installer_preflights_archive_and_verifies_each_profile(self):
+        script = Path(INSTALLER).read_text(encoding="utf-8")
+        preflight = script.index('python3 "$ROOT/tools/validate-signing-inputs.py" --inspect-ipa')
+        extraction = script.index('ditto -x -k "$IPA_PATH"')
+        cms_verify = script.index('security cms -V -i "$PROFILE"')
+        cms_decode = script.index('security cms -D -i "$PROFILE"')
+        self.assertLess(preflight, extraction)
+        self.assertLess(cms_verify, cms_decode)
+        self.assertIn("CFBundleIdentifier", script)
+        self.assertIn("DeveloperCertificates", script)
+        self.assertIn("-name '*.appex'", script)
 
     def test_signing_vault_source_exists(self):
         self.assertTrue(Path(VAULT).is_file(), VAULT)
