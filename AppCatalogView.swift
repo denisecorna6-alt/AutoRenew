@@ -200,7 +200,8 @@ private final class AppCatalogModel: ObservableObject {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             var directoryValues = URLResourceValues()
             directoryValues.isExcludedFromBackup = true
-            try? directory.setResourceValues(directoryValues)
+            var backupDirectory = directory
+            try? backupDirectory.setResourceValues(directoryValues)
             let destination = directory.appendingPathComponent(fileName)
             let uniqueDestination = FileManager.default.fileExists(atPath: destination.path)
                 ? directory.appendingPathComponent("\(UUID().uuidString)-\(fileName)")
@@ -208,7 +209,8 @@ private final class AppCatalogModel: ObservableObject {
             try FileManager.default.moveItem(at: temporaryURL, to: uniqueDestination)
             var fileValues = URLResourceValues()
             fileValues.isExcludedFromBackup = true
-            try? uniqueDestination.setResourceValues(fileValues)
+            var backupFile = uniqueDestination
+            try? backupFile.setResourceValues(fileValues)
             statusMessage = "\(appName) \(version.version) baixado. O IPA está salvo no app; baixar não significa assinar ou instalar."
             refreshDownloadedFiles()
         } catch {
