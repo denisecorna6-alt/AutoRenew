@@ -59,7 +59,10 @@ struct DashboardView: View {
                 }
                 Section("Apps monitorados (demonstração)") {
                     ForEach(store.apps) { AppRow(app: $0) }
-                        .onDelete { store.apps.remove(atOffsets: $0) }
+                        .onDelete {
+                            store.apps.remove(atOffsets: $0)
+                            Notifier.reschedule(store.apps)
+                        }
                 }
             }
             .overlay {
@@ -74,7 +77,9 @@ struct DashboardView: View {
                     Button("Verificar") {
                         busy = true
                         Task {
-                            await RefreshCoordinator.shared.runIfNeeded(trigger: "alpha-test", budget: .seconds(30), force: true)
+                            await RefreshCoordinator.shared.runIfNeeded(
+                                trigger: "alpha-test", budget: .seconds(30), force: true
+                            )
                             busy = false
                         }
                     }.disabled(busy || store.apps.isEmpty)
@@ -130,9 +135,8 @@ struct SettingsView: View {
                     Text("O prazo exibido é apenas uma estimativa inserida para demonstração; ainda não é lido de um perfil real.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
-                Section("Avançado") {
-                    Toggle("Bloquear domínios OCSP/PPQ (VPN)", isOn: $store.settings.blockDomains)
-                    Text("Requer extensão Network Extension e permissões específicas. Não estende a validade de certificados.")
+                Section("Recursos futuros") {
+                    Text("Monitoramento real de certificados, controle de domínios e VPN ainda não estão implementados.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
