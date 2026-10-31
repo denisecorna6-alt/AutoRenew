@@ -36,6 +36,7 @@ final class AppStore: ObservableObject {
         LegacyCredentialCleanup.run()
         // Re-encode a valid legacy snapshot so removed Apple ID/Anisette fields are not kept on disk.
         if restoredSnapshot { save() }
+        Task { await Notifier.reschedule(apps, thresholdHours: settings.thresholdHours) }
     }
 
     private func save() {
@@ -69,6 +70,11 @@ final class AppStore: ObservableObject {
         let number = apps.count + 1
         apps.append(ManagedApp(bundleID: "demo.app\(number)", name: "App Demo \(number)",
                                expiresAt: Date(timeIntervalSinceNow: 2 * 86_400)))
-        Notifier.reschedule(apps)
+        Task { await Notifier.reschedule(apps, thresholdHours: settings.thresholdHours) }
+    }
+
+    func removeApps(at offsets: IndexSet) {
+        apps.remove(atOffsets: offsets)
+        Task { await Notifier.reschedule(apps, thresholdHours: settings.thresholdHours) }
     }
 }

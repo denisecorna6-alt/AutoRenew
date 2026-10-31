@@ -28,7 +28,7 @@ actor RefreshCoordinator {
                 await fail(app, trigger,
                            "Renovação real indisponível nesta Alpha. Nenhuma rede, assinatura ou alteração de validade foi executada.")
             }
-            await MainActor.run { Notifier.reschedule(AppStore.shared.apps) }
+            await rescheduleNotifications()
             return
         }
 
@@ -60,7 +60,14 @@ actor RefreshCoordinator {
                            "Falha inesperada. O estado da assinatura permanece desconhecido.")
             }
         }
-        await MainActor.run { Notifier.reschedule(AppStore.shared.apps) }
+        await rescheduleNotifications()
+    }
+
+    private func rescheduleNotifications() async {
+        let (apps, thresholdHours) = await MainActor.run {
+            (AppStore.shared.apps, AppStore.shared.settings.thresholdHours)
+        }
+        await Notifier.reschedule(apps, thresholdHours: thresholdHours)
     }
 
     private func fail(_ app: ManagedApp, _ trigger: String, _ message: String) async {
