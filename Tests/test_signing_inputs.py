@@ -1,6 +1,7 @@
 import datetime
 import hashlib
 import os
+import stat
 from pathlib import Path
 import plistlib
 import subprocess
@@ -55,6 +56,11 @@ class SigningInputValidationTests(unittest.TestCase):
 
     def tearDown(self):
         self.tmp.cleanup()
+
+    def write_archive(self, entries):
+        with zipfile.ZipFile(self.ipa, "w") as archive:
+            for name, content in entries:
+                archive.writestr(name, content)
 
     def run_validator(self):
         return subprocess.run([
@@ -163,6 +169,43 @@ class SigningInputValidationTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("caminho inseguro", result.stderr)
 
+
+    def test_rejects_case_insensitive_path_collision(self):
+        self.write_archive([
+            ("Payload/Test.app/Info.plist", b"first"),
+            ("payload/test.app/info.plist", b"second"),
+        ])
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("colisão de caminho", result.stderr)
+
+    def test_rejects_unicode_normalization_collision(self):
+        self.write_archive([
+            ("Payload/Test.app/Caf\u00e9.txt", b"first"),
+            ("Payload/Test.app/Cafe\u0301.txt", b"second"),
+        ])
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("colisão de caminho", result.stderr)
+
+    def test_rejects_file_directory_conflict(self):
+        self.write_archive([
+            ("Payload/Test.app/Info.plist", b"file"),
+            ("Payload/Test.app/Info.plist/child", b"child"),
+        ])
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("conflito entre arquivo e diretório", result.stderr)
+
+    def test_rejects_special_zip_file_types(self):
+        info = zipfile.ZipInfo("Payload/Test.app/device-node")
+        info.create_system = 3
+        info.external_attr = (stat.S_IFCHR | 0o600) << 16
+        with zipfile.ZipFile(self.ipa, "w") as archive:
+            archive.writestr(info, b"device")
+        result = self.run_validator()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("tipo de arquivo especial", result.stderr)
 
     def test_signing_docs_do_not_put_passphrase_in_environment(self):
         docs = Path(ROOT, "Projects", "AutoRenewSigningKit", "SIGNING_PIPELINE.md").read_text(encoding="utf-8")
