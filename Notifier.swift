@@ -23,13 +23,13 @@ enum Notifier {
 
         let pending = await center.pendingNotificationRequests()
         center.removePendingNotificationRequests(
-            withIdentifiers: pending.map(\\.identifier).filter { $0.hasPrefix("expiry.") }
+            withIdentifiers: pending.map(\.identifier).filter { $0.hasPrefix("expiry.") }
         )
         guard authorized else { return }
 
         let threshold = min(max(thresholdHours, 6), 120)
         let reminderHours = Array(Set([threshold, 24.0, 6.0])).sorted(by: >)
-        let orderedApps = apps.filter(\\.isActive).sorted { $0.expiresAt < $1.expiresAt }
+        let orderedApps = apps.filter(\.isActive).sorted { $0.expiresAt < $1.expiresAt }
 
         // Keep below the platform's pending-notification limit with room for other features.
         let maximumPendingReminders = 60
@@ -41,7 +41,7 @@ enum Notifier {
                 guard fireDate > Date() else { continue }
 
                 let content = UNMutableNotificationContent()
-                content.title = "\\(app.name) expira em aproximadamente \\(Int(hours))h"
+                content.title = "\(app.name) expira em aproximadamente \(Int(hours))h"
                 content.body = "Abra o AutoRenew para conferir a data cadastrada. O app não renova automaticamente."
                 content.sound = settings.soundSetting == .enabled ? .default : nil
 
@@ -50,7 +50,7 @@ enum Notifier {
                 )
                 let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
                 let request = UNNotificationRequest(
-                    identifier: "expiry.\\(app.bundleID).\\(Int(hours))",
+                    identifier: "expiry.\(app.bundleID).\(Int(hours))",
                     content: content,
                     trigger: trigger
                 )
