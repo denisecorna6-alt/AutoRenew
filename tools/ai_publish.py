@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import shutil
 from pathlib import Path
 
 from tools.ai_patch_policy import validate_patch, changed_paths, validate_workspace_paths
@@ -31,6 +32,7 @@ def main():
         raise RuntimeError("Artefato de proposta incompleto.")
     patch = patch_source.read_text(encoding="utf-8")
     files = validate_patch(patch)
+    shutil.rmtree(artifact)
 
     with tempfile.NamedTemporaryFile(prefix="autorenew-ai-publish-", suffix=".patch", delete=False) as temporary:
         patch_path = temporary.name
