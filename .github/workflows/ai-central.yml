@@ -187,13 +187,15 @@ jobs:
           AI_TASK: ${{ inputs.task }}
           AI_WORKER: ${{ inputs.worker }}
           AI_BASE_BRANCH: ${{ inputs.base_branch }}
+          AI_OUTPUT_DIR: ${{ runner.temp }}/autorenew-ai-proposal
         run: python tools/ai_propose.py
       - name: Upload proposal and reviewer report
-        if: always() && hashFiles('ai-proposal-output/*') != ''
+        if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
           name: ai-coding-proposal
-          path: ai-proposal-output/
+          path: ${{ runner.temp }}/autorenew-ai-proposal/
+          if-no-files-found: warn
           retention-days: 14
 
   publish:
