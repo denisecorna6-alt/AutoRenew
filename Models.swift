@@ -6,6 +6,8 @@ struct ManagedApp: Codable, Identifiable, Hashable {
     var name: String
     var expiresAt: Date
     var isActive = true
+    // Optional so previously saved snapshots decode without a migration failure.
+    var isDemo: Bool? = nil
     var daysLeft: Double { expiresAt.timeIntervalSinceNow / 86_400 }
 }
 
