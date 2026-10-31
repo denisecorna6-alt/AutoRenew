@@ -39,8 +39,7 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP_PATH/Info.plist" | grep -Fx '17.0'
           file "$APP_PATH/AutoRenew"
           mkdir -p build/beta/Payload
-          ditto "$APP_PATH" build/beta/Payload/AutoRenew Beta.app
-          mv "build/beta/Payload/AutoRenew Beta.app" build/beta/Payload/AutoRenew.app
+          ditto "$APP_PATH" "build/beta/Payload/AutoRenew.app"
           (cd build/beta && /usr/bin/zip -qry ../AutoRenew-Beta-unsigned.ipa Payload)
           /usr/bin/unzip -t build/AutoRenew-Beta-unsigned.ipa
           test "$(stat -f%z build/AutoRenew-Beta-unsigned.ipa)" -gt 20000
