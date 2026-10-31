@@ -28,14 +28,19 @@ def main():
     artifact = Path("ai-proposal-output")
     patch_source = artifact / "ai-change.patch"
     report_source = artifact / "ai-coding-report.md"
+    base_sha_source = artifact / "ai-base-sha.txt"
     if artifact.is_symlink() or not artifact.is_dir():
         raise RuntimeError("Diretório de artefato inválido.")
-    if (patch_source.is_symlink() or report_source.is_symlink()
-            or not patch_source.is_file() or not report_source.is_file()):
-        raise RuntimeError("Artefato de proposta incompleto ou com symlink.")
-    if {item.name for item in artifact.iterdir()} != {"ai-change.patch", "ai-coding-report.md"}:
+    if any(item.is_symlink() for item in artifact.iterdir()):
+        raise RuntimeError("Artefato contém symlink.")
+    if (not patch_source.is_file() or not report_source.is_file() or not base_sha_source.is_file()):
+        raise RuntimeError("Artefato de proposta incompleto.")
+    if {item.name for item in artifact.iterdir()} != {"ai-change.patch", "ai-coding-report.md", "ai-base-sha.txt"}:
         raise RuntimeError("Artefato contém arquivos inesperados.")
     patch = patch_source.read_text(encoding="utf-8")
+    base_sha = base_sha_source.read_text(encoding="utf-8").strip()
+    if not re.fullmatch(r"[0-9a-f]{40}", base_sha):
+        raise RuntimeError("SHA da branch-base inválido.")
     files = validate_patch(patch)
     shutil.rmtree(artifact)
 
@@ -45,6 +50,9 @@ def main():
         Path(patch_path).write_text(patch, encoding="utf-8")
         run(["git", "fetch", "--no-tags", "origin",
              "refs/heads/" + base + ":refs/remotes/origin/" + base])
+        current_base_sha = run(["git", "rev-parse", "refs/remotes/origin/" + base])
+        if current_base_sha != base_sha:
+            raise RuntimeError("A branch-base mudou depois da revisão; gere uma nova proposta.")
         run_id = os.getenv("GITHUB_RUN_ID", "local")
         if not re.fullmatch(r"[A-Za-z0-9-]+", run_id):
             raise RuntimeError("GITHUB_RUN_ID inválido.")
