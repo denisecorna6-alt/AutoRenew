@@ -54,7 +54,7 @@ final class AlphaSafetyTests: XCTestCase {
         let legacy = Data("{\"anisetteURLs\":[],\"thresholdHours\":48}".utf8)
         let settings = try JSONDecoder().decode(AppSettings.self, from: legacy)
         XCTAssertFalse(settings.allowRemoteAnisette)
-        XCTAssertTrue(settings.anisetteURLs.isEmpty)
+        XCTAssertEqual(settings.anisetteURLs, [AppSettings.sideStoreAnisetteURL])
     }
 
     func testRouterRejectsNonHTTPSProviders() async {
