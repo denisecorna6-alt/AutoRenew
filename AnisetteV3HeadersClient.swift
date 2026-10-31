@@ -42,13 +42,16 @@ struct AnisetteV3HeadersClient: Sendable {
             throw RefreshError.anisetteUnavailable
         }
 
+        return try Self.decodeResponse(data)
+    }
+
+    static func decodeResponse(_ data: Data) throws -> AnisetteData {
         do {
             let payload = try JSONDecoder().decode(Response.self, from: data)
             guard case let .headers(machineID, oneTimePassword, routingInfo) = payload,
                   !machineID.isEmpty, !oneTimePassword.isEmpty, !routingInfo.isEmpty else {
                 throw RefreshError.anisetteUnavailable
             }
-
             return AnisetteData(headers: [
                 "X-Apple-I-MD-M": machineID,
                 "X-Apple-I-MD": oneTimePassword,
