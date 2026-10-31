@@ -64,7 +64,7 @@ Correções aplicadas na branch Alpha:
 
 Testes de regressão cobrem limites de streaming, HTTPS sem credenciais, limites do catálogo, validação ZIP/SHA, CMS antes de decodificar, perfis expirados e proteção contra sobrescrita.
 
-**Limitações restantes:** `IPAInspector` no iOS ainda não interpreta central directory/CRC/symlinks nem valida assinatura de código/CMS; isso só ocorre no helper macOS antes de instalar. Redirects entre hosts HTTPS ainda são aceitos, sem allowlist ou confirmação adicional. `AsyncImage` não tem limite próprio de bytes para ícones remotos. O catálogo ainda não tem quota total/limpeza automática dos IPAs guardados. O helper não compara o UDID informado com `ProvisionedDevices` e não confirma primeiro lançamento. Tudo isso requer teste adicional antes de afirmar instalação validada.
+**Limitações restantes:** `IPAInspector` no iOS ainda não interpreta central directory/CRC/symlinks nem valida assinatura de código/CMS; isso só ocorre no helper macOS antes de instalar. O helper macOS agora compara o UDID selecionado com `ProvisionedDevices` e falha se o dispositivo não estiver listado; isso é apenas pré-verificação e não prova instalação nem primeiro lançamento. A importação local agora copia para staging e inspeciona exatamente os bytes copiados antes de movê-los para a biblioteca, evitando a janela TOCTOU da inspeção da origem. Redirects entre hosts HTTPS ainda são aceitos, sem allowlist ou confirmação adicional. `AsyncImage` não tem limite próprio de bytes para ícones remotos. O catálogo ainda não tem quota total/limpeza automática dos IPAs guardados. Nenhuma dessas verificações substitui teste em iPhone físico.
 
 ## Próximas etapas priorizadas
 
