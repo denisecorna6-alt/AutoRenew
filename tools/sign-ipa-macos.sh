@@ -102,5 +102,12 @@ done < "$WORK/bundles.tsv"
 mkdir -p "$(dirname "$OUTPUT")"
 (cd "$WORK/unpacked" && ditto -c -k --sequesterRsrc --keepParent Payload "$WORK/signed.ipa")
 mv "$WORK/signed.ipa" "$OUTPUT"
+python3 "$ROOT/tools/validate-signing-inputs.py" --inspect-ipa "$OUTPUT"
+ditto -x -k "$OUTPUT" "$WORK/repacked"
+while IFS=
+echo "A instalação e o primeiro lançamento ainda precisam ser testados em iPhone real."
+\\t' read -r REL_BUNDLE PROFILE ENTITLEMENTS; do
+  codesign --verify --strict --verbose=2 "$WORK/repacked/$REL_BUNDLE"
+done < "$WORK/bundles.tsv"
 echo "IPA assinado e verificado localmente: $OUTPUT"
 echo "A instalação e o primeiro lançamento ainda precisam ser testados em iPhone real."
