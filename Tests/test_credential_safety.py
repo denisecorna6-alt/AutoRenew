@@ -42,6 +42,18 @@ class CredentialSafetyTests(unittest.TestCase):
         self.assertNotIn("renovar agora", notifier)
         self.assertIn("renovação automática não está disponível", notifier)
 
+    def test_notification_consent_is_user_initiated_and_bounded(self):
+        app = read("AutoRenewApp.swift")
+        ui = read("ContentView.swift")
+        notifier = read("Notifier.swift")
+        coordinator = read("RefreshCoordinator.swift")
+        self.assertNotIn("Notifier.requestAuth()", app)
+        self.assertIn('Button("Ativar lembretes")', ui)
+        self.assertIn("requestAuthorization", notifier)
+        self.assertIn("notificationSettings()", notifier)
+        self.assertIn("maximumPendingReminders = 60", notifier)
+        self.assertIn("await Notifier.reschedule", coordinator)
+
     def test_supported_interface_orientations_are_explicit(self):
         project = read("project.yml")
         self.assertIn("UISupportedInterfaceOrientations:", project)
