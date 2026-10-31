@@ -12,6 +12,8 @@ import zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VALIDATOR = os.path.join(ROOT, "tools", "validate-signing-inputs.py")
 INSTALLER = os.path.join(ROOT, "tools", "install-to-iphone.sh")
+INSTALLER_VIEW = os.path.join(ROOT, "InstallerView.swift")
+CATALOG_VIEW = os.path.join(ROOT, "AppCatalogView.swift")
 VAULT = os.path.join(ROOT, "SigningIdentityVault.swift")
 
 class SigningInputValidationTests(unittest.TestCase):
@@ -87,6 +89,17 @@ class SigningInputValidationTests(unittest.TestCase):
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("expirado", result.stderr)
+
+    def test_catalog_and_installer_use_bounded_ipa_downloads(self):
+        for path in (INSTALLER_VIEW, CATALOG_VIEW):
+            source = Path(path).read_text(encoding="utf-8")
+            self.assertIn("BoundedIPADownloader.download(for: request)", source)
+            self.assertNotIn("URLSession.shared.download(for: request)", source)
+        catalog = Path(CATALOG_VIEW).read_text(encoding="utf-8")
+        self.assertIn("IPAInspector.inspect(fileURL: temporaryURL)", catalog)
+        self.assertIn("maximumSourceJSONBytes", catalog)
+        self.assertIn("URLSession.shared.bytes(for: request)", catalog)
+        self.assertNotIn("URLSession.shared.data(for: request)", catalog)
 
     def test_device_installer_preflights_archive_and_verifies_each_profile(self):
         script = Path(INSTALLER).read_text(encoding="utf-8")
