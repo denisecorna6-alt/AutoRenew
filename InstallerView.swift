@@ -218,13 +218,8 @@ struct InstallerView: View {
     @StateObject private var catalog = InstallerCatalog()
     @State private var selectedChannel = "Todas"
     @State private var showingIPAImporter = false
-    @StateObject private var signingVault = SigningIdentityVault()
     @ObservedObject private var appStore = AppStore.shared
-    @State private var showingP12Importer = false
     @State private var showingProfileImporter = false
-    @State private var pendingP12URL: URL?
-    @State private var p12Password = ""
-    @State private var certificateMessage: String?
     @State private var profileMessage: String?
     @State private var directIPALink = ""
     @State private var preparedIPA: IPAInspection?
@@ -406,61 +401,13 @@ struct InstallerView: View {
     }
 
     private var accountSection: some View {
-        Section("Conta Apple e certificados") {
+        Section("Conta Apple") {
             Label("Apple ID não conectado", systemImage: "person.crop.circle.badge.questionmark")
                 .font(.headline)
-            Text("Por segurança, esta versão não coleta senha Apple ID nem códigos 2FA. A Apple não oferece um login genérico de Apple ID que autorize assinar IPAs. Sign in with Apple identifica o usuário no app, mas não concede permissões de Developer Program.")
+            Text("O aplicativo iOS não solicita nem armazena Apple ID, senhas, códigos 2FA, tokens de sessão ou chaves privadas. Assinatura e instalação ainda não estão disponíveis dentro do app.")
                 .font(.caption).foregroundStyle(.secondary)
-            Text("Você pode importar sua identidade de assinatura .p12. O arquivo permanece criptografado pela própria senha e protegido pelo iOS; a senha é usada apenas para validar a importação e não é salva.")
+            Text("A importação de .mobileprovision abaixo guarda somente o arquivo de perfil e seu SHA-256; isso não valida CMS, assinatura, dispositivo ou revogação.")
                 .font(.caption).foregroundStyle(.secondary)
-            Button {
-                showingP12Importer = true
-            } label: {
-                Label("Importar certificado e chave (.p12)", systemImage: "key.horizontal")
-            }
-            if let pendingP12URL {
-                Text("Selecionado: \(pendingP12URL.lastPathComponent)")
-                    .font(.caption).foregroundStyle(.secondary)
-                SecureField("Senha do arquivo .p12", text: $p12Password)
-                    .textContentType(.password)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                Button("Validar e guardar com proteção do iOS") {
-                    do {
-                        try signingVault.importIdentity(from: pendingP12URL, password: p12Password)
-                        certificateMessage = "Identidade validada e guardada localmente. A senha não foi armazenada."
-                        self.pendingP12URL = nil
-                        p12Password = ""
-                    } catch {
-                        certificateMessage = error.localizedDescription
-                        p12Password = ""
-                    }
-                }
-                .disabled(p12Password.isEmpty)
-                Button("Cancelar importação", role: .cancel) {
-                    self.pendingP12URL = nil
-                    p12Password = ""
-                }
-            }
-            if signingVault.records.isEmpty {
-                Text("Nenhuma identidade de assinatura importada.")
-                    .font(.caption).foregroundStyle(.secondary)
-            } else {
-                ForEach(signingVault.records) { record in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Label(record.displayName, systemImage: "checkmark.seal")
-                            .font(.subheadline.weight(.medium))
-                        Text("Importado em \(record.importedAt.formatted(date: .abbreviated, time: .shortened)) · SHA-256 \(record.sha256.prefix(12))…")
-                            .font(.caption2).foregroundStyle(.secondary)
-                        Button("Remover identidade", role: .destructive) {
-                            signingVault.remove(record)
-                        }
-                        .font(.caption)
-                    }
-                }
-            }
-            Text("Importar o certificado ainda não assina nem instala IPA. A assinatura requer compatibilidade do perfil, Bundle ID e dispositivo, além de um mecanismo de assinatura suportado. O arquivo .p12 é guardado localmente; a senha não é persistida.")
-                .font(.caption).foregroundStyle(.orange)
         }
     }
 
@@ -512,17 +459,6 @@ struct InstallerView: View {
         }
     }
 
-    private func handleP12Import(_ result: Result<URL, Error>) {
-        switch result {
-        case .success(let url):
-            pendingP12URL = url
-            p12Password = ""
-            certificateMessage = nil
-        case .failure(let error):
-            certificateMessage = "Não foi possível selecionar o certificado: \(error.localizedDescription)"
-        }
-    }
-
     private func handleProfileImport(_ result: Result<URL, Error>) {
         switch result {
         case .success(let url):
@@ -539,10 +475,6 @@ struct InstallerView: View {
 
     private var profileAlertPresented: Binding<Bool> {
         Binding(get: { profileMessage != nil }, set: { if !$0 { profileMessage = nil } })
-    }
-
-    private var certificateAlertPresented: Binding<Bool> {
-        Binding(get: { certificateMessage != nil }, set: { if !$0 { certificateMessage = nil } })
     }
 
     private var installerList: some View {
@@ -570,9 +502,6 @@ struct InstallerView: View {
         .fileImporter(isPresented: $showingIPAImporter, allowedContentTypes: [UTType(filenameExtension: "ipa") ?? .data]) {
             handleIPAImport($0)
         }
-        .fileImporter(isPresented: $showingP12Importer, allowedContentTypes: [UTType(filenameExtension: "p12", conformingTo: .data) ?? .data]) {
-            handleP12Import($0)
-        }
         .fileImporter(isPresented: $showingProfileImporter, allowedContentTypes: [UTType(filenameExtension: "mobileprovision", conformingTo: .data) ?? .data]) {
             handleProfileImport($0)
         }
@@ -580,11 +509,6 @@ struct InstallerView: View {
             Button("OK") { profileMessage = nil }
         } message: {
             Text(profileMessage ?? "")
-        }
-        .alert("Certificado de assinatura", isPresented: certificateAlertPresented) {
-            Button("OK") { certificateMessage = nil }
-        } message: {
-            Text(certificateMessage ?? "")
         }
     }
 
