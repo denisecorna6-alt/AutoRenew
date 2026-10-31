@@ -22,7 +22,7 @@ struct AutoRenewApp: App {
             case .active:
                 Task {
                     await Notifier.reschedule(store.apps, thresholdHours: store.settings.thresholdHours)
-                    await RefreshCoordinator.shared.runIfNeeded(
+                    _ = await RefreshCoordinator.shared.runIfNeeded(
                         trigger: "foreground", budget: .seconds(60)
                     )
                 }
