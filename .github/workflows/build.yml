@@ -1,30 +1,83 @@
-name: Build IPA
+name: Build AutoRenew + Installer IPAs
+run-name: Build separate AutoRenew and Installer test packages
 on:
   workflow_dispatch:
-  push: { branches: [main] }
-
-permissions:
-  contents: read
-
+  push:
+    branches:
+      - main
+      - 'codex/alpha-*'
+  pull_request:
+    branches:
+      - main
+      - beta
+      - 'codex/alpha-ai-orchestrator-20261031'
+concurrency:
+  group: autorenew-build-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  build:
+  build-and-test:
+    permissions:
+      contents: read
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
-      - run: brew install xcodegen && xcodegen generate
-      - run: |
+      - uses: actions/checkout@v7.0.1
+      - name: Generate Xcode project
+        run: brew install xcodegen && xcodegen generate
+      - name: Validate macOS helper syntax and signing validator tests
+        run: |
+          bash -n tools/install-to-iphone.sh
+          bash -n tools/sign-ipa-macos.sh
+          python3 -m py_compile tools/validate-signing-inputs.py
+          python3 -m unittest discover -s Tests -p 'test_*.py' -v
+      - name: Build AutoRenew for iOS
+        run: |
           xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew -configuration Release \
             -sdk iphoneos -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
-      - name: Package explicitly unsigned IPA
+      - name: Build AutoRenew Installer for iOS
         run: |
-          mkdir -p Payload
-          cp -R build/Build/Products/Release-iphoneos/AutoRenew.app Payload/
-          zip -qr AutoRenew-unsigned.ipa Payload
-      - name: Upload explicitly unsigned IPA artifact
-        uses: actions/upload-artifact@v4
+          xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenewInstaller -configuration Release \
+            -sdk iphoneos -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+      - name: Run AutoRenew unit tests when a simulator runtime is available
+        run: |
+          if xcrun simctl list devices available | grep -q 'iPhone'; then
+            DEVICE_ID="$(xcrun simctl list devices available | sed -nE 's/.*iPhone[^()]* \(([0-9A-F-]+)\).*/\1/p' | head -n 1)"
+            if [[ -n "$DEVICE_ID" ]]; then
+              xcodebuild test -project AutoRenew.xcodeproj -scheme AutoRenew \
+                -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+                -derivedDataPath test-build \
+                CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+            else
+              echo "Nenhum iPhone Simulator concreto; compilando os testes sem executá-los."
+              xcodebuild build-for-testing -project AutoRenew.xcodeproj -scheme AutoRenew \
+                -destination 'generic/platform=iOS Simulator' \
+                -derivedDataPath test-build \
+                CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+            fi
+          else
+            echo "Runtime de simulador indisponível; compilando os testes sem executá-los."
+            xcodebuild build-for-testing -project AutoRenew.xcodeproj -scheme AutoRenew \
+              -destination 'generic/platform=iOS Simulator' \
+              -derivedDataPath test-build \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          fi
+      - name: Package both unsigned IPAs
+        run: |
+          mkdir -p AutoRenewPayload/Payload InstallerPayload/Payload
+          cp -R build/Build/Products/Release-iphoneos/AutoRenew.app AutoRenewPayload/Payload/
+          cp -R build/Build/Products/Release-iphoneos/AutoRenewInstaller.app InstallerPayload/Payload/
+          (cd AutoRenewPayload && zip -qr ../AutoRenew.ipa Payload)
+          (cd InstallerPayload && zip -qr ../AutoRenew-Installer.ipa Payload)
+      - name: Upload AutoRenew unsigned IPA
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: AutoRenew-ipa-unsigned
-          path: AutoRenew-unsigned.ipa
-          if-no-files-found: error
+          path: AutoRenew.ipa
+          retention-days: 30
+      - name: Upload Installer unsigned IPA
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: AutoRenew-Installer-ipa-unsigned
+          path: AutoRenew-Installer.ipa
           retention-days: 30

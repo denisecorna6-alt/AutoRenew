@@ -1,43 +1,47 @@
 # AutoRenew Alpha
 
-Esta é uma compilação inicial de avaliação. O objetivo é validar a navegação, o painel de apps, o histórico e os lembretes antes de conectar qualquer mecanismo real de assinatura.
+Esta compilação de avaliação permite cadastrar manualmente aplicativos, acompanhar as datas informadas e receber lembretes locais. Ela ainda não lê apps instalados nem renova assinaturas.
 
-## O que já pode ser avaliado
+## O que pode ser avaliado
 
-- Interface SwiftUI do painel, lista de apps e histórico.
-- Cadastro de apps de demonstração.
-- Lembretes locais com permissão solicitada somente após tocar em **Ativar lembretes**; no máximo 60 notificações pendentes, sujeitas às regras de entrega do iOS.
-- Orientação de interface declarada para iPhone em retrato/paisagem e iPad em quatro orientações.
-- Mensagens explícitas de que a renovação real não está disponível.
+- Interface SwiftUI para cadastro manual de nome, Bundle ID e data informada de expiração.
+- Painel com estados calculados a partir dessa data manual.
+- Catálogo de IPAs com fontes JSON no formato AltStore/SideStore (AltSources): busca, versões e download HTTPS para armazenamento local. O catálogo não assina nem instala.
+- No AutoRenew Installer, pré-verificação do IPA (extensão, tamanho máximo, cabeçalho ZIP e SHA-256 em streaming) e encaminhamento pelo compartilhamento do iOS para AltStore/SideStore quando disponíveis.
+- Persistência local e histórico limitado.
+- Importação explícita de arquivos `.mobileprovision`, com cópia privada local, limite de 25 MB, detecção de duplicatas por SHA-256 e opção de remover a cópia importada.
+- Inventário de metadados: nome do arquivo, tamanho, data de importação e hash SHA-256.
+- Lembretes 48h/24h/6h antes da data cadastrada.
+- Agendamento em segundo plano, sujeito às regras e decisões do iOS.
 
 ## O que NÃO está implementado
 
-- Cadastro de apps reais na branch principal; a lista ainda usa dados de demonstração.
-
-- Login Apple, autenticação de dois fatores ou integração real com AltSign/SideSign/Minimuxer.
+- Login Apple, autenticação de dois fatores ou integração real com SideSign/AltSign/minimuxer.
+- Motor próprio de assinatura ou instalação direta dos IPAs. O encaminhamento não instala por si só: o aplicativo receptor executa sua própria assinatura e instalação.
+- Leitura automática da lista de apps instalados.
+- Decodificação do conteúdo CMS de provisioning profiles e extração/validação de datas, Bundle IDs, equipe, UDID ou estado de revogação.
 - Reassinatura, reinstalação ou renovação real de IPA.
-- Leitura automática de apps instalados ou monitoramento real de certificados e perfis.
-- Revogação de certificados.
-- Instalação silenciosa ou bypass dos limites do iOS.
+- Revogação de certificados, instalação silenciosa ou bypass dos limites do iOS.
 
-O StubSigningBackend declara isAvailable = false e falha com notImplemented. O coordenador interrompe o fluxo antes de qualquer chamada de rede; nenhuma data de validade é estendida e nenhum sucesso de renovação é registrado.
+O backend `StubSigningBackend` informa que a integração não está implementada. Ele não simula uma nova data de expiração, não altera a validade e não registra sucesso. Os estados no painel derivam exclusivamente das datas inseridas manualmente.
 
 ## Segurança e limites
 
-- A interface não solicita nem armazena Apple ID, senha, códigos 2FA, cookies, tokens ou chaves privadas.
-- A migração remove somente o item de Keychain legado com a conta exata applePassword e regrava um snapshot válido sem os campos antigos de Apple ID/Anisette.
-- Nenhum servidor Anisette é consultado enquanto não existir um backend revisado.
-- Não use certificados compartilhados ou de terceiros.
-- Falhas de rede devem resultar em estado desconhecido, nunca em certificado revogado.
-- Qualquer futura ação de revogação exige mecanismo documentado, autorização explícita e verificação de dependências.
+- Esta Alpha não solicita nem persiste senha Apple ID, códigos 2FA, cookies, tokens de sessão ou chaves privadas.
+- Na primeira inicialização desta versão, o app remove do Keychain o item legado `applePassword` que versões anteriores podiam ter gravado.
+- Provedores Anisette configurados precisam usar HTTPS e retornar HTTP 2xx com metadados esperados.
+- O cache Anisette é isolado por actor para evitar acessos concorrentes.
+- Não envie credenciais em issues, logs ou mensagens.
+- Não use certificados compartilhados, endpoints privados/não documentados ou automação que burle controles da Apple.
+- Falhas de rede devem permanecer como estado desconhecido; nunca devem ser interpretadas como revogação.
 - Contas Apple gratuitas têm limites e prazos impostos pela Apple; a Alpha não os contorna.
 
-## Próxima sequência de trabalho
+## Próximas etapas
 
-1. Validar a experiência e corrigir bugs da interface.
-2. Definir um inventário local não sensível de perfis/certificados.
-3. Adicionar monitoramento não destrutivo com estados válido, próximo do vencimento, expirado, revogado e desconhecido.
-4. Avaliar apenas integrações documentadas e suportadas, sem pedir credenciais no AutoRenew.
-5. Testar assinatura/instalação somente com autorização e em dispositivo físico, sem alegar sucesso antes da verificação.
+1. Decodificar e validar o CMS do perfil com uma implementação compatível e documentada, sem extrair ou transmitir segredos.
+2. Extrair metadados verificáveis e distinguir validade temporal de revogação (que não pode ser inferida apenas pelo arquivo local).
+3. Desenvolver uma integração de instalação assistida por computador usando ferramentas Apple documentadas, ou avaliar uma integração on-device com entitlements e APIs oficialmente disponíveis; não reproduzir protocolos privados nem contornar controles do iOS.
+4. Testes automatizados, depois testes em iPhone físico com logs sem dados sensíveis.
+5. Avaliação de automações adicionais somente após comprovação técnica.
 
 A Alpha não deve ser divulgada como versão de renovação automática funcional.
