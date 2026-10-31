@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/ai-central.yml'
       - 'tools/ai_central.py'
+      - 'tools/ai_coder.py'
       - 'docs/AI_CENTRAL.md'
       - 'Tests/test_ai_central.py'
   workflow_dispatch:
