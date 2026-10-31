@@ -118,6 +118,11 @@ class SigningInputValidationTests(unittest.TestCase):
         self.assertNotIn("\\\\(", catalog)
         self.assertNotIn("\\\\n", catalog)
 
+        installer = Path(INSTALLER_VIEW).read_text(encoding="utf-8")
+        self.assertIn("IPA UNSIGNED · não instalável diretamente", installer)
+        self.assertIn("Baixar unsigned", installer)
+        self.assertIn("Assinatura não verificada", installer)
+
     def test_device_installer_preflights_archive_and_verifies_each_profile(self):
         script = Path(INSTALLER).read_text(encoding="utf-8")
         preflight = script.index('python3 "$ROOT/tools/validate-signing-inputs.py" --inspect-ipa')
@@ -206,6 +211,18 @@ class SigningInputValidationTests(unittest.TestCase):
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("tipo de arquivo especial", result.stderr)
+
+    def test_imported_ipa_is_staged_and_inspected_before_storage(self):
+        source = Path(INSTALLER_VIEW).read_text(encoding="utf-8")
+        start = source.index("func importIPA(from source: URL)")
+        end = source.index("func refreshDownloadedFiles()", start)
+        importer = source[start:end]
+        copy_at = importer.index("copyItem(at: source, to: stagingURL)")
+        inspect_at = importer.index("IPAInspector.inspect(fileURL: stagingURL)")
+        move_at = importer.index("moveItem(at: stagingURL, to: destination)")
+        self.assertLess(copy_at, inspect_at)
+        self.assertLess(inspect_at, move_at)
+        self.assertNotIn("IPAInspector.inspect(fileURL: source)", importer)
 
     def test_signing_docs_do_not_put_passphrase_in_environment(self):
         docs = Path(ROOT, "Projects", "AutoRenewSigningKit", "SIGNING_PIPELINE.md").read_text(encoding="utf-8")
