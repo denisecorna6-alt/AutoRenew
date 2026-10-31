@@ -10,13 +10,15 @@ A central possui dois modos manuais:
 ## Limites da implementação assistida
 
 - Só aceita branch-base com prefixo codex/alpha-.
-- Cria branch de trabalho e PR direcionada à branch Alpha escolhida.
+- Cria branch `codex/alpha-ai-work-*` e PR direcionada à branch Alpha escolhida.
+- A branch-base precisa conter os scripts e workflow da central; a opção padrão é `codex/alpha-ai-central-20261031`.
 - Allowlist de arquivos: Swift, Tests/, docs/ e README.md.
 - Bloqueia workflows, configuração de build, Keychain, assinatura, provisioning, certificados, Anisette e entitlements.
 - Rejeita remoção de arquivos, patch inválido, divergência de arquivos e falha em diff check/testes locais.
+- Pushes e PRs Alpha acionam CI read-only em macOS: XcodeGen, builds de todos os schemes de app presentes, testes de simulador quando há target/runtime e testes Python; se não houver simulador, compila os testes.
 - O job implementador tem contents: write e pull-requests: write apenas durante execução manual. O job de revisão permanece read-only.
 - Não faz merge, não publica Beta/Stable, não assina nem instala apps.
-- O CI normal da PR ainda precisa passar e uma pessoa deve revisar o resultado.
+- A PR só deve ser considerada após o job `project-validation` passar e uma pessoa revisar o resultado.
 
 Essa é uma barreira inicial, não uma sandbox perfeita. A saída dos modelos é código não confiável; por isso a PR é obrigatória e os testes do projeto continuam necessários.
 
@@ -45,6 +47,7 @@ A central é manual; não é um agente 24/7. Chamadas às APIs podem gerar cobra
 ## Modelos padrão verificados na documentação pública
 
 - OpenAI: gpt-6.1-sol (Responses API)
+- Ações GitHub: checkout v7.0.1, setup-python v7.1.0 e upload-artifact v7.0.2 (Node 24).
 - Claude: claude-sonnet-5-5 (Messages API)
 - Gemini: gemini-3.8-flash (generateContent)
 
