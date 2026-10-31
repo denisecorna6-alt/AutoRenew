@@ -98,8 +98,10 @@ class SigningInputValidationTests(unittest.TestCase):
         catalog = Path(CATALOG_VIEW).read_text(encoding="utf-8")
         self.assertIn("IPAInspector.inspect(fileURL: temporaryURL)", catalog)
         self.assertIn("maximumSourceJSONBytes", catalog)
-        self.assertIn("URLSession.shared.bytes(for: request)", catalog)
+        self.assertIn("session.bytes(for: request)", catalog)
         self.assertNotIn("URLSession.shared.data(for: request)", catalog)
+        self.assertNotIn("\\\\(", catalog)
+        self.assertNotIn("\\\\n", catalog)
 
     def test_device_installer_preflights_archive_and_verifies_each_profile(self):
         script = Path(INSTALLER).read_text(encoding="utf-8")
