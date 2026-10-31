@@ -1,4 +1,4 @@
-name: Build IPA
+name: Build AutoRenew and Installer IPAs
 on:
   workflow_dispatch:
   push:
@@ -15,23 +15,36 @@ jobs:
       - uses: actions/checkout@v4
       - name: Generate Xcode project
         run: brew install xcodegen && xcodegen generate
-      - name: Build for iOS
+      - name: Build AutoRenew for iOS
         run: |
           xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew -configuration Release \
             -sdk iphoneos -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
-      - name: Run unit tests on iOS Simulator
+      - name: Build AutoRenew Installer for iOS
+        run: |
+          xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenewInstaller -configuration Release \
+            -sdk iphoneos -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+      - name: Run AutoRenew unit tests on iOS Simulator
         run: |
           xcodebuild test -project AutoRenew.xcodeproj -scheme AutoRenew \
             -destination 'platform=iOS Simulator,name=iPhone 16' \
             -derivedDataPath test-build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-      - name: Package unsigned IPA for inspection
+      - name: Package both unsigned IPAs
         run: |
-          mkdir Payload
-          cp -R build/Build/Products/Release-iphoneos/AutoRenew.app Payload/
-          zip -qr AutoRenew.ipa Payload
-      - uses: actions/upload-artifact@v4
+          mkdir -p AutoRenewPayload/Payload InstallerPayload/Payload
+          cp -R build/Build/Products/Release-iphoneos/AutoRenew.app AutoRenewPayload/Payload/
+          cp -R build/Build/Products/Release-iphoneos/AutoRenewInstaller.app InstallerPayload/Payload/
+          (cd AutoRenewPayload && zip -qr ../AutoRenew.ipa Payload)
+          (cd InstallerPayload && zip -qr ../AutoRenew-Installer.ipa Payload)
+      - name: Upload AutoRenew unsigned IPA
+        uses: actions/upload-artifact@v4
         with:
           name: AutoRenew-ipa-unsigned
           path: AutoRenew.ipa
+      - name: Upload Installer unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoRenew-Installer-ipa-unsigned
+          path: AutoRenew-Installer.ipa
