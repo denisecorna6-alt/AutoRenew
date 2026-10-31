@@ -21,4 +21,6 @@ A confiança/revogação da cadeia depende do trust store e da política do macO
 3. Distinguir Development, Ad Hoc, App Store e Enterprise com dados comprovados.
 4. Extrair o código para Swift Package independente quando os contratos estiverem estáveis.
 
+Apple TN3125 alerta que o formato exato do provisioning profile não é uma API de produto documentada e que o payload DER é a fonte de verdade em sistemas modernos. A extração plist/XML atual é apenas diagnóstico e não deve ser tratada como validação completa de entitlements ou autorização para assinar/instalar. Mantenha o pipeline Draft até essa limitação ser resolvida com ferramentas suportadas.
+
 Nenhum perfil será considerado válido apenas por ter plist legível.
