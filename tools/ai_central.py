@@ -31,8 +31,8 @@ def main():
         d=call("https://api.anthropic.com/v1/messages",{"x-api-key":keys["Claude"],"anthropic-version":"2023-06-01"},{"model":models["Claude"],"max_tokens":1600,"system":system,"messages":[{"role":"user","content":prompt}]},keys["Claude"])
         return "\n".join(x.get("text","") for x in d.get("content",[]) if x.get("type")=="text")
     def ge():
-        url="https://generativelanguage.googleapis.com/v1beta/models/"+models["Gemini"]+":generateContent?key="+keys["Gemini"]
-        d=call(url,{},{"systemInstruction":{"parts":[{"text":system}]},"contents":[{"role":"user","parts":[{"text":prompt}]}],"generationConfig":{"maxOutputTokens":1600}},keys["Gemini"])
+        url="https://generativelanguage.googleapis.com/v1beta/models/"+models["Gemini"]+":generateContent"
+        d=call(url,{"x-goog-api-key":keys["Gemini"]},{"systemInstruction":{"parts":[{"text":system}]},"contents":[{"role":"user","parts":[{"text":prompt}]}],"generationConfig":{"maxOutputTokens":1600}},keys["Gemini"])
         return "\n".join(x.get("text","") for x in d["candidates"][0]["content"]["parts"] if "text" in x)
     funcs={"OpenAI":oa,"Claude":cl,"Gemini":ge}
     reviews,errors={},{}
