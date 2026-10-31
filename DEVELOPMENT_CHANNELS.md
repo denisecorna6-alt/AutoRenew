@@ -2,7 +2,7 @@
 
 ## main — referência pública
 - Recebe melhorias por Pull Request depois de CI verde, revisão técnica/de segurança e conferência de escopo/diff.
-- Correções pequenas e reversíveis podem ir diretamente para main quando os critérios acima forem atendidos; não é obrigatório passar por Beta para documentação ou correções de baixo risco.
+- Correções pequenas e reversíveis podem ser mescladas em main após PR e critérios verdes; não é obrigatório passar por Beta para documentação ou correções de baixo risco.
 - Não publicar Release nem anunciar renovação real sem validação completa em dispositivo físico.
 
 ## beta — testes de candidatos
