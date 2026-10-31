@@ -58,7 +58,7 @@ final class AlphaSafetyTests: XCTestCase {
     }
 
     func testRouterRejectsNonHTTPSProviders() async {
-        let router = AnisetteRouter(urls: ["http://example.invalid/anisette"])
+        let router = AnisetteRouter(urls: ["http://example.invalid/anisette"], remoteRequestsEnabled: true)
         do {
             _ = try await router.fetch()
             XCTFail("Non-HTTPS Anisette endpoints must be rejected")
