@@ -70,7 +70,10 @@ actor RefreshCoordinator {
             )
         }
 
-        let router = AnisetteRouter(urls: settings.anisetteURLs)
+        let router = AnisetteRouter(
+            urls: settings.anisetteURLs,
+            remoteRequestsEnabled: settings.allowRemoteAnisette
+        )
         var renewed = 0
         var failed = 0
 
