@@ -164,6 +164,8 @@ new file mode 100644
         self.assertIn("actions/checkout@v7.0.1", FLOW)
         self.assertIn("actions/setup-python@v7.1.0", FLOW)
         self.assertIn("actions/upload-artifact@v7.0.2", FLOW)
+        for path in ("tools/ai_patch_policy.py", "tools/ai_propose.py", "tools/ai_publish.py"):
+            self.assertIn(path, FLOW)
 
     def test_proposal_preserves_failure_logs_and_redacts_keys(self):
         self.assertIn("stderr=subprocess.STDOUT", PROPOSE)
