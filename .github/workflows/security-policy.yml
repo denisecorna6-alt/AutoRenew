@@ -1,0 +1,59 @@
+name: Credential-free Alpha safety
+
+on:
+  push:
+    branches:
+      - codex/security-credential-free-alpha-20261031
+    paths:
+      - 'AppStore.swift'
+      - 'Anisette.swift'
+      - 'ContentView.swift'
+      - 'Keychain.swift'
+      - 'LegacyCredentialCleanup.swift'
+      - 'Models.swift'
+      - 'Notifier.swift'
+      - 'RefreshCoordinator.swift'
+      - 'SigningBackend.swift'
+      - 'project.yml'
+      - 'Tests/test_credential_safety.py'
+      - '.github/workflows/security-policy.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'AppStore.swift'
+      - 'Anisette.swift'
+      - 'ContentView.swift'
+      - 'Keychain.swift'
+      - 'LegacyCredentialCleanup.swift'
+      - 'Models.swift'
+      - 'Notifier.swift'
+      - 'RefreshCoordinator.swift'
+      - 'SigningBackend.swift'
+      - 'project.yml'
+      - 'Tests/test_credential_safety.py'
+      - '.github/workflows/security-policy.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  safety-and-build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Run credential and fail-closed regression tests
+        run: python -m unittest Tests.test_credential_safety -v
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Record Xcode version
+        run: xcodebuild -version
+      - name: Compile iOS app for simulator
+        run: |
+          xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew \
+            -configuration Debug -sdk iphonesimulator \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build

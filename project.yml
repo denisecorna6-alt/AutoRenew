@@ -24,4 +24,3 @@ targets:
       properties:
         UIBackgroundModes: [fetch, processing]
         BGTaskSchedulerPermittedIdentifiers: [app.autorenew.refresh, app.autorenew.processing]
-        NSLocalNetworkUsageDescription: Necessário para comunicar com o próprio dispositivo.
