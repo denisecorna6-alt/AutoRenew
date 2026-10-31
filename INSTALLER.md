@@ -25,7 +25,7 @@ xcrun devicectl list devices
 ./tools/install-to-iphone.sh <identificador-do-iphone> /caminho/para/app-assinado.ipa
 ```
 
-O iPhone precisa estar pareado/confiado pelo Mac e o IPA precisa ter assinatura de desenvolvimento válida e perfil que inclua o dispositivo. Esta ferramenta não assina o IPA. A confirmação do comando não substitui o teste de abertura no aparelho.
+O iPhone precisa estar pareado/confiado pelo Mac e o IPA precisa ter assinatura de desenvolvimento válida e perfil que inclua o UDID desse dispositivo. A ferramenta verifica CMS, Bundle ID, Team ID, validade e autorização do UDID antes de solicitar a instalação. Ela não assina o IPA. A confirmação do comando não substitui o teste de abertura no aparelho.
 
 ## Assinatura local assistida por Mac (experimental)
 
