@@ -37,11 +37,24 @@ struct RemoteAnisetteProvider: AnisetteProvider {
             throw RefreshError.anisetteUnavailable
         }
 
-        try await AnisetteV3Provisioner(serverURL: url, vault: vault).provisionIfNeeded()
+        let provisioner = AnisetteV3Provisioner(serverURL: url, vault: vault)
+        let headersClient = AnisetteV3HeadersClient(serverURL: url)
+        try await provisioner.provisionIfNeeded()
         guard let state = try await vault.loadProvisioningState() else {
             throw RefreshError.anisetteUnavailable
         }
-        return try await AnisetteV3HeadersClient(serverURL: url).fetch(using: state)
+        do {
+            return try await headersClient.fetch(using: state)
+        } catch let error as RefreshError where error == .anisetteNeedsProvisioning {
+            // SideStore's V3 protocol uses -45061 to indicate stale/unprovisioned ADI.
+            // Preserve the stable identifier and perform one fresh provisioning attempt.
+            try await vault.clearProvisionedState()
+            try await provisioner.provisionIfNeeded()
+            guard let renewedState = try await vault.loadProvisioningState() else {
+                throw RefreshError.anisetteUnavailable
+            }
+            return try await headersClient.fetch(using: renewedState)
+        }
     }
 }
 
