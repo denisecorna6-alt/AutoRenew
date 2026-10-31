@@ -78,5 +78,6 @@ Apple released iOS 27.2 on 2026-10-26 and Xcode 27.2 (27B52) on 2026-10-29; Xcod
 - No installation or first launch has been tested on a physical device.
 - No Beta or Stable release is authorized.
 - The signing pipeline remains Draft pending DER/profile validation and physical-device checks.
+- Draft PR #32 remains blocked: its Installer UI requests and stores PKCS#12 private-key material, its AI implementation job exposes provider keys and GH_TOKEN while running code/tests from a selectable Alpha branch, and its IPA workflow still uses an older macOS 15 runner and includes a Beta PR trigger. These must be removed or isolated before merge.
 - The AI central workflow remains Draft; provider secrets cannot be verified from this audit, and no Claude/Gemini API calls were made.
 - Social content was not published.
