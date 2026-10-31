@@ -57,6 +57,13 @@ class CentralSafety(unittest.TestCase):
         self.assertNotIn("api.openai.com", PUBLISH)
         self.assertNotIn("api.anthropic.com", PUBLISH)
         self.assertNotIn("generativelanguage.googleapis.com", PUBLISH)
+        self.assertIn("artifact.is_symlink()", PUBLISH)
+        self.assertIn("validate_workspace_paths(files)", PUBLISH)
+
+    def test_proposal_artifact_is_written_outside_target_checkout(self):
+        self.assertIn("AI_OUTPUT_DIR", PROPOSE)
+        self.assertIn("runner.temp", FLOW)
+        self.assertIn("persist-credentials: false", FLOW)
 
     def test_legacy_combined_runner_is_disabled(self):
         self.assertIn("raise SystemExit", LEGACY)
