@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import concurrent.futures, json, os, re, subprocess, sys, urllib.request, urllib.error
 from pathlib import Path
+from sanitize_context import redact_sensitive
 BLOCKED={"Keychain.swift","SigningBackend.swift","RefreshCoordinator.swift","Anisette.swift"}
 def call(url,headers,payload,key):
     req=urllib.request.Request(url,data=json.dumps(payload).encode(),headers={**headers,"Content-Type":"application/json"},method="POST")
@@ -40,9 +41,9 @@ def get_context():
         except (OSError,UnicodeError):continue
         out.append("\n===== "+n+" =====\n"+v)
         if sum(map(len,out))>38000:break
-    return "\n".join(out)[:40000]
+    return redact_sensitive("\n".join(out))[:40000]
 def main():
-    task=os.getenv("AI_TASK","").strip()[:6000];base=os.getenv("AI_BASE_BRANCH","").strip();worker=os.getenv("AI_WORKER","openai").lower()
+    task=redact_sensitive(os.getenv("AI_TASK","")).strip()[:6000];base=os.getenv("AI_BASE_BRANCH","").strip();worker=os.getenv("AI_WORKER","openai").lower()
     if not task:raise RuntimeError("Tarefa obrigatória.")
     if not re.fullmatch(r"codex/alpha-[A-Za-z0-9._-]+",base):raise RuntimeError("Destino deve ser codex/alpha-*.")
     if worker not in ("openai","claude","gemini"):raise RuntimeError("Worker inválido.")
