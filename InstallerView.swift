@@ -212,6 +212,28 @@ private final class InstallerCatalog: ObservableObject {
     }
 }
 
+
+private struct InstallerGuideRow: View {
+    let symbol: String
+    let title: String
+    let detail: String
+    let tint: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: symbol)
+                .font(.title3)
+                .foregroundStyle(tint)
+                .frame(width: 26)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.subheadline.weight(.semibold))
+                Text(detail).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 3)
+    }
+}
+
 struct InstallerView: View {
     @StateObject private var catalog = InstallerCatalog()
     @State private var selectedChannel = "Todas"
@@ -225,6 +247,7 @@ struct InstallerView: View {
     @State private var certificateMessage: String?
     @State private var profileMessage: String?
     @State private var directIPALink = ""
+    @State private var selectedIPA: URL?
     @State private var preparedIPA: IPAInspection?
     @State private var preparationMessage: String?
 
@@ -343,11 +366,12 @@ struct InstallerView: View {
                                 Label(file.lastPathComponent, systemImage: "doc.zipper")
                                     .font(.subheadline)
                                 Button {
+                                    selectedIPA = file
+                                    preparedIPA = nil
+                                    preparationMessage = nil
                                     do {
                                         preparedIPA = try IPAInspector.inspect(fileURL: file)
-                                        preparationMessage = nil
                                     } catch {
-                                        preparedIPA = nil
                                         preparationMessage = error.localizedDescription
                                     }
                                 } label: {
@@ -384,6 +408,59 @@ struct InstallerView: View {
                     }
                     Text("A verificação confere extensão, tamanho e assinatura inicial do contêiner ZIP, além de calcular SHA-256. Ela não valida assinatura Apple, perfil, malware ou compatibilidade.")
                         .font(.caption).foregroundStyle(.secondary)
+                }
+
+                Section("Etapas para instalar") {
+                    InstallerGuideRow(
+                        symbol: selectedIPA == nil ? "1.circle" : "checkmark.circle.fill",
+                        title: "1. Escolher o IPA",
+                        detail: selectedIPA?.lastPathComponent ?? "Baixe uma versão ou importe um IPA do app Arquivos.",
+                        tint: selectedIPA == nil ? .blue : .green
+                    )
+                    if let preparationMessage {
+                        InstallerGuideRow(
+                            symbol: "exclamationmark.triangle.fill",
+                            title: "2. Verificação interrompida",
+                            detail: preparationMessage,
+                            tint: .red
+                        )
+                    } else {
+                        InstallerGuideRow(
+                            symbol: preparedIPA == nil ? "2.circle" : "checkmark.circle.fill",
+                            title: "2. Verificar pacote",
+                            detail: preparedIPA == nil
+                                ? "Execute “Verificar e preparar instalação” em um IPA selecionado."
+                                : "Cabeçalho ZIP, tamanho e SHA-256 conferidos. Isso ainda não valida assinatura Apple nem o conteúdo completo do ZIP.",
+                            tint: preparedIPA == nil ? .blue : .green
+                        )
+                    }
+                    InstallerGuideRow(
+                        symbol: "lock.shield",
+                        title: "3. Assinatura e provisioning",
+                        detail: "Ainda não são validados nem aplicados dentro do Installer. É necessária uma assinatura compatível antes da instalação.",
+                        tint: .orange
+                    )
+                    if let preparedIPA {
+                        ShareLink(item: preparedIPA.fileURL) {
+                            Label("4. Enviar para AltStore / SideStore", systemImage: "arrow.up.forward.app")
+                        }
+                    } else {
+                        InstallerGuideRow(
+                            symbol: "4.circle",
+                            title: "4. Encaminhar IPA",
+                            detail: "Disponível depois da verificação estrutural.",
+                            tint: .secondary
+                        )
+                    }
+                    InstallerGuideRow(
+                        symbol: "5.circle",
+                        title: "5. Concluir no aplicativo receptor",
+                        detail: "Finalize a assinatura/instalação no AltStore ou SideStore. O AutoRenew não recebe confirmação do resultado nem verifica o primeiro lançamento.",
+                        tint: .secondary
+                    )
+                    Text("Este fluxo é uma orientação transparente para a Alpha; ainda não é um motor de instalação on-device como o SideInstaller.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Conta Apple e certificados") {
