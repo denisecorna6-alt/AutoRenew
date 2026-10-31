@@ -3,7 +3,7 @@ run-name: AI Central review
 on:
   push:
     branches:
-      - 'codex/alpha-ai-orchestrator-*'
+      - 'codex/alpha-*'
     paths:
       - '.github/workflows/ai-central.yml'
       - 'tools/ai_central.py'
