@@ -59,7 +59,7 @@ private final class AppCatalogModel: ObservableObject {
     private func isValid(_ source: AltSourceDocument) -> Bool {
         guard !source.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               source.apps.count <= 5_000 else { return false }
-        let identifiers = source.apps.map(\\.bundleIdentifier)
+        let identifiers = source.apps.map(\.bundleIdentifier)
         guard Set(identifiers).count == identifiers.count else { return false }
         return source.apps.allSatisfy { app in
             let parts = app.bundleIdentifier.split(separator: ".")
@@ -71,7 +71,7 @@ private final class AppCatalogModel: ObservableObject {
             let validIcon = app.iconURL.map { isSafeHTTPS($0) } ?? true
             let validVersions = app.versions.count <= 100 && app.versions.allSatisfy { version in
                 isSafeHTTPS(version.downloadURL)
-                    && (version.size == nil || (version.size! > 0 && version.size! <= maxDownloadSize))
+                    && (version.size.map { $0 > 0 && $0 <= maxDownloadSize } ?? true)
             }
             return !app.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && validBundleID && validIcon && validVersions
