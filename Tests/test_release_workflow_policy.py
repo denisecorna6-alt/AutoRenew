@@ -14,12 +14,24 @@ class ReleaseSafetyPolicy(unittest.TestCase):
             self.assertNotIn("gh release create", workflow)
             self.assertIn("actions/upload-artifact", workflow)
 
-    def test_main_build_artifact_is_explicitly_unsigned(self):
+    def test_alpha_build_artifact_is_explicitly_unsigned_and_scoped(self):
+        self.assertIn("'codex/alpha-*'", BUILD)
+        self.assertIn("if: startsWith(github.ref, 'refs/heads/codex/alpha-')", BUILD)
+        self.assertIn("runs-on: macos-26", BUILD)
+        self.assertIn("xcodebuild -version", BUILD)
+        self.assertIn("python3 -m unittest discover", BUILD)
         self.assertIn("CODE_SIGNING_ALLOWED=NO", BUILD)
         self.assertIn("AutoRenew-unsigned.ipa", BUILD)
         self.assertIn("AutoRenew-ipa-unsigned", BUILD)
         self.assertIn("retention-days: 30", BUILD)
-        self.assertNotIn("name: AutoRenew-ipa,", BUILD)
+        self.assertNotIn("branches: [main]", BUILD)
+
+    def test_beta_and_official_ipa_artifacts_are_manual_only(self):
+        for workflow, branch in ((BETA, "beta"), (OFFICIAL, "main")):
+            self.assertIn("workflow_dispatch:", workflow)
+            self.assertNotRegex(workflow, r"(?m)^  (push|pull_request):")
+            self.assertIn(f"if: github.ref == 'refs/heads/{branch}'", workflow)
+            self.assertIn("CODE_SIGNING_ALLOWED=NO", workflow)
 
     def test_no_tag_trigger_can_publish_a_release(self):
         for workflow in (BETA, OFFICIAL):
