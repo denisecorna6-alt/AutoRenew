@@ -42,9 +42,9 @@ xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew \
 
 ## Próximas etapas
 
-1. Inventário local e não destrutivo de perfis/certificados, com importação explícita pelo usuário.
-2. Estados verificáveis: válido, próximo do vencimento, expirado, revogado e desconhecido.
-3. Integração com fluxo de assinatura documentado e suportado, condicionado a pareamento, dispositivo e autenticação explícita.
+1. Decodificar e validar o CMS dos perfis importados e extrair metadados verificáveis.
+2. Distinguir validade temporal de revogação; estado remoto não será inferido apenas do arquivo local.
+3. Integrar um fluxo de assinatura documentado e suportado, condicionado a pareamento, dispositivo e autenticação explícita.
 4. Testes em iPhone físico, com logs sem dados sensíveis.
 5. Avaliação de automações adicionais somente após comprovação técnica.
 
