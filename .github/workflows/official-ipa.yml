@@ -1,0 +1,48 @@
+name: AutoRenew Official IPA
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: official-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Archive unsigned iOS app
+        run: |
+          xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -archivePath build/AutoRenew-Official.xcarchive CODE_SIGNING_ALLOWED=NO archive
+      - name: Package unsigned IPA for SideStore/AltStore signing
+        run: |
+          mkdir -p build/ipa/Payload
+          APP_PATH=$(find build/AutoRenew-Official.xcarchive/Products/Applications -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$APP_PATH"
+          cp -R "$APP_PATH" build/ipa/Payload/
+          (cd build/ipa && /usr/bin/zip -qry ../AutoRenew-Official-unsigned.ipa Payload)
+      - name: Upload Official IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoRenew-Official-unsigned-IPA
+          path: build/AutoRenew-Official-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 90
+      - name: Publish public Official release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" build/AutoRenew-Official-unsigned.ipa --title "AutoRenew ${GITHUB_REF_NAME}" --notes "Build oficial. IPA sem assinatura; importe no SideStore/AltStore para assinar com seu Apple ID. Consulte as notas e limitações da versão antes de instalar."
