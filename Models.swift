@@ -21,7 +21,6 @@ struct RefreshAttempt: Codable, Identifiable {
 struct AppSettings: Codable {
     var anisetteURLs = ["https://ani.sidestore.io"]
     var thresholdHours = 48.0
-    var blockDomains = false
 }
 
 enum RefreshError: Error, Equatable {
