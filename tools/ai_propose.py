@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -131,8 +132,14 @@ def main():
               "privados Apple. Retorne somente unified diff git textual.")
     prompt = ("TAREFA:\n" + task + "\nBRANCH ALPHA BASE: " + base + "\nCONTEXTO:\n" + get_context()
               + "\nCrie patch mínimo; não remova, renomeie ou copie arquivos.")
-    output = Path("ai-proposal-output")
-    output.mkdir(exist_ok=True)
+    configured_output = os.getenv("AI_OUTPUT_DIR", "").strip()
+    if configured_output:
+        output = Path(configured_output)
+        if output.exists() or output.is_symlink():
+            raise RuntimeError("Pasta de artefato já existe ou é symlink.")
+        output.mkdir(parents=True, mode=0o700)
+    else:
+        output = Path(tempfile.mkdtemp(prefix="autorenew-ai-proposal-"))
     try:
         answer = providers[worker](system, prompt)
         patch = extract_patch(answer)
