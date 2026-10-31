@@ -34,6 +34,20 @@ jobs:
           python3 -m py_compile tools/validate-signing-inputs.py tools/ai_central.py tools/ai_coder.py
           python3 -m unittest discover -s Tests -p 'test_*.py' -v
 
+      - name: Smoke-test IPA archive round-trip preserves root resources
+        run: |
+          set -euo pipefail
+          temp_dir="$(mktemp -d)"
+          trap 'rm -rf "$temp_dir"' EXIT
+          mkdir -p "$temp_dir/extracted/Payload/Demo.app" "$temp_dir/extracted/SwiftSupport"
+          printf 'demo app metadata' > "$temp_dir/extracted/Payload/Demo.app/Info.plist"
+          printf 'swift support payload' > "$temp_dir/extracted/SwiftSupport/libswift.dylib"
+          ditto -c -k --sequesterRsrc "$temp_dir/extracted" "$temp_dir/roundtrip.ipa"
+          mkdir "$temp_dir/repacked"
+          ditto -x -k "$temp_dir/roundtrip.ipa" "$temp_dir/repacked"
+          test -f "$temp_dir/repacked/Payload/Demo.app/Info.plist"
+          test -f "$temp_dir/repacked/SwiftSupport/libswift.dylib"
+
       - name: Select Xcode and install XcodeGen
         run: |
           xcodebuild -version
