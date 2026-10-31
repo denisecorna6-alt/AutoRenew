@@ -2,10 +2,11 @@ import XCTest
 @testable import AutoRenew
 
 final class AlphaSafetyTests: XCTestCase {
-    func testStubBackendNeverClaimsRenewal() async {
+    func testStubBackendNeverClaimsRenewalOrChangesExpiry() async {
         let backend = StubSigningBackend()
-        let app = ManagedApp(bundleID: "test.example", name: "Test",
-                             expiresAt: Date(timeIntervalSinceNow: 24 * 3600))
+        XCTAssertFalse(backend.isAvailable)
+        let expiry = Date(timeIntervalSinceNow: 24 * 3600)
+        let app = ManagedApp(bundleID: "test.example", name: "Test", expiresAt: expiry)
         let anisette = AnisetteData(headers: ["X-Apple-I-MD": "test"])
 
         do {
@@ -16,11 +17,12 @@ final class AlphaSafetyTests: XCTestCase {
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
-        XCTAssertGreaterThan(app.expiresAt, Date())
+        XCTAssertEqual(app.expiresAt, expiry)
     }
 
-    func testAnisetteDataRequiresExpectedHeader() {
+    func testAnisetteDataRequiresExpectedNonemptyHeader() {
         XCTAssertFalse(AnisetteData(headers: [:]).isValid)
+        XCTAssertFalse(AnisetteData(headers: ["X-Apple-I-MD": ""]).isValid)
         XCTAssertTrue(AnisetteData(headers: ["X-Apple-I-MD": "test"]).isValid)
     }
 
