@@ -3,20 +3,26 @@
 ## Dois modos
 
 - **Review:** OpenAI, Claude e Gemini fazem avaliações independentes; OpenAI sintetiza os resultados.
-- **Implement:** uma IA propõe um unified diff; as outras duas revisam. O patch só é aplicado se ambas aprovarem e abre uma PR para uma branch Alpha.
+- **Implement:** uma IA propõe um unified diff; as outras duas revisam. Se ambas aprovarem, um job separado publica uma PR em branch Alpha.
 
-## Segurança do executor
+## Separação de privilégios
 
-- Os jobs Review e Implement fazem checkout explícito da branch principal, nunca da branch escolhida como base.
-- O executor confiável é carregado antes de trocar para a branch Alpha. A branch-alvo é tratada como dados: os arquivos são lidos como texto e nunca se executam scripts, testes ou workflows dela no job privilegiado.
-- O job Implement tem permissão de escrita em conteúdo e PR apenas durante execução manual; o job Review e o CI do projeto são read-only.
+O modo Implement é dividido em dois jobs:
+
+1. **propose (read-only):** faz checkout de main, lê a branch Alpha selecionada apenas como texto, chama os provedores e produz patch/relatório. Não tem permissão de escrita no GitHub; o checkout não persiste credenciais.
+2. **publish (write-only):** recebe o artefato, valida novamente caminhos e tipos, aplica o patch e abre a PR. Recebe somente o token GitHub de escrita; não recebe chaves OpenAI, Anthropic ou Gemini e não executa código ou testes da branch-alvo.
+
+Outras proteções:
+
+- Review, propose, publish e validate fazem checkout explícito da branch principal. A branch escolhida como base é buscada separadamente.
 - O patch permite somente Swift, Tests/, docs/ e README.md; bloqueia workflows, project.yml, Keychain, assinatura, certificados, provisioning, Anisette e entitlements.
 - Rejeita binários, symlinks, alterações de modo, rename/copy, exclusões, caminhos fora da allowlist e paths com caracteres de controle.
-- O job privilegiado faz apenas validação estrutural do patch, git apply, diff staged, commit e abertura de PR. Não executa o código ou os testes da branch-alvo.
-- O CI separado da PR executa XcodeGen, Python, shell, builds dos schemes e testes de simulador com token read-only e sem as chaves das APIs.
-- Não faz merge, não publica Beta/Stable, não assina nem instala apps.
+- O publisher verifica também se os diretórios existentes no destino não são symlinks.
+- O CI do projeto executa separadamente com permissões read-only, sem chaves de provedores.
+- O antigo executor combinado foi desativado.
+- Não há merge, publicação Beta/Stable, assinatura ou instalação automática.
 
-A PR continua sujeita a revisão humana. A validação estrutural não substitui CI, revisão de código ou testes em dispositivo.
+A validação estrutural não substitui CI, revisão humana ou testes em iPhone físico.
 
 ## Segredos
 
@@ -25,7 +31,7 @@ No GitHub: Settings → Secrets and variables → Actions → Repository secrets
 - ANTHROPIC_API_KEY
 - GEMINI_API_KEY
 
-O GitHub não permite ler os valores por este fluxo. A execução falha se uma chave necessária estiver ausente. Nunca inclua Apple ID, senhas, 2FA, tokens de sessão, certificados ou chaves privadas nos campos de tarefa/contexto.
+O GitHub não permite ler os valores por este fluxo. A execução falha se uma chave necessária estiver ausente. As chaves só ficam no job read-only de proposta/revisão; nunca são entregues ao job com permissão de escrita. Nunca inclua Apple ID, senhas, 2FA, tokens de sessão, certificados ou chaves privadas nos campos de tarefa/contexto.
 
 ## Como executar
 
@@ -36,7 +42,7 @@ Depois que a central estiver integrada à branch padrão:
 3. Informe a tarefa em task.
 4. No modo Implement, escolha a IA implementadora.
 5. Informe uma branch-base existente com prefixo codex/alpha-.
-6. Se as duas revisões aprovarem, o workflow cria uma PR para a branch Alpha. O CI da PR valida o projeto separadamente.
+6. Se as duas revisões aprovarem, o job publish abre uma PR para a branch Alpha. O CI da PR valida o projeto separadamente.
 
 A central é manual, não é um agente 24/7. As chamadas podem gerar cobrança em cada provedor. Claude/Gemini só são chamados se as respectivas chaves de API reais estiverem configuradas; não há fallback que simule esses provedores.
 
