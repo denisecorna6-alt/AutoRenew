@@ -21,7 +21,7 @@ OUTPUT="$4"
 [[ "$OUTPUT" == *.ipa || "$OUTPUT" == *.IPA ]] || { echo "Saída precisa terminar em .ipa" >&2; exit 65; }
 [[ "$IDENTITY_SHA1" =~ ^[0-9A-Fa-f]{40}$ ]] || { echo "Informe o SHA-1 de 40 caracteres da identidade." >&2; exit 64; }
 
-for tool in security codesign ditto xcrun python3 openssl shasum; do
+for tool in security codesign ditto xcrun python3 shasum; do
   command -v "$tool" >/dev/null || { echo "Ferramenta ausente: $tool" >&2; exit 69; }
 done
 
@@ -56,7 +56,6 @@ PAYLOAD="$WORK/Payload"
 
 # Manifest JSON: bundles[{bundle_path,profile_path,entitlements_path}].
 # All paths are relative to the manifest directory; external files cannot escape it.
-MANIFEST_DIR="$(cd "$(dirname "$MANIFEST_PATH")" && pwd)"
 python3 - "$MANIFEST_PATH" > "$WORK/bundles.tsv" <<'PY'
 import json, os, sys
 from pathlib import PurePosixPath
