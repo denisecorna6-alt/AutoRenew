@@ -27,7 +27,7 @@
 | Renovação e reinstalação automáticas | Não implementadas |
 | Monitoramento real de certificados Apple | Não implementado |
 | Revogação de certificados | Não implementada |
-| Portal de downloads | Publicado em GitHub Pages; catálogo dinâmico e builds por branch |
+| Portal de downloads | Público no GitHub Pages; catálogo de Releases dinâmico; filtro correto de builds por branch aguarda PR #9 e novo deploy |
 | Releases públicas | Uma pré-release Alpha; nenhuma Beta ou Stable |
 | Artefatos de CI | Separados das Releases; IPAs unsigned, sem instalação validada |
 
