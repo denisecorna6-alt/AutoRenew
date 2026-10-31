@@ -2,6 +2,11 @@ import XCTest
 @testable import AutoRenew
 
 final class InstallerDeepLinkTests: XCTestCase {
+    func testDisplaysDownloadHostWithoutAssumingInstall() {
+        XCTAssertEqual(InstallerDeepLink.displayHost(for: URL(string: "https://example.com/build.ipa")), "example.com")
+        XCTAssertEqual(InstallerDeepLink.displayHost(for: nil), "origem desconhecida")
+    }
+
     func testAcceptsHTTPSIPAInstallHandoff() throws {
         let link = URL(string: "autorenewinstaller://install?url=https%3A%2F%2Fexample.com%2Fbuild.ipa")!
         XCTAssertEqual(try InstallerDeepLink.parse(link).absoluteString, "https://example.com/build.ipa")
