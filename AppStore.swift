@@ -69,7 +69,7 @@ final class AppStore: ObservableObject {
     func addDemoApp() {
         let number = apps.count + 1
         apps.append(ManagedApp(bundleID: "demo.app\(number)", name: "App Demo \(number)",
-                               expiresAt: Date(timeIntervalSinceNow: 2 * 86_400)))
+                               expiresAt: Date(timeIntervalSinceNow: 2 * 86_400), isDemo: true))
         Task { await Notifier.reschedule(apps, thresholdHours: settings.thresholdHours) }
     }
 
