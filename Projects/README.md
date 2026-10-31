@@ -19,7 +19,7 @@ O AutoRenew principal deve continuar sendo o aplicativo e a experiência do usu�
 
 - **SideSign:** separação entre importação de identidade, certificados, perfis, entitlements, assinatura de código e reconstrução do pacote.
 - **SideStore:** catálogo de fontes, fluxo de download, handoff e atenção às limitações de instalação e autenticação no iOS.
-- **Implementação própria:** nenhuma cópia de código-fonte. A licença GPL-3.0 do SideSign e AGPL-3.0 do SideStore será respeitada; qualquer dependência futura exige análise de compatibilidade e atribuição antes de ser adicionada.
+- **Licenças:** o repositório SideStore inclui AGPL-3.0. O README do SideSign declara GPL-3.0, mas a árvore atual do repositório não contém um arquivo LICENSE que permita verificar o grant; trate a licença como não verificada e não copie código. Qualquer dependência futura exige revisão legal e de compatibilidade. Nenhum código ou binário foi copiado.
 
 ## Como vamos melhorar
 
