@@ -1,0 +1,68 @@
+name: AutoRenew AI Central
+run-name: AI Central review
+on:
+  push:
+    branches:
+      - 'codex/alpha-ai-orchestrator-*'
+    paths:
+      - '.github/workflows/ai-central.yml'
+      - 'tools/ai_central.py'
+      - 'docs/AI_CENTRAL.md'
+      - 'Tests/test_ai_central.py'
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Tarefa para as três IAs analisarem'
+        required: true
+        type: string
+      context:
+        description: 'Contexto adicional não secreto'
+        required: false
+        type: string
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile orchestrator
+        run: python -m py_compile tools/ai_central.py
+      - name: Validate required workflow wiring
+        run: |
+          grep -q OPENAI_API_KEY .github/workflows/ai-central.yml
+          grep -q ANTHROPIC_API_KEY .github/workflows/ai-central.yml
+          grep -q GEMINI_API_KEY .github/workflows/ai-central.yml
+          python -m unittest discover -s Tests -p 'test_ai_central.py' -v
+  review:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run three independent AI reviews
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_MODEL: gpt-5.5
+          ANTHROPIC_MODEL: claude-sonnet-5-5
+          GEMINI_MODEL: gemini-3.8-flash
+          AI_TASK: ${{ inputs.task }}
+          AI_CONTEXT: ${{ inputs.context }}
+        run: python tools/ai_central.py
+      - name: Upload AI review report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-central-report
+          path: ai-central-report.md
+          retention-days: 14
