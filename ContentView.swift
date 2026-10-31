@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     var body: some View {
@@ -185,6 +186,12 @@ struct LogsView: View {
 
 struct SettingsView: View {
     @EnvironmentObject var store: AppStore
+    @State private var showingProfileImporter = false
+    @State private var profileImportMessage: String?
+
+    private var mobileProvisionType: UTType {
+        UTType(filenameExtension: "mobileprovision", conformingTo: .data) ?? .data
+    }
 
     var body: some View {
         NavigationStack {
@@ -194,6 +201,39 @@ struct SettingsView: View {
                     Text("Não informe credenciais Apple nesta versão.")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
+                }
+                Section("Perfis de provisionamento importados") {
+                    Text("Importe um arquivo .mobileprovision para manter uma cópia privada no app e registrar seu hash SHA-256. Nesta etapa, o conteúdo CMS ainda não é decodificado; validade, equipe, UDID e revogação permanecem desconhecidos.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button {
+                        showingProfileImporter = true
+                    } label: {
+                        Label("Importar perfil", systemImage: "doc.badge.plus")
+                    }
+                    if store.profiles.isEmpty {
+                        Text("Nenhum perfil importado.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(store.profiles) { profile in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(profile.originalFileName).font(.subheadline.weight(.medium))
+                                Text("\(profile.formattedSize) · Importado \(profile.importedAt.formatted(date: .abbreviated, time: .shortened))")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                Text("SHA-256: \(profile.sha256)")
+                                    .font(.system(.caption2, design: .monospaced))
+                                    .textSelection(.enabled)
+                                Text("Conteúdo não interpretado · validade desconhecida")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.orange)
+                                Button("Remover cópia local", role: .destructive) {
+                                    store.removeProfile(profile)
+                                }
+                                .font(.caption)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
                 }
                 Section("Alertas de expiração") {
                     Stepper("Verificar quando faltar menos de \(Int(store.settings.thresholdHours))h",
@@ -209,6 +249,32 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Ajustes")
+            .fileImporter(
+                isPresented: $showingProfileImporter,
+                allowedContentTypes: [mobileProvisionType],
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    guard let selectedURL = urls.first else { return }
+                    do {
+                        let profile = try store.importProfile(from: selectedURL)
+                        profileImportMessage = "Perfil copiado localmente. SHA-256: \(profile.sha256). O conteúdo ainda não foi validado."
+                    } catch {
+                        profileImportMessage = error.localizedDescription
+                    }
+                case .failure(let error):
+                    profileImportMessage = "Falha na importação: \(error.localizedDescription)"
+                }
+            }
+            .alert("Importação de perfil", isPresented: Binding(
+                get: { profileImportMessage != nil },
+                set: { if !$0 { profileImportMessage = nil } }
+            )) {
+                Button("OK") { profileImportMessage = nil }
+            } message: {
+                Text(profileImportMessage ?? "")
+            }
         }
     }
 }
