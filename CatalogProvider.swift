@@ -134,24 +134,27 @@ actor CatalogProvider {
               let description = nonEmptyString(value["localizedDescription"]),
               let iconURL = secureURL(value["iconURL"]) else { return nil }
 
-        var versions = (value["versions"] as? [[String: Any]] ?? [])
-            .compactMap(parseVersion)
-
-        // Backward compatibility with legacy AltSource fields.
-        if versions.isEmpty,
-           let version = nonEmptyString(value["version"]),
-           let downloadURL = secureURL(value["downloadURL"]),
-           let size = nonNegativeSize(value["size"]) {
+        var versions: [CatalogVersion]
+        if let rawVersions = value["versions"] as? [[String: Any]] {
+            versions = rawVersions.compactMap(parseVersion)
+            guard versions.count == rawVersions.count, !versions.isEmpty else { return nil }
+        } else if let version = nonEmptyString(value["version"]),
+                  let downloadURL = secureURL(value["downloadURL"]),
+                  let size = nonNegativeSize(value["size"]),
+                  let date = parseDate(value["versionDate"]) {
+            // Backward compatibility with legacy AltSource fields.
             versions = [CatalogVersion(
-                id: version,
+                id: version + "-" + downloadURL.absoluteString,
                 version: version,
-                date: parseDate(value["versionDate"]),
+                date: date,
                 downloadURL: downloadURL,
                 size: size,
                 minimumOSVersion: nil,
                 maximumOSVersion: nil,
                 description: nonEmptyString(value["versionDescription"])
             )]
+        } else {
+            return nil
         }
 
         return CatalogApp(
@@ -168,13 +171,14 @@ actor CatalogProvider {
 
     private static func parseVersion(_ value: [String: Any]) -> CatalogVersion? {
         guard let version = nonEmptyString(value["version"]),
+              let date = parseDate(value["date"]),
               let downloadURL = secureURL(value["downloadURL"]),
               let size = nonNegativeSize(value["size"]) else { return nil }
 
         return CatalogVersion(
-            id: version + "-" + (nonEmptyString(value["date"]) ?? ""),
+            id: version + "-" + date.timeIntervalSince1970.description + "-" + downloadURL.absoluteString,
             version: version,
-            date: parseDate(value["date"]),
+            date: date,
             downloadURL: downloadURL,
             size: size,
             minimumOSVersion: nonEmptyString(value["minOSVersion"]),
