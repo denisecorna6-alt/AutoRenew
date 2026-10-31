@@ -6,6 +6,10 @@ on:
       - codex/alpha-social-deployment-20261031
     paths:
       - 'docs/index.html'
+      - 'docs/DEPLOYMENT.md'
+      - 'docs/ROADMAP.md'
+      - 'docs/ALPHA.md'
+      - 'README.md'
       - 'docs/catalog.mjs'
       - 'Tests/test_portal_catalog.mjs'
       - '.github/workflows/portal-check.yml'
