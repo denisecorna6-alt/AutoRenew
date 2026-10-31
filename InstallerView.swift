@@ -66,7 +66,10 @@ private final class InstallerCatalog: ObservableObject {
             var request = URLRequest(url: releasesURL)
             request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
             request.setValue("AutoRenew-iOS-Installer", forHTTPHeaderField: "User-Agent")
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await InstallerDownloadPolicy.fetchData(
+                for: request,
+                maximumBytes: InstallerDownloadPolicy.maximumCatalogSize
+            )
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
                 throw URLError(.badServerResponse)
             }
@@ -90,7 +93,10 @@ private final class InstallerCatalog: ObservableObject {
         do {
             var request = URLRequest(url: asset.browserDownloadURL)
             request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
-            let (temporaryURL, response) = try await URLSession.shared.download(for: request)
+            let (temporaryURL, response) = try await InstallerDownloadPolicy.download(
+                for: request,
+                maximumBytes: InstallerDownloadPolicy.maximumFileSize
+            )
             // URLSession gives its temporary file an arbitrary extension. Move it
             // to a private .ipa staging name so IPAInspector can enforce its contract.
             let stagingURL = FileManager.default.temporaryDirectory
@@ -141,7 +147,10 @@ private final class InstallerCatalog: ObservableObject {
         do {
             var request = URLRequest(url: url)
             request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
-            let (temporaryURL, response) = try await URLSession.shared.download(for: request)
+            let (temporaryURL, response) = try await InstallerDownloadPolicy.download(
+                for: request,
+                maximumBytes: InstallerDownloadPolicy.maximumFileSize
+            )
             guard let http = response as? HTTPURLResponse,
                   (200..<300).contains(http.statusCode),
                   let finalURL = response.url,
