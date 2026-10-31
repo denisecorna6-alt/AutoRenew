@@ -6,7 +6,7 @@
 
 - O Installer permite compartilhar IPA com AltStore/SideStore.
 - `tools/sign-ipa-macos.sh` prepara um IPA assinado localmente no Mac, usando perfis/entitlements por app e extensão.
-- `tools/install-to-iphone.sh` verifica a assinatura do app e solicita instalação via Xcode/devicectl em iPhone pareado e confiável.
+- `tools/install-to-iphone.sh` inspeciona o ZIP antes de extrair, verifica CMS/expiração/Bundle ID/Team ID/escopo de dispositivo/DeveloperCertificates de cada `.app` e `.appex`, executa `codesign --verify` e solicita instalação via Xcode/devicectl em iPhone pareado e confiável.
 - O app iOS não instala nem assina genericamente por conta própria.
 
 ## Limites
@@ -17,8 +17,8 @@ Não copiar LocalDevVPN/entitlements especiais do SideStore, não usar APIs priv
 
 ## Próximas etapas
 
-1. Confirmar assinatura e provisioning de cada bundle antes de instalar.
-2. Melhorar diagnóstico de incompatibilidade de perfil/dispositivo.
-3. Confirmar resultado no dispositivo sem confundir comando aceito com primeiro lançamento funcional.
-4. Documentar requisitos de Xcode, iOS, dispositivo e perfil.
+1. Testar a validação CMS e de cada bundle com perfis/certificados reais e fixtures adulteradas.
+2. Conferir o UDID selecionado contra `ProvisionedDevices` antes de chamar devicectl.
+3. Melhorar diagnóstico de incompatibilidade de perfil/dispositivo.
+4. Confirmar resultado no dispositivo sem confundir comando aceito com primeiro lançamento funcional.
 5. Extrair a integração para Swift Package independente quando os contratos estiverem estáveis.
