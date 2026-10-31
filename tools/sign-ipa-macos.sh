@@ -90,7 +90,7 @@ for item in bundles:
 PY
 
 # Every .app and .appex must have its own profile and least-privilege entitlements.
-find "$PAYLOAD" -type d \( -name '*.app' -o -name '*.appex' \) -print | sed "s#^$WORK/##" | sort > "$WORK/discovered-bundles.txt"
+find "$PAYLOAD" -type d \( -name '*.app' -o -name '*.appex' \) -print | sed "s#^$EXTRACTED/##" | sort > "$WORK/discovered-bundles.txt"
 cut -f1 "$WORK/bundles.tsv" | sort > "$WORK/manifest-bundles.txt"
 diff -u "$WORK/discovered-bundles.txt" "$WORK/manifest-bundles.txt" || {
   echo "Manifesto deve cobrir exatamente cada .app e .appex no IPA." >&2
@@ -132,7 +132,7 @@ while IFS=$'\t' read -r REL_BUNDLE PROFILE ENTITLEMENTS; do
 done < <(awk -F '\t' '{ print length($1), $0 }' "$WORK/bundles.tsv" | sort -rn | cut -d' ' -f2-)
 
 while IFS=$'\t' read -r REL_BUNDLE PROFILE ENTITLEMENTS; do
-  codesign --verify --deep --strict --verbose=2 "$WORK/$REL_BUNDLE"
+  codesign --verify --deep --strict --verbose=2 "$EXTRACTED/$REL_BUNDLE"
 done < "$WORK/bundles.tsv"
 
 # Repackage the entire extracted IPA root, not only Payload: preserve SwiftSupport,
