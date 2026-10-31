@@ -73,11 +73,14 @@ security cms -V -i "$APP_PATH/embedded.mobileprovision"
 PROFILE_PLIST="$WORK/profile.plist"
 security cms -D -i "$APP_PATH/embedded.mobileprovision" > "$PROFILE_PLIST"
 BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")
-python3 - "$PROFILE_PLIST" "$BUNDLE_ID" <<'PY'
-import datetime, plistlib, sys
+echo "Dispositivos conhecidos pelo Xcode:"
+xcrun devicectl list devices --json-output "$WORK_DIR/devices.json"
+
+python3 - "$PROFILE_PLIST" "$BUNDLE_ID" "$WORK_DIR/devices.json" "$DEVICE_ID" <<'PY'
+import datetime, json, plistlib, re, sys
 with open(sys.argv[1], "rb") as f:
     profile = plistlib.load(f)
-bundle_id = sys.argv[2]
+bundle_id, devices_path, requested_id = sys.argv[2:]
 entitlements = profile.get("Entitlements", {})
 application_id = entitlements.get("application-identifier", "")
 if not isinstance(application_id, str) or "." not in application_id:
@@ -96,11 +99,30 @@ if team_id not in profile.get("TeamIdentifier", []):
 expiration = profile.get("ExpirationDate")
 if not isinstance(expiration, datetime.datetime) or expiration <= datetime.datetime.now(expiration.tzinfo):
     raise SystemExit("Perfil de provisionamento expirado ou sem validade.")
-print("Assinatura, CMS, Bundle ID, Team ID e validade do perfil verificados.")
-PY
 
-echo "Dispositivos conhecidos pelo Xcode:"
-xcrun devicectl list devices
+with open(devices_path, encoding="utf-8") as f:
+    listing = json.load(f)
+devices = listing.get("result", {}).get("devices", [])
+matches = [
+    item for item in devices
+    if requested_id == item.get("identifier")
+    or requested_id == item.get("hardwareProperties", {}).get("udid")
+]
+if len(matches) != 1:
+    raise SystemExit("Dispositivo não encontrado de forma única na lista JSON do devicectl.")
+device = matches[0]
+udid = device.get("hardwareProperties", {}).get("udid")
+if not isinstance(udid, str) or not udid:
+    candidate = device.get("identifier", "")
+    udid = candidate if re.fullmatch(r"[0-9A-Fa-f]{40}", candidate) else None
+if not udid:
+    raise SystemExit("O Xcode não forneceu o UDID do dispositivo; não é possível validar o perfil.")
+provisioned_devices = profile.get("ProvisionedDevices", [])
+all_devices = profile.get("ProvisionsAllDevices", False) is True
+if not all_devices and (not isinstance(provisioned_devices, list) or udid not in provisioned_devices):
+    raise SystemExit("O UDID deste iPhone não está autorizado pelo perfil de provisionamento.")
+print("CMS, Bundle ID, Team ID, validade e autorização deste dispositivo foram verificados.")
+PY
 
 echo "Solicitando instalação no dispositivo $DEVICE_ID…"
 xcrun devicectl device install app --device "$DEVICE_ID" "$APP_PATH"
