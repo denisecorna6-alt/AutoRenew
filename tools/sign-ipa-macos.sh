@@ -2,12 +2,11 @@
 # Sign a development IPA locally on macOS using an explicit per-bundle manifest.
 set -euo pipefail
 usage() {
-  echo "Uso: P12_PASSWORD='...' $0 <unsigned.ipa> <identity.p12> <manifest.json> <output.ipa>" >&2
+  echo "Uso: $0 <unsigned.ipa> <identity.p12> <manifest.json> <output.ipa>" >&2
   exit 64
 }
 [[ $# -eq 4 ]] || usage
 IPA_INPUT="$1"; P12="$2"; MANIFEST="$3"; OUTPUT="$4"
-: "${P12_PASSWORD:?Defina P12_PASSWORD no ambiente; não passe a senha na linha de comando.}"
 for f in "$IPA_INPUT" "$P12" "$MANIFEST"; do [[ -f "$f" ]] || { echo "Arquivo ausente: $f" >&2; exit 66; }; done
 [[ "${IPA_INPUT##*.}" == "ipa" || "${IPA_INPUT##*.}" == "IPA" ]] || { echo "Entrada precisa ser .ipa" >&2; exit 65; }
 for tool in security codesign ditto xcrun python3 openssl; do command -v "$tool" >/dev/null || { echo "Ferramenta ausente: $tool" >&2; exit 69; }; done
@@ -15,18 +14,39 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/autorenew-sign.XXXXXX")"
 KEYCHAIN="$WORK/autorenew-signing.keychain-db"
 KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+ORIGINAL_KEYCHAINS_FILE="$WORK/original-keychains.txt"
+ORIGINAL_KEYCHAINS=()
 cleanup() {
+  # Restore the user's search list before deleting the temporary keychain.
+  if [[ ${#ORIGINAL_KEYCHAINS[@]} -gt 0 ]]; then
+    security list-keychains -d user -s "${ORIGINAL_KEYCHAINS[@]}" >/dev/null 2>&1 || true
+  fi
   security delete-keychain "$KEYCHAIN" >/dev/null 2>&1 || true
   rm -rf "$WORK"
 }
 trap cleanup EXIT
+# Preserve the existing search list so this helper never leaves the user's
+# login/System keychains replaced by a deleted temporary keychain.
+security list-keychains -d user > "$ORIGINAL_KEYCHAINS_FILE"
+while IFS= read -r keychain; do
+  keychain="${keychain#\"}"
+  keychain="${keychain%\"}"
+  keychain="${keychain#"${keychain%%[![:space:]]*}"}"
+  keychain="${keychain%"${keychain##*[![:space:]]}"}"
+  [[ -n "$keychain" ]] && ORIGINAL_KEYCHAINS+=("$keychain")
+done < "$ORIGINAL_KEYCHAINS_FILE"
+[[ ${#ORIGINAL_KEYCHAINS[@]} -gt 0 ]] || {
+  echo "Não foi possível preservar a lista original de keychains do usuário." >&2; exit 69;
+}
 mkdir -p "$WORK/unpacked"
 # Inspect the ZIP central directory and reject traversal/symlink/oversized entries.
 python3 "$ROOT/tools/validate-signing-inputs.py" --inspect-ipa "$IPA_INPUT"
 security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
 security set-keychain-settings -lut 900 "$KEYCHAIN"
 security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-security import "$P12" -k "$KEYCHAIN" -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security >/dev/null
+# Without -P, macOS obtains the PKCS#12 passphrase through its secure GUI prompt;
+# it never appears in shell history, environment variables or process arguments.
+security import "$P12" -k "$KEYCHAIN" -T /usr/bin/codesign -T /usr/bin/security >/dev/null
 security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
 security list-keychains -d user -s "$KEYCHAIN"
 security find-identity -v -p codesigning "$KEYCHAIN" > "$WORK/identities.txt"
