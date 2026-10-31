@@ -75,7 +75,7 @@ private final class AppCatalogModel: ObservableObject {
     }
 
     func removeSource(_ value: String) async {
-        sourceURLs.removeAll { $0 != value }
+        sourceURLs.removeAll { $0 == value }
         await loadSources()
     }
 
