@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827">
+<meta name="description" content="Central oficial de downloads do AutoRenew para iPhone e iPad.">
+<title>AutoRenew — Downloads</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#121d30;--line:#263650;--muted:#9aabc3;--accent:#73e0b2;--blue:#8bb8ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0%,#1a3650 0,transparent 42%),var(--bg);color:#f4f7fb;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:960px;margin:auto;padding:34px 20px 72px}.top{display:flex;align-items:center;gap:12px;color:var(--accent);font-weight:750;letter-spacing:.04em}.mark{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:#183b3a;font-size:22px}
+h1{font-size:clamp(2.4rem,8vw,4.5rem);line-height:1.02;letter-spacing:-.055em;margin:48px 0 16px}.lead{color:var(--muted);font-size:1.1rem;max-width:650px}.panel{background:linear-gradient(145deg,#16243a,#101a2b);border:1px solid var(--line);border-radius:22px;padding:24px;margin-top:28px;box-shadow:0 18px 55px #0003}.panel h2{margin:0 0 8px;font-size:1.35rem}.muted{color:var(--muted)}.row{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}.btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 17px;border-radius:12px;text-decoration:none;font-weight:700;background:var(--accent);color:#082019}.btn.secondary{background:#1d2c43;color:#eaf2ff;border:1px solid #3a4d68}.version{border-top:1px solid var(--line);padding:17px 0}.version:first-child{border-top:0}.version strong{font-size:1.05rem}.tag{font-size:.76rem;color:var(--accent);border:1px solid #326b5a;border-radius:99px;padding:3px 8px;margin-left:8px}.steps{counter-reset:s;display:grid;gap:14px;padding:0;list-style:none}.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start}.steps li:before{content:counter(s);flex:0 0 28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#203b4b;color:var(--accent);font-weight:800}.notice{border-left:3px solid #e6bd6b;padding:10px 14px;background:#332b1c66;color:#e9d9b5;border-radius:0 10px 10px 0}.small{font-size:.9rem}footer{margin-top:36px;color:var(--muted);font-size:.88rem}a{color:var(--blue)}.loading{color:var(--muted)}
+</style>
+</head>
+<body><main>
+<div class="top"><span class="mark">↻</span><span>AUTORENEW</span></div>
+<h1>Seus apps.<br>Mais simples.</h1>
+<p class="lead">Central oficial para baixar versões do AutoRenew e acompanhar as atualizações. Escolha uma versão e siga o guia para instalar pelo AltStore ou SideStore.</p>
+<section class="panel"><h2>Downloads</h2><p class="muted small">As versões oficiais aparecem aqui quando uma publicação for criada no GitHub.</p><div id="releases" class="loading" aria-live="polite">Consultando versões…</div><div class="row"><a class="btn secondary" href="https://github.com/denisecorna6-alt/AutoRenew/releases">Histórico de versões</a><a class="btn secondary" href="https://github.com/denisecorna6-alt/AutoRenew/actions">Builds e testes</a></div></section>
+<section class="panel"><h2>Como instalar no iPhone</h2><ol class="steps"><li>Instale e configure o <a href="https://sidestore.io/">SideStore</a> ou <a href="https://altstore.io/">AltStore</a> no seu dispositivo.</li><li>Baixe o arquivo IPA de uma versão publicada nesta página.</li><li>Abra o arquivo no iPhone e escolha compartilhar/abrir com SideStore ou AltStore.</li><li>Conclua a assinatura com seu próprio Apple ID, seguindo as instruções do instalador.</li></ol><p class="notice small">O AutoRenew ainda está em desenvolvimento. A renovação real de assinaturas não está habilitada nesta versão. Builds marcadas como “unsigned” não são instaláveis diretamente: precisam passar pelo fluxo de assinatura compatível.</p></section>
+<section class="panel"><h2>Segurança e transparência</h2><p class="muted">Não compartilhamos certificados, chaves privadas ou contas Apple. Não existe certificado gratuito universal ou permanente. A instalação e a validade dependem das regras da Apple e da configuração do SideStore/AltStore no seu aparelho.</p><div class="row"><a class="btn secondary" href="https://github.com/denisecorna6-alt/AutoRenew">Código-fonte no GitHub</a></div></section>
+<footer>AutoRenew · Projeto independente, sem afiliação com Apple. <span id="updated"></span></footer>
+</main>
+<script>
+const root="https://api.github.com/repos/denisecorna6-alt/AutoRenew";
+const box=document.getElementById("releases");
+function el(tag,cls,txt){const n=document.createElement(tag);if(cls)n.className=cls;if(txt)n.textContent=txt;return n}
+async function load(){try{const res=await fetch(root+"/releases?per_page=12",{headers:{Accept:"application/vnd.github+json"}});if(!res.ok)throw new Error("Não foi possível consultar as versões.");const data=await res.json();box.replaceChildren();const releases=data.filter(x=>!x.draft);if(!releases.length){box.append(el("p","muted","Ainda não há versões publicadas. Os IPAs de teste disponíveis em Actions são artefatos temporários e podem exigir acesso ao GitHub."));return}
+for(const rel of releases){const wrap=el("div","version");const head=el("div");head.append(el("strong","",rel.name||rel.tag_name));head.append(el("span","tag",rel.prerelease?"BETA":"PUBLICADA"));wrap.append(head);wrap.append(el("p","muted small",(rel.body||"Sem notas de versão.").slice(0,260)));for(const asset of rel.assets||[]){if(!asset.name.toLowerCase().endsWith(".ipa"))continue;const a=el("a","btn", "Baixar "+asset.name);a.href=asset.browser_download_url;a.rel="noopener";wrap.append(a)}if(!wrap.querySelector("a"))wrap.append(el("p","muted small","Nenhum arquivo IPA anexado a esta publicação."));box.append(wrap)}
+}catch(e){box.replaceChildren(el("p","muted",e.message+" Acesse o histórico no GitHub."))}}
+document.getElementById("updated").textContent=" · Catálogo consultado ao abrir a página.";
+load();
+</script></body></html>
