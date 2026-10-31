@@ -163,5 +163,11 @@ class SigningInputValidationTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("caminho inseguro", result.stderr)
 
+
+    def test_signing_docs_do_not_put_passphrase_in_environment(self):
+        docs = Path(ROOT, "Projects", "AutoRenewSigningKit", "SIGNING_PIPELINE.md").read_text(encoding="utf-8")
+        self.assertNotIn("P12_PASSWORD", docs)
+        self.assertIn("prompt seguro", docs)
+
 if __name__ == "__main__":
     unittest.main()
