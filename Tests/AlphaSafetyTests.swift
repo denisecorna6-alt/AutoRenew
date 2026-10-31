@@ -94,4 +94,49 @@ final class AlphaSafetyTests: XCTestCase {
             XCTAssertEqual(error as? ProfileImportError, .fileTooLarge)
         }
     }
+
+    func testIPAInspectorAcceptsZIPContainerAndComputesDigest() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let source = root.appendingPathComponent("sample.ipa")
+        let bytes = Data([0x50, 0x4B, 0x03, 0x04, 0x10, 0x20, 0x30, 0x40])
+        try bytes.write(to: source)
+
+        let inspection = try IPAInspector.inspect(fileURL: source)
+        XCTAssertEqual(inspection.fileName, "sample.ipa")
+        XCTAssertEqual(inspection.byteCount, bytes.count)
+        XCTAssertEqual(inspection.sha256.count, 64)
+    }
+
+    func testIPAInspectorRejectsNonZIPFile() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let source = root.appendingPathComponent("not-an-ipa.ipa")
+        try Data("not a zip archive".utf8).write(to: source)
+
+        XCTAssertThrowsError(try IPAInspector.inspect(fileURL: source)) { error in
+            XCTAssertEqual(error as? IPAInspectionError, .invalidArchive)
+        }
+    }
+
+    func testIPAInspectorRejectsWrongExtension() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let source = root.appendingPathComponent("archive.zip")
+        try Data([0x50, 0x4B, 0x03, 0x04]).write(to: source)
+
+        XCTAssertThrowsError(try IPAInspector.inspect(fileURL: source)) { error in
+            XCTAssertEqual(error as? IPAInspectionError, .unsupportedExtension)
+        }
+    }
+
 }
