@@ -151,40 +151,20 @@ struct LogsView: View {
 
 struct SettingsView: View {
     @EnvironmentObject var store: AppStore
-    @State private var password = ""
-    @State private var credentialStatus = "Senha armazenada no Keychain do iPhone."
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Apple ID") {
-                    TextField("E-mail", text: $store.settings.appleID)
-                        .textInputAutocapitalization(.never).keyboardType(.emailAddress)
-                    SecureField("Senha", text: $password)
-                    Button("Salvar senha com segurança") {
-                        guard !password.isEmpty else { return }
-                        Keychain.set(password, for: "applePassword")
-                        password = ""
-                        credentialStatus = "Senha salva no Keychain."
-                    }
-                    Text(credentialStatus).font(.caption).foregroundStyle(.secondary)
-                    Text("As credenciais ainda não são usadas para login: a integração SideSign está pendente. Não compartilhe sua senha com ninguém.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                Section("Servidores Anisette") {
-                    TextField("URLs separadas por vírgula", text: Binding(
-                        get: { store.settings.anisetteURLs.joined(separator: ", ") },
-                        set: { store.settings.anisetteURLs = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } }
-                    ))
-                    .textInputAutocapitalization(.never).autocorrectionDisabled()
-                    Text("Ainda não conectados ao fluxo de autenticação SideSign.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                Section("Alertas") {
+                Section("Alertas de expiração") {
                     Stepper("Avisar com menos de \(Int(store.settings.thresholdHours))h",
                             value: $store.settings.thresholdHours, in: 6...120, step: 6)
-                    Toggle("Bloquear domínios OCSP/PPQ (VPN)", isOn: $store.settings.blockDomains)
-                    Text("O bloqueio por VPN exige uma extensão Network Extension e permissões específicas; não está ativo nesta build.")
+                    Text("Os avisos locais são programados para 48h, 24h e 6h antes da validade cadastrada. O iOS pode limitar a execução de tarefas em segundo plano.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Section("Integração em desenvolvimento") {
+                    Text("Login Apple, Anisette, certificados e assinatura ainda não estão conectados. Por segurança, esta versão não solicita nem armazena sua senha Apple.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text("O bloqueio de domínios OCSP/PPQ por VPN não está ativo nesta build e exige uma extensão Network Extension com permissões específicas.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
