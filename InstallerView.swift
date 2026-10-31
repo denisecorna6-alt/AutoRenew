@@ -351,7 +351,7 @@ struct InstallerView: View {
                                         preparationMessage = error.localizedDescription
                                     }
                                 } label: {
-                                    Label("Verificar e preparar instalação", systemImage: "checkmark.shield")
+                                    Label("Inspecionar IPA e preparar encaminhamento", systemImage: "doc.text.magnifyingglass")
                                         .font(.caption)
                                 }
                                 ShareLink(item: file) {
@@ -382,7 +382,7 @@ struct InstallerView: View {
                         Text(preparationMessage)
                             .font(.caption).foregroundStyle(.red)
                     }
-                    Text("A verificação confere extensão, tamanho e assinatura inicial do contêiner ZIP, além de calcular SHA-256. Ela não valida assinatura Apple, perfil, malware ou compatibilidade.")
+                    Text(preparedIPA.validationScope)
                         .font(.caption).foregroundStyle(.secondary)
                 }
 
