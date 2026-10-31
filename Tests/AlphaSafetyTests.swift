@@ -307,6 +307,21 @@ final class AlphaSafetyTests: XCTestCase {
         ))
     }
 
+    func testAnisetteV3HeadersRedirectGuardRejectsCrossHostAndInsecureRedirects() {
+        XCTAssertTrue(AnisetteV3SameHostRedirectDelegate.allows(
+            URL(string: "https://ani.sidestore.io/v3/get_headers")!,
+            host: "ani.sidestore.io"
+        ))
+        XCTAssertFalse(AnisetteV3SameHostRedirectDelegate.allows(
+            URL(string: "https://attacker.example/collect")!,
+            host: "ani.sidestore.io"
+        ))
+        XCTAssertFalse(AnisetteV3SameHostRedirectDelegate.allows(
+            URL(string: "http://ani.sidestore.io/v3/get_headers")!,
+            host: "ani.sidestore.io"
+        ))
+    }
+
     func testAnisetteV3HeadersRequestUsesPOSTAndBase64ProvisioningState() throws {
         let state = AnisetteV3ProvisioningState(
             identifier: Data([0x01, 0x02, 0x03]),
