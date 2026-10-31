@@ -83,8 +83,7 @@ struct DashboardView: View {
                     } else {
                         ForEach(store.apps) { AppRow(app: $0) }
                             .onDelete { offsets in
-                                store.apps.remove(atOffsets: offsets)
-                                Notifier.reschedule(store.apps)
+                                store.removeApps(at: offsets)
                             }
                     }
                 }
@@ -142,7 +141,7 @@ struct AddAppView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     DatePicker("Data de expiração", selection: $expiry,
-                               in: Date.distantPast...,
+                               in: Date.now...,
                                displayedComponents: [.date, .hourAndMinute])
                 }
                 Section {
@@ -199,6 +198,7 @@ struct SettingsView: View {
     @EnvironmentObject var store: AppStore
     @State private var showingProfileImporter = false
     @State private var profileImportMessage: String?
+    @State private var notificationMessage: String?
 
     private var mobileProvisionType: UTType {
         UTType(filenameExtension: "mobileprovision", conformingTo: .data) ?? .data
@@ -249,7 +249,19 @@ struct SettingsView: View {
                 Section("Alertas de expiração") {
                     Stepper("Verificar quando faltar menos de \(Int(store.settings.thresholdHours))h",
                             value: $store.settings.thresholdHours, in: 6...120, step: 6)
-                    Text("Os lembretes locais são programados para 48h, 24h e 6h antes da data cadastrada. O iOS pode limitar tarefas em segundo plano.")
+                    Button("Ativar lembretes") {
+                        Task {
+                            let granted = await Notifier.requestAuthorization()
+                            await Notifier.reschedule(store.apps, thresholdHours: store.settings.thresholdHours)
+                            notificationMessage = granted
+                                ? "Permissão concedida. Os lembretes futuros foram programados quando possível."
+                                : "Permissão não concedida. Ative as notificações do AutoRenew nos Ajustes do iPhone."
+                        }
+                    }
+                    if let notificationMessage {
+                        Text(notificationMessage).font(.caption).foregroundStyle(.secondary)
+                    }
+                    Text("Os lembretes respeitam a autorização do iOS e são programados antes da data cadastrada. O iOS controla a entrega; eles não renovam aplicativos.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Integração em desenvolvimento") {
@@ -260,6 +272,9 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Ajustes")
+            .onChange(of: store.settings.thresholdHours) { _, _ in
+                Task { await Notifier.reschedule(store.apps, thresholdHours: store.settings.thresholdHours) }
+            }
             .fileImporter(
                 isPresented: $showingProfileImporter,
                 allowedContentTypes: [mobileProvisionType],
