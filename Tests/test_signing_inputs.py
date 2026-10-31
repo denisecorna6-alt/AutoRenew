@@ -3,6 +3,7 @@ import hashlib
 import os
 import plistlib
 import subprocess
+import stat
 import sys
 import tempfile
 import unittest
@@ -82,6 +83,51 @@ class SigningInputValidationTests(unittest.TestCase):
         result = self.run_validator()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("caminho inseguro", result.stderr)
+
+
+    def test_rejects_control_characters_in_zip_paths(self):
+        with zipfile.ZipFile(self.ipa, "w") as z:
+            z.writestr("Payload/Test.app/bad\nname", b"x")
+        result = subprocess.run(
+            [sys.executable, VALIDATOR, "--inspect-ipa", self.ipa],
+            capture_output=True, text=True
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("caracteres de controle", result.stderr)
+
+    def test_rejects_symlink_entries(self):
+        info = zipfile.ZipInfo("Payload/Test.app/link")
+        info.create_system = 3
+        info.external_attr = (stat.S_IFLNK | 0o777) << 16
+        with zipfile.ZipFile(self.ipa, "w") as z:
+            z.writestr(info, "target")
+        result = subprocess.run(
+            [sys.executable, VALIDATOR, "--inspect-ipa", self.ipa],
+            capture_output=True, text=True
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("link simbólico", result.stderr)
+
+    def test_rejects_suspicious_compression_ratio(self):
+        with zipfile.ZipFile(self.ipa, "w", compression=zipfile.ZIP_DEFLATED) as z:
+            z.writestr("Payload/Test.app/large", b"A" * 20_000)
+        result = subprocess.run(
+            [sys.executable, VALIDATOR, "--inspect-ipa", self.ipa],
+            capture_output=True, text=True
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Taxa de compressão suspeita", result.stderr)
+
+    def test_rejects_duplicate_archive_paths(self):
+        with zipfile.ZipFile(self.ipa, "w") as z:
+            z.writestr("Payload/Test.app/Info.plist", b"one")
+            z.writestr("Payload/Test.app/Info.plist", b"two")
+        result = subprocess.run(
+            [sys.executable, VALIDATOR, "--inspect-ipa", self.ipa],
+            capture_output=True, text=True
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("entradas duplicadas", result.stderr)
 
 if __name__ == "__main__":
     unittest.main()
