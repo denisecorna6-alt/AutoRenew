@@ -27,7 +27,8 @@ O backend `StubSigningBackend` informa que a integração não está implementad
 
 ## Segurança e limites
 
-- Esta Alpha não solicita nem persiste senha Apple ID, códigos 2FA, cookies, tokens de sessão ou chaves privadas.
+- O aplicativo iOS não solicita nem persiste senha Apple ID, códigos 2FA, cookies, tokens de sessão ou chaves privadas. A importação de P12 foi removida do Installer porque ainda não havia fluxo de assinatura integrado.
+- O helper macOS de assinatura é separado e só deve ser executado localmente pelo operador com um arquivo P12 próprio; nunca envie P12, senha ou chave privada para issues, CI, chat ou serviços remotos.
 - Na primeira inicialização desta versão, o app remove do Keychain o item legado `applePassword` que versões anteriores podiam ter gravado.
 - Provedores Anisette configurados precisam usar HTTPS e retornar HTTP 2xx com metadados esperados.
 - O cache Anisette é isolado por actor para evitar acessos concorrentes.
