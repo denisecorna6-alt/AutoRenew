@@ -80,18 +80,23 @@ enum ProfileImporter {
             let id = UUID().uuidString
             let storedName = "\(id).mobileprovision"
             let destination = directory.appendingPathComponent(storedName, isDirectory: false)
-            try data.write(to: destination, options: [.atomic, .completeFileProtection])
-            var fileValues = URLResourceValues()
-            fileValues.isExcludedFromBackup = true
-            try destination.setResourceValues(fileValues)
-            return ImportedProfile(
-                id: id,
-                originalFileName: sourceURL.lastPathComponent,
-                storedFileName: storedName,
-                byteCount: data.count,
-                sha256: sha256(data),
-                importedAt: Date()
-            )
+            do {
+                try data.write(to: destination, options: [.atomic, .completeFileProtection])
+                var fileValues = URLResourceValues()
+                fileValues.isExcludedFromBackup = true
+                try destination.setResourceValues(fileValues)
+                return ImportedProfile(
+                    id: id,
+                    originalFileName: sourceURL.lastPathComponent,
+                    storedFileName: storedName,
+                    byteCount: data.count,
+                    sha256: sha256(data),
+                    importedAt: Date()
+                )
+            } catch {
+                try? FileManager.default.removeItem(at: destination)
+                throw error
+            }
         } catch {
             throw ProfileImportError.storage
         }
