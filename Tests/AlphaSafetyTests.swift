@@ -223,9 +223,11 @@ final class AlphaSafetyTests: XCTestCase {
     func testAnisetteRouterPreservesTaskCancellation() async {
         let router = AnisetteRouter(providers: [], remoteRequestsEnabled: true)
         let task = Task {
+            withUnsafeCurrentTask { currentTask in
+                currentTask?.cancel()
+            }
             try await router.fetch()
         }
-        task.cancel()
 
         do {
             _ = try await task.value
