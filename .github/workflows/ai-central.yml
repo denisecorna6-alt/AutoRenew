@@ -95,9 +95,13 @@ jobs:
           fi
       - name: Validate shell scripts
         run: |
-          for script in tools/*.sh; do
-            [ -f "$script" ] && bash -n "$script"
-          done
+          shopt -s nullglob
+          scripts=(tools/*.sh)
+          if [ "${#scripts[@]}" -gt 0 ]; then
+            for script in "${scripts[@]}"; do bash -n "$script"; done
+          else
+            echo "No shell scripts on this branch; nothing to validate."
+          fi
       - name: Build every available app scheme
         run: |
           xcodebuild -list -project AutoRenew.xcodeproj | tee /tmp/autorenew-schemes.txt
