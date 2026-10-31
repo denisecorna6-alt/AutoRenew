@@ -5,20 +5,32 @@ struct AutoRenewApp: App {
     @StateObject private var store = AppStore.shared
     @Environment(\.scenePhase) private var phase
 
-    init() { BackgroundScheduler.register() }
+    init() {
+        LegacyCredentialCleanup.removePreviouslyStoredApplePassword()
+        BackgroundScheduler.register()
+    }
 
     var body: some Scene {
         WindowGroup {
             ContentView().environmentObject(store)
-                .task { Notifier.requestAuth() }
+                .task {
+                    Notifier.requestAuth()
+                    Notifier.reschedule(store.apps)
+                }
         }
         .onChange(of: phase) { _, new in
             switch new {
             case .active:
-                Task { await RefreshCoordinator.shared.runIfNeeded(trigger: "foreground", budget: .seconds(60)) }
+                Notifier.reschedule(store.apps)
+                Task {
+                    await RefreshCoordinator.shared.runIfNeeded(
+                        trigger: "foreground", budget: .seconds(60)
+                    )
+                }
             case .background:
                 BackgroundScheduler.schedule()
-            default: break
+            default:
+                break
             }
         }
     }
