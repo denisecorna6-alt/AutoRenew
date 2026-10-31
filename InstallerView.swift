@@ -214,6 +214,8 @@ struct InstallerView: View {
     @State private var certificateMessage: String?
     @State private var profileMessage: String?
     @State private var directIPALink = ""
+    @State private var preparedIPA: IPAInspection?
+    @State private var preparationMessage: String?
 
     private let channels = ["Todas", "Stable", "Beta", "Alpha"]
 
@@ -329,14 +331,48 @@ struct InstallerView: View {
                             VStack(alignment: .leading, spacing: 5) {
                                 Label(file.lastPathComponent, systemImage: "doc.zipper")
                                     .font(.subheadline)
+                                Button {
+                                    do {
+                                        preparedIPA = try IPAInspector.inspect(fileURL: file)
+                                        preparationMessage = nil
+                                    } catch {
+                                        preparedIPA = nil
+                                        preparationMessage = error.localizedDescription
+                                    }
+                                } label: {
+                                    Label("Verificar e preparar instalação", systemImage: "checkmark.shield")
+                                        .font(.caption)
+                                }
                                 ShareLink(item: file) {
-                                    Label("Compartilhar / abrir em outro instalador", systemImage: "square.and.arrow.up")
+                                    Label("Compartilhar IPA", systemImage: "square.and.arrow.up")
                                         .font(.caption)
                                 }
                             }
                             .padding(.vertical, 3)
                         }
                     }
+                    if let preparedIPA {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Label("IPA preparado para encaminhamento", systemImage: "checkmark.seal.fill")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.green)
+                            Text(preparedIPA.fileName).font(.caption)
+                            Text("\(ByteCountFormatter.string(fromByteCount: Int64(preparedIPA.byteCount), countStyle: .file)) · SHA-256 \(preparedIPA.sha256.prefix(16))…")
+                                .font(.caption2).foregroundStyle(.secondary)
+                            ShareLink(item: preparedIPA.fileURL) {
+                                Label("Enviar para AltStore / SideStore", systemImage: "arrow.up.forward.app")
+                            }
+                            Text("Na folha de compartilhamento, escolha AltStore ou SideStore se aparecerem. A assinatura e a instalação serão realizadas pelo aplicativo escolhido; o AutoRenew não consegue confirmar o resultado.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    if let preparationMessage {
+                        Text(preparationMessage)
+                            .font(.caption).foregroundStyle(.red)
+                    }
+                    Text("A verificação confere extensão, tamanho e assinatura inicial do contêiner ZIP, além de calcular SHA-256. Ela não valida assinatura Apple, perfil, malware ou compatibilidade.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
 
                 Section("Conta Apple e certificados") {
