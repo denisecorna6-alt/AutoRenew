@@ -90,7 +90,8 @@ private final class InstallerCatalog: ObservableObject {
         do {
             var request = URLRequest(url: asset.browserDownloadURL)
             request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
-            let (temporaryURL, response) = try await URLSession.shared.download(for: request)
+            let (temporaryURL, response) = try await BoundedIPADownloader.download(for: request)
+            defer { try? FileManager.default.removeItem(at: temporaryURL) }
             // URLSession gives its temporary file an arbitrary extension. Move it
             // to a private .ipa staging name so IPAInspector can enforce its contract.
             let stagingURL = FileManager.default.temporaryDirectory
@@ -141,7 +142,8 @@ private final class InstallerCatalog: ObservableObject {
         do {
             var request = URLRequest(url: url)
             request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
-            let (temporaryURL, response) = try await URLSession.shared.download(for: request)
+            let (temporaryURL, response) = try await BoundedIPADownloader.download(for: request)
+            defer { try? FileManager.default.removeItem(at: temporaryURL) }
             guard let http = response as? HTTPURLResponse,
                   (200..<300).contains(http.statusCode),
                   let finalURL = response.url,
