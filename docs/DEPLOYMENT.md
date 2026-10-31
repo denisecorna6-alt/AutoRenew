@@ -6,7 +6,7 @@ Audit date: 2026-10-31.
 
 - URL: https://xlightxt.github.io/AutoRenew/
 - The portal is public and reads GitHub Releases and Actions metadata dynamically.
-- Latest deployment verified after the portal, CI policy, orientation and reminder-consent merges: run [#41244510524](https://github.com/xlightxt/AutoRenew/actions/runs/41244510524), success, main commit bcdeb0b.
+- Last functional portal deployment verified before this documentation refresh: run [#41244510524](https://github.com/xlightxt/AutoRenew/actions/runs/41244510524), success, main commit bcdeb0b. This PR updates the published audit/roadmap text; Pages must deploy again after merge.
 - The live portal now filters Alpha/Beta/Official by exact branch, labels unsigned and unverified releases, restricts dynamic links to GitHub HTTPS, and includes keyboard skip/focus and screen-reader status support.
 
 ## Release catalog observed
