@@ -18,7 +18,7 @@ final class SigningIdentityVault: ObservableObject {
 
     private let directory: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let directory = base.appendingPathComponent("SigningIdentities", isDirectory: true)
+        var directory = base.appendingPathComponent("SigningIdentities", isDirectory: true)
         try? FileManager.default.createDirectory(
             at: directory,
             withIntermediateDirectories: true,
@@ -93,7 +93,8 @@ final class SigningIdentityVault: ObservableObject {
             try data.write(to: destination, options: [.atomic, .completeFileProtection])
             var values = URLResourceValues()
             values.isExcludedFromBackup = true
-            try destination.setResourceValues(values)
+            var protectedDestination = destination
+            try protectedDestination.setResourceValues(values)
             records.append(SigningIdentityRecord(
                 id: id,
                 displayName: displayName,
