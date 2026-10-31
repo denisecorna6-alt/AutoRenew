@@ -19,7 +19,7 @@
 | Área | Situação |
 |---|---|
 | Interface SwiftUI e painel | Protótipo inicial com dados de demonstração |
-| Lembretes e acompanhamento de validade | Lembretes locais; não lê automaticamente apps instalados |
+| Lembretes e acompanhamento de validade | Lembretes locais com permissão opt-in (máx. 60 pendentes); não lê automaticamente apps instalados |
 | Assinatura de IPA | Não implementada |
 | Renovação e reinstalação automáticas | Não implementadas |
 | Monitoramento de certificados Apple | Não implementado |
