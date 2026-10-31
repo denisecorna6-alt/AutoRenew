@@ -13,11 +13,12 @@ services:
       - no-new-privileges:true
 
   caddy:
-    image: caddy:2
+    image: ${CADDY_IMAGE:?Set CADDY_IMAGE to an immutable Caddy image digest}
     container_name: autorenew-anisette-caddy
     restart: unless-stopped
     environment:
       ANISETTE_DOMAIN: ${ANISETTE_DOMAIN:?Set ANISETTE_DOMAIN to a domain you control}
+      ACME_EMAIL: ${ACME_EMAIL:-}
     ports:
       - "80:80"
       - "443:443"
