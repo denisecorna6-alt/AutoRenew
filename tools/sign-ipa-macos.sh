@@ -42,12 +42,13 @@ python3 "$ROOT/tools/validate-signing-inputs.py" --inspect-ipa "$IPA_PATH"
 
 # PKCS#12 import is deliberately left to Keychain Access, which prompts securely for its password.
 # The user imports the identity interactively into Keychain Access before running this script.
-security find-identity -v -p codesigning > "$WORK/identities.txt"
+security find-identity -v -p codesigning > "$WORK/all-identities.txt"
 IDENTITY_SHA1="$(printf '%s' "$IDENTITY_SHA1" | tr '[:lower:]' '[:upper:]')"
-if ! awk -v wanted="$IDENTITY_SHA1" 'toupper($2) == wanted { found = 1 } END { exit !found }' "$WORK/identities.txt"; then
+if ! awk -v wanted="$IDENTITY_SHA1" 'toupper($2) == wanted { found = 1 } END { exit !found }' "$WORK/all-identities.txt"; then
   echo "A identidade solicitada não aparece entre as identidades válidas do Keychain." >&2
   exit 65
 fi
+awk -v wanted="$IDENTITY_SHA1" 'toupper($2) == wanted { print }' "$WORK/all-identities.txt" > "$WORK/identities.txt"
 IDENTITY="$IDENTITY_SHA1"
 
 ditto -x -k "$IPA_PATH" "$WORK"
