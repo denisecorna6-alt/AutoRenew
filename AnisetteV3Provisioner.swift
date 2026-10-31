@@ -198,13 +198,15 @@ struct AnisetteV3Provisioner: Sendable {
     private static func receiveText(
         from socket: URLSessionWebSocketTask
     ) async throws -> Data {
-        let message: URLSessionWebSocketTask.Message
         do {
-            message = try await withThrowingTaskGroup(
-                of: URLSessionWebSocketTask.Message.self
-            ) { group in
+            return try await withThrowingTaskGroup(of: Data.self) { group in
                 group.addTask {
-                    try await socket.receive()
+                    let message = try await socket.receive()
+                    guard case .string(let text) = message,
+                          !text.isEmpty, text.utf8.count <= 2_000_000 else {
+                        throw RefreshError.anisetteUnavailable
+                    }
+                    return Data(text.utf8)
                 }
                 group.addTask {
                     try await Task.sleep(nanoseconds: 30_000_000_000)
@@ -224,11 +226,5 @@ struct AnisetteV3Provisioner: Sendable {
             if Task.isCancelled { throw CancellationError() }
             throw RefreshError.network
         }
-
-        guard case .string(let text) = message,
-              !text.isEmpty, text.utf8.count <= 2_000_000 else {
-            throw RefreshError.anisetteUnavailable
-        }
-        return Data(text.utf8)
     }
 }
