@@ -26,6 +26,7 @@ assert.equal(channelFor({ tag_name: "v1.0.0", prerelease: false }), "stable");
 assert.equal(isUnsignedRelease({ body: "Os dois IPAs são unsigned" }), true);
 assert.equal(isUnsignedRelease({ body: "Sem assinatura Apple" }), true);
 assert.equal(isUnsignedRelease({ body: "Assinatura ainda não verificada" }), false);
+assert.equal(isUnsignedRelease({ assets: [{ name: "AutoRenew-unsigned.ipa" }] }), true);
 
 const workflow = (name) => readFileSync(new URL("../.github/workflows/" + name, import.meta.url), "utf8");
 for (const name of ["beta-ci.yml", "beta-ipa.yml", "build.yml", "official-ci.yml", "official-ipa.yml", "deploy-pages.yml"]) {
@@ -44,7 +45,12 @@ assert.match(html, /latestRunForChannel\(j\.workflow_runs/);
 assert.match(html, /runs\?per_page=100/);
 assert.match(html, /aria-live="polite" role="status"/);
 assert.match(html, /IPA UNSIGNED/);
-assert.match(html, /Baixar IPA unsigned \(não instalável diretamente\)/);
+assert.doesNotMatch(html, /browser_download_url/);
+assert.doesNotMatch(html, /Baixar IPA unsigned/);
+assert.doesNotMatch(html, /Baixe o IPA publicado ou um artefato/);
+assert.match(html, /Download bloqueado no portal/);
+assert.match(html, /Não baixe nem instale a Release Alpha unsigned/);
+assert.match(html, /Ver logs no GitHub \(não instalar artefatos\)/);
 assert.match(html, /não assina nem instala por conta própria/);
 assert.match(html, /não confirma assinatura, instalação ou primeiro lançamento/);
 assert.match(html, /skip-link/);
