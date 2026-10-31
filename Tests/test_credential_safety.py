@@ -49,6 +49,8 @@ class CredentialSafetyTests(unittest.TestCase):
         ui = read("ContentView.swift")
         self.assertIn("var isDemo: Bool? = nil", model)
         self.assertIn("isDemo: true", store)
+        self.assertIn('bundleID.hasPrefix("demo.")', store)
+        self.assertIn("app.isDemo = true", store)
         self.assertIn("$0.isDemo != true", notifier)
         self.assertIn("store.apps.contains(where: { $0.isActive && $0.isDemo != true })", ui)
 
