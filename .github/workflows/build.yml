@@ -27,7 +27,7 @@ jobs:
         run: |
           bash -n tools/install-to-iphone.sh
           bash -n tools/sign-ipa-macos.sh
-          python3 -m py_compile tools/validate-signing-inputs.py
+          python3 -m py_compile tools/validate-signing-inputs.py tools/validate-install-target.py
           python3 -m unittest discover -s Tests -p 'test_*.py' -v
       - name: Build AutoRenew for iOS
         run: |
