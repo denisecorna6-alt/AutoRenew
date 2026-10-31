@@ -24,6 +24,9 @@ final class SigningIdentityVault: ObservableObject {
             withIntermediateDirectories: true,
             attributes: [.protectionKey: FileProtectionType.complete]
         )
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? directory.setResourceValues(values)
         return directory
     }()
 
@@ -32,7 +35,12 @@ final class SigningIdentityVault: ObservableObject {
     init() {
         if let data = try? Data(contentsOf: indexURL),
            let saved = try? JSONDecoder().decode([SigningIdentityRecord].self, from: data) {
-            records = saved
+            records = saved.filter {
+                $0.fileName == "\($0.id.uuidString).p12" &&
+                FileManager.default.fileExists(
+                    atPath: directory.appendingPathComponent($0.fileName).path
+                )
+            }
         }
     }
 
@@ -48,6 +56,9 @@ final class SigningIdentityVault: ObservableObject {
         guard fileSize > 0, fileSize <= 20_000_000 else { throw VaultError.invalidFileSize }
 
         let data = try Data(contentsOf: sourceURL, options: [.mappedIfSafe])
+        guard !data.isEmpty, data.count <= 20_000_000 else {
+            throw VaultError.invalidFileSize
+        }
         var importedItems: CFArray?
         let status = SecPKCS12Import(
             data as CFData,
@@ -78,16 +89,24 @@ final class SigningIdentityVault: ObservableObject {
         let id = UUID()
         let fileName = "\(id.uuidString).p12"
         let destination = directory.appendingPathComponent(fileName)
-        try data.write(to: destination, options: [.atomic, .completeFileProtection])
-
-        records.append(SigningIdentityRecord(
-            id: id,
-            displayName: displayName,
-            fileName: fileName,
-            sha256: digest,
-            importedAt: Date()
-        ))
-        try persistIndex()
+        do {
+            try data.write(to: destination, options: [.atomic, .completeFileProtection])
+            var values = URLResourceValues()
+            values.isExcludedFromBackup = true
+            try destination.setResourceValues(values)
+            records.append(SigningIdentityRecord(
+                id: id,
+                displayName: displayName,
+                fileName: fileName,
+                sha256: digest,
+                importedAt: Date()
+            ))
+            try persistIndex()
+        } catch {
+            records.removeAll { $0.id == id }
+            try? FileManager.default.removeItem(at: destination)
+            throw error
+        }
     }
 
     func remove(_ record: SigningIdentityRecord) {
