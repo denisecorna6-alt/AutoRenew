@@ -199,6 +199,8 @@ struct SettingsView: View {
     @State private var showingProfileImporter = false
     @State private var profileImportMessage: String?
     @State private var notificationMessage: String?
+    @State private var anisetteMessage: String?
+    @State private var testingAnisette = false
 
     private var mobileProvisionType: UTType {
         UTType(filenameExtension: "mobileprovision", conformingTo: .data) ?? .data
@@ -221,6 +223,37 @@ struct SettingsView: View {
                     Text("Servidor configurado: https://ani.sidestore.io. Você pode continuar usando o SideStore manualmente sem ativar esta opção.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    Button {
+                        guard store.settings.allowRemoteAnisette else {
+                            anisetteMessage = "Ative a autorização acima antes de testar o servidor."
+                            return
+                        }
+                        testingAnisette = true
+                        Task {
+                            defer { testingAnisette = false }
+                            do {
+                                let data = try await RemoteAnisetteProvider(
+                                    url: URL(string: AppSettings.sideStoreAnisetteURL)!
+                                ).fetch()
+                                anisetteMessage = data.isValid
+                                    ? "Servidor respondeu com cabeçalhos Anisette válidos. Isso não renova nem assina aplicativos."
+                                    : "O servidor não retornou dados Anisette válidos."
+                            } catch {
+                                anisetteMessage = "Não foi possível obter Anisette: \\(error.localizedDescription)"
+                            }
+                        }
+                    } label: {
+                        Label(
+                            testingAnisette ? "Testando servidor…" : "Testar Anisette",
+                            systemImage: "network"
+                        )
+                    }
+                    .disabled(!store.settings.allowRemoteAnisette || testingAnisette)
+                    if let anisetteMessage {
+                        Text(anisetteMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Section("Perfis de provisionamento importados") {
                     Text("Importe um arquivo .mobileprovision para manter uma cópia privada no app e registrar seu hash SHA-256. Nesta etapa, o conteúdo CMS ainda não é decodificado; validade, equipe, UDID e revogação permanecem desconhecidos.")
