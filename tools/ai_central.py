@@ -2,6 +2,7 @@
 import concurrent.futures, json, os, sys, urllib.request, urllib.error
 from pathlib import Path
 from datetime import datetime, timezone
+from sanitize_context import redact_sensitive
 
 def call(url, headers, payload, secret):
     req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers={**headers, "Content-Type":"application/json"}, method="POST")
@@ -17,8 +18,8 @@ def need(name):
     return value
 
 def main():
-    task=os.getenv("AI_TASK","").strip()[:6000]
-    context=os.getenv("AI_CONTEXT","").strip()[:18000]
+    task=redact_sensitive(os.getenv("AI_TASK","")).strip()[:6000]
+    context=redact_sensitive(os.getenv("AI_CONTEXT","")).strip()[:18000]
     if not task: raise RuntimeError("Informe a tarefa.")
     keys={"OpenAI":need("OPENAI_API_KEY"),"Claude":need("ANTHROPIC_API_KEY"),"Gemini":need("GEMINI_API_KEY")}
     models={"OpenAI":os.getenv("OPENAI_MODEL","gpt-6.1-sol"),"Claude":os.getenv("ANTHROPIC_MODEL","claude-sonnet-5-5"),"Gemini":os.getenv("GEMINI_MODEL","gemini-3.8-flash")}
