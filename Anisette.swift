@@ -8,7 +8,9 @@ struct AnisetteData: Sendable {
         guard let machineData = headers["X-Apple-I-MD"], !machineData.isEmpty else {
             return false
         }
-        return Date().timeIntervalSince(fetched) < 300
+        let age = Date().timeIntervalSince(fetched)
+        // Reject clock-skewed/future timestamps as well as expired cache entries.
+        return age >= 0 && age < 300
     }
 }
 
