@@ -43,18 +43,17 @@ O manifesto deve listar exatamente cada `.app` e `.appex` contido no IPA. Os cam
 Em um Mac com Xcode e ferramentas de linha de comando:
 
 ```sh
-export P12_PASSWORD='senha-do-arquivo-p12'
 tools/sign-ipa-macos.sh AutoRenew-unsigned.ipa Developer.p12 signing-manifest.json AutoRenew-signed.ipa
-unset P12_PASSWORD
 ```
 
-A senha não deve ser colocada no histórico do shell, issue, log ou CI. Prefira entrada segura por prompt/gerenciador de segredos local. O helper não envia o P12, perfil ou senha à rede.
+Ao importar o PKCS#12, o macOS abre o prompt seguro de senha da própria ferramenta Security. O helper não aceita senha por variável de ambiente nem argumento de linha de comando. Não execute essa etapa em CI/headless. O script preserva e restaura a lista de keychains do usuário, remove o keychain temporário e não envia P12, perfil ou senha à rede.
 
 ## Limites deliberados desta versão
 
 - A verificação CMS é delegada à implementação Security do macOS; a validação da cadeia Apple/revogação depende do trust store e da política do sistema. O helper não promete uma avaliação OCSP/CRL independente.
 - A comparação de identidade confere o certificado listado no perfil e a identidade importada, mas não substitui uma auditoria PKI externa.
 - A validação de entitlements é conservadora e cobre valores escalares, arrays e dicionários comuns; capacidades complexas/variáveis devem receber testes específicos antes de uso.
+- O helper de instalação no iPhone valida a estrutura ZIP antes de extrair, verifica a assinatura do app e valida a assinatura CMS do provisioning profile. Ainda não comprova primeiro lançamento.
 - O helper não gera certificados/perfis, não registra UDIDs e não contorna requisitos de assinatura da Apple.
 - O pipeline ainda precisa ser executado em macOS com perfis/certificados de teste reais e depois validado em iPhone físico. CI de código-fonte não substitui isso.
 - O IPA de saída só deve ser chamado assinado se o helper terminar com sucesso; a instalação e o primeiro lançamento precisam ser testados separadamente.
