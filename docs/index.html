@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#101827"><meta name="color-scheme" content="dark">
-<meta name="description" content="Central oficial de downloads, builds e atualizações do AutoRenew para iPhone e iPad.">
-<title>AutoRenew — Installer e Downloads</title>
+<meta name="description" content="Status de versões, builds e segurança do AutoRenew para iPhone e iPad.">
+<title>AutoRenew — Status e Installer</title>
 <style>
 :root{color-scheme:dark;--bg:#0b1220;--panel:#121d30;--line:#263650;--muted:#9aabc3;--accent:#73e0b2;--blue:#8bb8ff}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0%,#1a3650 0,transparent 42%),var(--bg);color:#f4f7fb;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -16,9 +16,9 @@ h1{font-size:clamp(2.4rem,8vw,4.5rem);line-height:1.02;letter-spacing:-.055em;ma
 <div class="top"><span class="mark">↻</span><span>AUTORENEW</span></div>
 <h1>Installer<br>AutoRenew.</h1>
 <p class="lead">Central oficial do projeto: versões publicadas, builds de teste e instruções de instalação para iPhone e iPad. O catálogo é atualizado automaticamente ao abrir esta página.</p>
-<section class="panel"><h2>Catálogo de versões</h2><p class="muted small">O catálogo é obtido diretamente das Releases públicas do GitHub e separado por canal. Uma versão só aparece como download quando há um arquivo IPA anexado.</p><div class="channel"><h3>Stable <span class="tag">OFICIAL</span></h3><div id="stable-releases" class="loading" aria-live="polite" role="status">Consultando versões estáveis…</div></div><div class="channel"><h3>Beta <span class="tag">PRÉ-LANÇAMENTO</span></h3><div id="beta-releases" class="loading" aria-live="polite">Consultando versões Beta…</div></div><div class="channel"><h3>Alpha <span class="tag">TESTE</span></h3><div id="alpha-releases" class="loading" aria-live="polite">Consultando versões Alpha…</div></div><p class="notice small">Builds do GitHub Actions são artefatos de CI, não Releases. Os IPAs Alpha atualmente publicados são unsigned (sem assinatura); o portal não confirma assinatura, instalação ou primeiro lançamento em iPhone.</p></section>
-<section class="panel"><h2>Builds recentes por canal</h2><p class="muted small">Alpha considera somente branches codex/alpha-*, Beta somente beta e Oficial somente main. Abra a execução no GitHub para consultar os artefatos; sucesso de CI não comprova instalação.</p><div id="builds" class="loading" aria-live="polite">Consultando builds…</div><div class="row"><a class="btn secondary" href="https://github.com/xlightxt/AutoRenew/actions">Todas as execuções</a></div></section>
-<section class="panel"><h2>Como instalar</h2><ol class="steps"><li>Configure o <a href="https://sidestore.io/">SideStore</a> ou <a href="https://altstore.io/">AltStore</a> no iPhone por um fluxo compatível.</li><li>Baixe o IPA publicado ou um artefato do GitHub Actions; artefatos de CI podem expirar e não são Releases.</li><li>Abra/compartilhe o arquivo IPA com SideStore ou AltStore.</li><li>Conclua assinatura e instalação dentro da ferramenta escolhida. O AutoRenew Installer apenas baixa, inspeciona preliminarmente e encaminha o arquivo; não assina nem instala por conta própria.</li><li>Abra o app manualmente no iPhone e valide o funcionamento. O portal não recebe confirmação do primeiro lançamento.</li></ol><p class="notice small">A Release Alpha atual contém IPAs unsigned e não é instalável diretamente. Não há IPA assinado nem instalação/primeiro lançamento validados. O AutoRenew não implementa renovação real. Nunca informe senha Apple ID ou códigos 2FA ao AutoRenew.</p></section>
+<section class="panel"><h2>Catálogo de versões</h2><p class="muted small">O catálogo é obtido diretamente das Releases públicas do GitHub e separado por canal. Arquivos IPA permanecem sem download no portal até assinatura, instalação física e primeiro lançamento serem validados.</p><div class="channel"><h3>Stable <span class="tag">OFICIAL</span></h3><div id="stable-releases" class="loading" aria-live="polite" role="status">Consultando versões estáveis…</div></div><div class="channel"><h3>Beta <span class="tag">PRÉ-LANÇAMENTO</span></h3><div id="beta-releases" class="loading" aria-live="polite">Consultando versões Beta…</div></div><div class="channel"><h3>Alpha <span class="tag">TESTE</span></h3><div id="alpha-releases" class="loading" aria-live="polite">Consultando versões Alpha…</div></div><p class="notice small">Builds do GitHub Actions são artefatos de CI, não Releases. Os IPAs Alpha atualmente publicados são unsigned (sem assinatura); o portal não oferece download e não confirma assinatura, instalação ou primeiro lançamento em iPhone.</p></section>
+<section class="panel"><h2>Builds recentes por canal</h2><p class="muted small">Alpha considera somente branches codex/alpha-*, Beta somente beta e Oficial somente main. Abra a execução no GitHub para consultar logs; artefatos de CI são temporários, podem ser unsigned e não devem ser instalados.</p><div id="builds" class="loading" aria-live="polite">Consultando builds…</div><div class="row"><a class="btn secondary" href="https://github.com/xlightxt/AutoRenew/actions">Todas as execuções</a></div></section>
+<section class="panel"><h2>Como instalar</h2><ol class="steps"><li>Configure o <a href="https://sidestore.io/">SideStore</a> ou <a href="https://altstore.io/">AltStore</a> no iPhone por um fluxo compatível.</li><li>No momento não há IPA assinada e validada disponível. Não baixe nem instale a Release Alpha unsigned ou artefatos do GitHub Actions.</li><li>Quando houver uma versão assinada e validada, use o fluxo oficial do SideStore ou AltStore para selecionar o arquivo.</li><li>Conclua assinatura e instalação somente pelo fluxo documentado da ferramenta escolhida. O AutoRenew Installer apenas baixa, inspeciona preliminarmente e encaminha o arquivo; não assina nem instala por conta própria.</li><li>Abra o app manualmente no iPhone e valide o funcionamento. O portal não recebe confirmação do primeiro lançamento.</li></ol><p class="notice small">A Release Alpha atual contém IPAs unsigned e não é instalável diretamente. Não há IPA assinado nem instalação/primeiro lançamento validados. O AutoRenew não implementa renovação real. Nunca informe senha Apple ID ou códigos 2FA ao AutoRenew.</p></section>
 <section class="panel"><h2>Transparência e segurança</h2><p class="muted">O AutoRenew é independente e não é afiliado à Apple. Não solicitamos nem armazenamos senhas Apple ID, códigos de autenticação ou chaves privadas. Não existe certificado gratuito universal ou permanente.</p><div class="row"><a class="btn secondary" href="https://github.com/xlightxt/AutoRenew">Código-fonte</a><a class="btn secondary" href="https://github.com/xlightxt/AutoRenew/blob/main/docs/ROADMAP.md">Roadmap</a><a class="btn secondary" href="https://github.com/xlightxt/AutoRenew/blob/main/docs/ALPHA.md">Notas Alpha</a></div></section>
 <footer>AutoRenew · Projeto independente, sem afiliação com Apple. <span id="updated"></span></footer>
 </main>
@@ -36,10 +36,14 @@ function renderRelease(rel){
  title.append(node("span","tag",unsigned?"IPA UNSIGNED":"ASSINATURA NÃO VERIFICADA"));
  d.append(title);
  d.append(node("p","muted small",(rel.published_at?"Publicada em "+new Date(rel.published_at).toLocaleDateString("pt-BR")+" · ":"")+(rel.body||"Sem notas de versão.")));
- const assets=(rel.assets||[]).filter(a=>a.name.toLowerCase().endsWith(".ipa"));
- if(assets.length){for(const asset of assets){const label=unsigned?"Baixar IPA unsigned (não instalável diretamente): "+asset.name:"Baixar IPA (assinatura não verificada): "+asset.name;d.append(link(asset.browser_download_url,label));}}
- else d.append(node("p","muted small","Nenhum IPA anexado a esta versão."));
- d.append(link(rel.html_url,"Notas e detalhes"));return d;
+ const assets=(rel.assets||[]).filter(a=>typeof a.name==="string"&&a.name.toLowerCase().endsWith(".ipa"));
+ if(assets.length){
+  for(const asset of assets){
+   const status=unsigned?"IPA unsigned":"assinatura não verificada";
+   d.append(node("p","muted small",asset.name+" — "+status+". Download bloqueado no portal até validação de assinatura, instalação física e primeiro lançamento."));
+  }
+ } else d.append(node("p","muted small","Nenhum IPA anexado a esta versão."));
+ return d;
 }
 async function loadReleases(){
  const targets={stable:$("stable-releases"),beta:$("beta-releases"),alpha:$("alpha-releases")};
@@ -68,7 +72,7 @@ async function loadBuilds(){
    if(!item.run)d.append(node("p","muted small","Nenhuma execução encontrada na branch esperada."));
    else{const run=item.run;const status=run.status==="completed"?(run.conclusion==="success"?"Concluído com sucesso":"Concluído: "+(run.conclusion||"sem conclusão")):"Em andamento";
     d.append(node("p","muted small",status+" · "+new Date(run.created_at).toLocaleString("pt-BR")+" · "+run.head_branch));
-    d.append(link(run.html_url,"Abrir build no GitHub"));}
+    d.append(link(run.html_url,"Ver logs no GitHub (não instalar artefatos)"));}
    box.append(d);
   }
  }catch(e){box.replaceChildren(node("p","muted",e.message+" Acesse a página de Actions."))}
