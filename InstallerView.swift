@@ -226,9 +226,9 @@ struct InstallerView: View {
             List {
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("Central de instalação", systemImage: "arrow.down.app.fill")
+                        Label("AutoRenew Installer", systemImage: "arrow.down.app.fill")
                             .font(.title2.bold())
-                        Text("Encontre versões publicadas do AutoRenew, baixe arquivos IPA ou importe um IPA que já esteja no iPhone.")
+                        Text("Aplicativo independente para baixar versões Stable, Beta e Alpha do AutoRenew, importar IPAs e encaminhar arquivos para ferramentas compatíveis.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Label("O download não instala nem assina o aplicativo.", systemImage: "info.circle")
