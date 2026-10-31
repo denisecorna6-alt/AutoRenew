@@ -48,7 +48,35 @@ private final class AppCatalogModel: ObservableObject {
     @Published var statusMessage: String?
 
     private let defaultsKey = "AutoRenew.altSourceURLs"
-    private let maxDownloadSize = 1_500_000_000
+    private let maxDownloadSize = InstallerDownloadPolicy.maximumFileSize
+
+    private func isSafeHTTPS(_ url: URL?) -> Bool {
+        guard let url else { return false }
+        return url.scheme?.lowercased() == "https" && url.host != nil
+            && url.user == nil && url.password == nil
+    }
+
+    private func isValid(_ source: AltSourceDocument) -> Bool {
+        guard !source.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              source.apps.count <= 5_000 else { return false }
+        let identifiers = source.apps.map(\\.bundleIdentifier)
+        guard Set(identifiers).count == identifiers.count else { return false }
+        return source.apps.allSatisfy { app in
+            let parts = app.bundleIdentifier.split(separator: ".")
+            let validBundleID = parts.count >= 2 && parts.allSatisfy { part in
+                !part.isEmpty && part.unicodeScalars.allSatisfy {
+                    CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-").contains($0)
+                }
+            }
+            let validIcon = app.iconURL.map { isSafeHTTPS($0) } ?? true
+            let validVersions = app.versions.count <= 100 && app.versions.allSatisfy { version in
+                isSafeHTTPS(version.downloadURL)
+                    && (version.size == nil || (version.size! > 0 && version.size! <= maxDownloadSize))
+            }
+            return !app.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && validBundleID && validIcon && validVersions
+        }
+    }
 
     var sourceURLs: [String] {
         get { UserDefaults.standard.stringArray(forKey: defaultsKey) ?? [] }
@@ -97,13 +125,17 @@ private final class AppCatalogModel: ObservableObject {
                 var request = URLRequest(url: url)
                 request.setValue("application/json", forHTTPHeaderField: "Accept")
                 request.setValue("AutoRenew-iOS", forHTTPHeaderField: "User-Agent")
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await InstallerDownloadPolicy.fetchData(
+                    for: request,
+                    maximumBytes: InstallerDownloadPolicy.maximumCatalogSize
+                )
                 guard let http = response as? HTTPURLResponse,
                       (200..<300).contains(http.statusCode),
                       response.url?.scheme?.lowercased() == "https" else {
                     throw URLError(.badServerResponse)
                 }
                 let source = try JSONDecoder().decode(AltSourceDocument.self, from: data)
+                guard isValid(source) else { throw URLError(.cannotDecodeContentData) }
                 loaded.append(contentsOf: source.apps.map {
                     CatalogApp(sourceName: source.name, sourceURL: url, app: $0)
                 })
@@ -142,7 +174,10 @@ private final class AppCatalogModel: ObservableObject {
         do {
             var request = URLRequest(url: version.downloadURL)
             request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
-            let (temporaryURL, response) = try await URLSession.shared.download(for: request)
+            let (temporaryURL, response) = try await InstallerDownloadPolicy.download(
+                for: request,
+                maximumBytes: maxDownloadSize
+            )
             guard let http = response as? HTTPURLResponse,
                   (200..<300).contains(http.statusCode),
                   let finalURL = response.url,
