@@ -17,7 +17,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Generate Xcode project
@@ -33,7 +33,7 @@ jobs:
           cp -R "$APP_PATH" build/ipa/Payload/
           (cd build/ipa && /usr/bin/zip -qry ../AutoRenew-Official-unsigned.ipa Payload)
       - name: Upload Official IPA artifact (unsigned)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: AutoRenew-Official-unsigned-IPA
           path: build/AutoRenew-Official-unsigned.ipa
