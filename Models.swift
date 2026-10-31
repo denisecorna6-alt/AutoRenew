@@ -19,7 +19,6 @@ struct RefreshAttempt: Codable, Identifiable {
 }
 
 struct AppSettings: Codable {
-    var appleID = ""
     var anisetteURLs = ["https://ani.sidestore.io"]   // ordem = prioridade/fallback
     var thresholdHours = 48.0
     var blockDomains = false
