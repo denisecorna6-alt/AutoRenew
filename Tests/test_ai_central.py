@@ -22,7 +22,7 @@ class CentralSafety(unittest.TestCase):
         self.assertIn("codex/alpha-", CODER)
         self.assertIn(".github/", CODER)
         self.assertIn("SigningBackend.swift", CODER)
-        self.assertIn("git diff --check", CODER)
+        self.assertIn('run(["git","diff","--check"])', CODER)
     def test_redacts_secrets(self):
         self.assertIn('replace(secret,"[REDACTED]")', SCRIPT)
         self.assertIn('replace(key,"[REDACTED]")', CODER)
