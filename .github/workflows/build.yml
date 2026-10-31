@@ -74,3 +74,32 @@ jobs:
           name: AutoRenew-Installer-ipa-unsigned
           path: AutoRenew-Installer.ipa
           retention-days: 30
+
+      - name: Publish public Alpha prerelease
+        if: startsWith(github.ref, 'refs/heads/codex/alpha-release-')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shasum -a 256 AutoRenew.ipa AutoRenew-Installer.ipa > SHA256SUMS
+          cat > RELEASE_NOTES.md <<'EOF'
+          # AutoRenew Alpha — teste público
+
+          Esta versão Alpha é experimental e pode conter falhas.
+
+          Downloads:
+          - AutoRenew.ipa — aplicativo principal.
+          - AutoRenew-Installer.ipa — Installer independente.
+          - SHA256SUMS — hashes SHA-256 dos pacotes.
+
+          IMPORTANTE: os dois IPAs são unsigned e não são instaláveis diretamente. Para testar, importe o IPA no AltStore ou SideStore e deixe essa ferramenta assinar o pacote com seu próprio método e perfil compatível. O Installer também precisa ser instalado por uma ferramenta de sideload já funcional.
+
+          O AutoRenew ainda não implementa renovação/refresh real. O Installer oferece catálogo, download, pré-verificação estrutural e handoff; não faz assinatura ou instalação on-device por conta própria.
+
+          Informe versão do iOS, modelo do dispositivo, versão do app e etapa do erro ao relatar problemas. Não use esta Alpha como versão de produção.
+          EOF
+          TAG="alpha-$(date -u +%Y.%m.%d)-${GITHUB_SHA:0:7}"
+          gh release create "$TAG" AutoRenew.ipa AutoRenew-Installer.ipa SHA256SUMS \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "AutoRenew Alpha $TAG" \
+            --notes-file RELEASE_NOTES.md
