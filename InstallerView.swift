@@ -46,6 +46,7 @@ private final class InstallerCatalog: ObservableObject {
     @Published private(set) var downloadedFiles: [URL] = []
     @Published private(set) var isLoading = false
     @Published private(set) var downloadingAssetID: Int?
+    @Published private(set) var isDownloadingDirectURL = false
     @Published var errorMessage: String?
     @Published var statusMessage: String?
 
@@ -110,6 +111,61 @@ private final class InstallerCatalog: ObservableObject {
         }
     }
 
+    func downloadIPA(from rawValue: String) async {
+        guard !isDownloadingDirectURL else { return }
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: trimmed),
+              url.scheme?.lowercased() == "https",
+              url.user == nil, url.password == nil,
+              url.host != nil,
+              url.pathExtension.lowercased() == "ipa" else {
+            errorMessage = "Informe um link HTTPS direto para um arquivo .ipa. Links com usuário/senha ou HTTP não são aceitos."
+            return
+        }
+
+        isDownloadingDirectURL = true
+        errorMessage = nil
+        statusMessage = nil
+        defer { isDownloadingDirectURL = false }
+
+        do {
+            var request = URLRequest(url: url)
+            request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
+            let (temporaryURL, response) = try await URLSession.shared.download(for: request)
+            guard let http = response as? HTTPURLResponse,
+                  (200..<300).contains(http.statusCode),
+                  let finalURL = response.url,
+                  finalURL.scheme?.lowercased() == "https",
+                  finalURL.user == nil, finalURL.password == nil else {
+                throw URLError(.badServerResponse)
+            }
+            let values = try temporaryURL.resourceValues(forKeys: [.fileSizeKey])
+            guard let size = values.fileSize, size > 0, size <= 1_500_000_000 else {
+                throw NSError(domain: "AutoRenew.Installer", code: 3,
+                              userInfo: [NSLocalizedDescriptionKey: "O IPA está vazio ou excede 1,5 GB."])
+            }
+
+            let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("DownloadedIPAs", isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let suggestedName = finalURL.lastPathComponent
+            let safeName = URL(fileURLWithPath: suggestedName).lastPathComponent
+            guard safeName.lowercased().hasSuffix(".ipa"), safeName != ".ipa" else {
+                throw NSError(domain: "AutoRenew.Installer", code: 4,
+                              userInfo: [NSLocalizedDescriptionKey: "O servidor não forneceu um nome de arquivo .ipa válido."])
+            }
+            let destination = directory.appendingPathComponent(safeName)
+            let uniqueDestination = FileManager.default.fileExists(atPath: destination.path)
+                ? directory.appendingPathComponent("\(UUID().uuidString)-\(safeName)")
+                : destination
+            try FileManager.default.moveItem(at: temporaryURL, to: uniqueDestination)
+            statusMessage = "IPA baixado por HTTPS: \(uniqueDestination.lastPathComponent). Ainda precisa ser validado e assinado."
+            refreshDownloadedFiles()
+        } catch {
+            errorMessage = "Falha no download do link: \(error.localizedDescription)"
+        }
+    }
+
     func importIPA(from source: URL) throws {
         let didAccess = source.startAccessingSecurityScopedResource()
         defer { if didAccess { source.stopAccessingSecurityScopedResource() } }
@@ -157,6 +213,7 @@ struct InstallerView: View {
     @State private var p12Password = ""
     @State private var certificateMessage: String?
     @State private var profileMessage: String?
+    @State private var directIPALink = ""
 
     private let channels = ["Todas", "Stable", "Beta", "Alpha"]
 
@@ -239,6 +296,23 @@ struct InstallerView: View {
                             .padding(.vertical, 5)
                         }
                     }
+                }
+
+                Section("Baixar IPA por link") {
+                    TextField("https://exemplo.com/app.ipa", text: $directIPALink)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Button {
+                        Task {
+                            await catalog.downloadIPA(from: directIPALink)
+                        }
+                    } label: {
+                        Label(catalog.isDownloadingDirectURL ? "Baixando…" : "Baixar IPA pelo link", systemImage: "link")
+                    }
+                    .disabled(catalog.isDownloadingDirectURL || directIPALink.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Text("Aceita somente links HTTPS diretos terminados em .ipa. O app verifica o endereço final e limita o arquivo a 1,5 GB.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
 
                 Section("Seus arquivos IPA") {
