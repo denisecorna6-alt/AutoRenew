@@ -1,0 +1,41 @@
+name: Portal catalog regression tests
+
+on:
+  push:
+    branches:
+      - codex/portal-catalog-safety-20261031
+    paths:
+      - 'docs/index.html'
+      - 'docs/catalog.mjs'
+      - 'Tests/test_portal_catalog.mjs'
+      - '.github/workflows/portal-check.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/index.html'
+      - 'docs/catalog.mjs'
+      - 'Tests/test_portal_catalog.mjs'
+      - '.github/workflows/portal-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  portal-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Check JavaScript module and inline browser script syntax
+        run: |
+          node --check docs/catalog.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path("docs/index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r'<script type="module">(.*?)</script>', html, re.S)
+          assert len(scripts) == 1, f"expected one module script, got {len(scripts)}"
+          Path("/tmp/autorenew-portal-inline.mjs").write_text(scripts[0], encoding="utf-8")
+          PY
+          node --check /tmp/autorenew-portal-inline.mjs
+      - name: Test release channels, build branches, unsigned labels and accessibility
+        run: node Tests/test_portal_catalog.mjs
