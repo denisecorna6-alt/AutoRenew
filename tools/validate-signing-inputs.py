@@ -113,9 +113,13 @@ def main():
             (pattern.endswith(".*") and args.bundle_id.startswith(pattern[:-1]))):
         fail("Bundle ID não é permitido pelo perfil.")
     team_ids = profile.get("TeamIdentifier", [])
-    if not isinstance(team_ids, list) or prefix not in team_ids:
-        fail("Prefixo de aplicação não corresponde ao Team ID.")
-    if profile.get("ProvisionedDevices") is None and not profile.get("ProvisionsAllDevices", False):
+    prefixes = profile.get("ApplicationIdentifierPrefix", [])
+    if not isinstance(team_ids, list) or not team_ids:
+        fail("TeamIdentifier ausente/inválido.")
+    if not isinstance(prefixes, list) or prefix not in prefixes:
+        fail("Prefixo de aplicação não corresponde a ApplicationIdentifierPrefix.")
+    devices = profile.get("ProvisionedDevices", [])
+    if not ((isinstance(devices, list) and len(devices) > 0) or profile.get("ProvisionsAllDevices", False)):
         fail("Perfil não declara escopo de instalação em dispositivo.")
     for key, value in requested.items():
         if key not in profile_ent or not entitlement_allowed(value, profile_ent[key]):
