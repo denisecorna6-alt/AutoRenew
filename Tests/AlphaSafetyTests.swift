@@ -95,6 +95,31 @@ final class AlphaSafetyTests: XCTestCase {
         }
     }
 
+    func testStreamingDownloadPolicyRejectsOversizedExpectedOrReceivedBytes() {
+        let maximum = Int64(InstallerDownloadPolicy.maximumFileSize)
+        XCTAssertFalse(InstallerDownloadPolicy.exceedsStreamingLimit(bytesWritten: maximum, expectedBytes: -1))
+        XCTAssertTrue(InstallerDownloadPolicy.exceedsStreamingLimit(bytesWritten: maximum + 1, expectedBytes: -1))
+        XCTAssertTrue(InstallerDownloadPolicy.exceedsStreamingLimit(bytesWritten: 0, expectedBytes: maximum + 1))
+    }
+
+    func testAltSourcePolicyRequiresHTTPSWithoutEmbeddedCredentials() {
+        XCTAssertTrue(AltSourcePolicy.isSafeHTTPSURL(URL(string: "https://example.com/source.json")!))
+        XCTAssertFalse(AltSourcePolicy.isSafeHTTPSURL(URL(string: "http://example.com/source.json")!))
+        XCTAssertFalse(AltSourcePolicy.isSafeHTTPSURL(URL(string: "https://user:pass@example.com/source.json")!))
+    }
+
+    func testAltSourcePolicyBoundsUntrustedCatalogMetadata() {
+        XCTAssertTrue(AltSourcePolicy.isSourceDataWithinLimit(5_000_000))
+        XCTAssertFalse(AltSourcePolicy.isSourceDataWithinLimit(5_000_001))
+        XCTAssertTrue(AltSourcePolicy.isWithinCatalogLimits(sourceCount: 20, appCount: 500))
+        XCTAssertFalse(AltSourcePolicy.isWithinCatalogLimits(sourceCount: 21, appCount: 1))
+        XCTAssertFalse(AltSourcePolicy.isWithinCatalogLimits(sourceCount: 1, appCount: 501))
+        XCTAssertTrue(AltSourcePolicy.isValidAppMetadata(name: "Test", bundleIdentifier: "com.example.test", versionCount: 50))
+        XCTAssertFalse(AltSourcePolicy.isValidAppMetadata(name: "Test", bundleIdentifier: "com.example.test", versionCount: 51))
+        XCTAssertTrue(AltSourcePolicy.isValidVersionMetadata(version: "1.0", downloadURL: URL(string: "https://example.com/app.ipa")!))
+        XCTAssertFalse(AltSourcePolicy.isValidVersionMetadata(version: "1.0", downloadURL: URL(string: "http://example.com/app.ipa")!))
+    }
+
     func testIPAInspectorRecognizesZIPHeaderAndComputesDigestWithoutClaimingFullValidation() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
