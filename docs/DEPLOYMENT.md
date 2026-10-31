@@ -1,38 +1,34 @@
 # Publicação do portal de downloads
 
-Verificação feita em **31/10/2026**.
+Verificação em **31/10/2026**.
 
 ## Estado confirmado
 
-- Página-fonte: [docs/index.html](index.html).
+- Página: [https://xlightxt.github.io/AutoRenew/](https://xlightxt.github.io/AutoRenew/).
 - Workflow: [.github/workflows/deploy-pages.yml](../.github/workflows/deploy-pages.yml).
-- Última tentativa de deploy observada: [Deploy download portal #2](https://github.com/xlightxt/AutoRenew/actions/runs/41185796609).
-- Resultado: falhou na etapa **Configure Pages**. O log retornou `Get Pages site failed: Not Found`; as etapas de upload e deploy foram ignoradas.
-- A URL pública [https://xlightxt.github.io/AutoRenew/](https://xlightxt.github.io/AutoRenew/) respondeu 404 na verificação. Portanto, o portal ainda não está publicado.
+- Deploy inicial: [run #41185536948](https://github.com/xlightxt/AutoRenew/actions/runs/41185536948) falhou em Configure Pages com \`Get Pages site failed: Not Found\`.
+- Deploy seguinte: [run #41185796609](https://github.com/xlightxt/AutoRenew/actions/runs/41185796609) concluído com sucesso.
+- Deploy mais recente verificado: [run #41208603252](https://github.com/xlightxt/AutoRenew/actions/runs/41208603252), branch \`main\`, conclusão \`success\`.
+- A página pública abriu e renderizou o catálogo de Releases e os cards de builds.
 
-## Como habilitar uma vez
+## Catálogo e builds observados
 
-Uma pessoa com permissão de administração no repositório precisa:
+- Stable: nenhuma Release.
+- Beta: nenhuma Release.
+- Alpha: \`alpha-2026.10.31-c1feeb6\`, com \`AutoRenew.ipa\` e \`AutoRenew-Installer.ipa\`, ambos identificados nas notas como unsigned.
+- Builds: os cards exibem o estado das execuções do Actions; isso não transforma o artefato em IPA assinado.
+- A página ainda não confirma assinatura, instalação no iPhone ou primeiro lançamento.
 
-1. Abrir [Settings → Pages](https://github.com/xlightxt/AutoRenew/settings/pages).
-2. Em **Build and deployment**, selecionar **GitHub Actions** como Source.
-3. Salvar a configuração.
-4. Voltar a [Actions](https://github.com/xlightxt/AutoRenew/actions/workflows/deploy-pages.yml) e executar novamente **Deploy download portal**.
+Esta PR corrige a consulta dos builds para filtrar Alpha por \`codex/alpha-*\`, Beta por \`beta\` e Oficial por \`main\`. A correção só ficará pública após revisão, merge e novo deploy; nenhum deploy foi feito por esta alteração.
 
-A documentação oficial do GitHub descreve essa configuração em [Using custom workflows with GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+## Distinções obrigatórias
 
-## Por que não habilitar com um token no workflow?
+1. **Actions artifact:** pacote anexado a uma execução de CI, com prazo de retenção.
+2. **IPA unsigned:** arquivo IPA sem assinatura de desenvolvimento; não instalável diretamente.
+3. **IPA assinado:** exige assinatura válida, perfil compatível e verificação de código; nenhum está publicado nesta Alpha.
+4. **Instalação validada:** exige instalação real em iPhone; ainda não ocorreu.
+5. **Primeiro lançamento:** exige abrir o app instalado e confirmar o funcionamento; ainda não ocorreu.
 
-A ação `actions/configure-pages` mantém `enablement` desativado por padrão. A documentação da ação informa que a habilitação automática exige um token diferente de `GITHUB_TOKEN`, com permissões administrativas/Pages adicionais. Não devemos criar nem armazenar um Personal Access Token só para contornar a configuração inicial; a mudança manual nas configurações do repositório é mais simples e mantém o segredo fora do código.
+## Segurança
 
-## Checklist depois da habilitação
-
-- [ ] O workflow termina com sucesso.
-- [ ] A URL pública responde HTTP 200.
-- [ ] Os links de código, roadmap e instruções abrem.
-- [ ] O estado vazio informa que ainda não há Releases, sem inventar downloads.
-- [ ] Os links de artefatos levam às execuções corretas do Actions.
-- [ ] O aviso de IPA sem assinatura continua visível.
-- [ ] Nenhuma versão é chamada de Stable sem assinatura e testes reais.
-
-**Importante:** o portal apenas apresenta Releases e artefatos reais. Ele não assina IPA, não instala apps no iPhone e não transforma um artefato unsigned em instalador pronto.
+O portal apenas lista Releases e execuções reais. Não pede Apple ID, senha, 2FA, token ou chave privada. Não assina, não instala e não verifica o primeiro lançamento.
