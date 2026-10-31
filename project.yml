@@ -10,7 +10,10 @@ targets:
   AutoRenew:
     type: application
     platform: iOS
-    sources: [Sources/App, Sources/Core, Sources/UI]
+    sources:
+      - path: .
+        includes: ["*.swift"]
+        excludes: ["PacketTunnelProvider.swift"]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.autorenew.AutoRenew
@@ -22,22 +25,3 @@ targets:
         UIBackgroundModes: [fetch, processing]
         BGTaskSchedulerPermittedIdentifiers: [app.autorenew.refresh, app.autorenew.processing]
         NSLocalNetworkUsageDescription: Necessário para comunicar com o próprio dispositivo.
-  # Opcional (exige entitlement Network Extension, indisponível em conta gratuita).
-  Tunnel:
-    type: app-extension
-    platform: iOS
-    sources: [Sources/Tunnel]
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: app.autorenew.AutoRenew.Tunnel
-    info:
-      path: Tunnel-Info.plist
-      properties:
-        CFBundleDisplayName: AutoRenewTunnel
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.networkextension.packet-tunnel
-          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).PacketTunnelProvider
-    entitlements:
-      path: Tunnel.entitlements
-      properties:
-        com.apple.developer.networking.networkextension: [packet-tunnel-provider]
