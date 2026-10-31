@@ -2,7 +2,7 @@ import Foundation
 
 actor RefreshCoordinator {
     static let shared = RefreshCoordinator()
-    private var backend: SigningBackend = StubSigningBackend()
+    private var backend: SigningBackend = UnavailableSigningBackend()
     private var running = false
 
     func setBackend(_ b: SigningBackend) { backend = b }
@@ -20,6 +20,16 @@ actor RefreshCoordinator {
                       .sorted { $0.expiresAt < $1.expiresAt }
         guard !due.isEmpty else { return }
 
+        // Não consultar Anisette nem alterar expirações enquanto não existir
+        // um backend real conectado. Isso evita sucesso fictício e chamadas inúteis.
+        guard backend.isAvailable else {
+            for app in due {
+                await fail(app, trigger, "Assinatura real indisponível: integração SideSign/Minimuxer pendente")
+            }
+            await MainActor.run { Notifier.reschedule(AppStore.shared.apps) }
+            return
+        }
+
         let router = AnisetteRouter(urls: settings.anisetteURLs)
         outer: for app in due {
             for attempt in 0..<3 {
@@ -32,6 +42,9 @@ actor RefreshCoordinator {
                 } catch let e as RefreshError where e == .authentication {
                     await fail(app, trigger, "Autenticação falhou — reabra o app e faça login")
                     break outer                       // nunca repetir erro de auth (evita bloqueio da conta)
+                } catch let e as RefreshError where e == .integrationUnavailable {
+                    await fail(app, trigger, "Assinatura real indisponível: integração SideSign/Minimuxer pendente")
+                    break outer
                 } catch {
                     if attempt == 2 { await fail(app, trigger, "Falha: \(error)") }
                     else { try? await Task.sleep(for: .seconds(pow(2, Double(attempt + 1)))) }  // backoff
