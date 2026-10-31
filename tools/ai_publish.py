@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 from tools.ai_patch_policy import validate_patch, changed_paths, validate_workspace_paths
@@ -24,51 +25,60 @@ def main():
         raise RuntimeError("Token de publicação ausente.")
 
     artifact = Path("ai-proposal-output")
-    patch_path = artifact / "ai-change.patch"
-    report_path = artifact / "ai-coding-report.md"
-    if not patch_path.is_file() or not report_path.is_file():
+    patch_source = artifact / "ai-change.patch"
+    report_source = artifact / "ai-coding-report.md"
+    if not patch_source.is_file() or not report_source.is_file():
         raise RuntimeError("Artefato de proposta incompleto.")
-    patch = patch_path.read_text(encoding="utf-8")
+    patch = patch_source.read_text(encoding="utf-8")
     files = validate_patch(patch)
 
-    run(["git", "fetch", "--no-tags", "origin",
-         "refs/heads/" + base + ":refs/remotes/origin/" + base])
-    run_id = os.getenv("GITHUB_RUN_ID", "local")
-    if not re.fullmatch(r"[A-Za-z0-9-]+", run_id):
-        raise RuntimeError("GITHUB_RUN_ID inválido.")
-    branch = "codex/alpha-ai-work-" + run_id
-    run(["git", "switch", "-c", branch, "refs/remotes/origin/" + base])
+    with tempfile.NamedTemporaryFile(prefix="autorenew-ai-publish-", suffix=".patch", delete=False) as temporary:
+        patch_path = temporary.name
+    try:
+        Path(patch_path).write_text(patch, encoding="utf-8")
+        run(["git", "fetch", "--no-tags", "origin",
+             "refs/heads/" + base + ":refs/remotes/origin/" + base])
+        run_id = os.getenv("GITHUB_RUN_ID", "local")
+        if not re.fullmatch(r"[A-Za-z0-9-]+", run_id):
+            raise RuntimeError("GITHUB_RUN_ID inválido.")
+        branch = "codex/alpha-ai-work-" + run_id
+        run(["git", "switch", "-c", branch, "refs/remotes/origin/" + base])
 
-    # Validate every existing path component before applying untrusted patch data.
-    validate_workspace_paths(files)
-    run(["git", "apply", "--check", str(patch_path)])
-    run(["git", "apply", str(patch_path)])
-    paths = changed_paths()
-    if not paths or set(paths) != set(files):
-        raise RuntimeError("Arquivos alterados não correspondem exatamente ao patch aprovado.")
-    run(["git", "-c", "core.attributesFile=/dev/null", "-c", "core.hooksPath=/dev/null",
-         "add", "--"] + paths)
-    run(["git", "diff", "--cached", "--check"])
-    run(["git", "config", "user.name", "github-actions[bot]"])
-    run(["git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"])
-    run(["git", "-c", "core.hooksPath=/dev/null", "commit", "-m", "[AI Alpha] " + run_id])
-    run(["git", "-c", "core.hooksPath=/dev/null", "push", "origin", "HEAD"])
+        # No target-branch scripts are executed. Validate parents before applying patch data.
+        validate_workspace_paths(files)
+        run(["git", "apply", "--check", patch_path])
+        run(["git", "apply", patch_path])
+        paths = changed_paths()
+        if not paths or set(paths) != set(files):
+            raise RuntimeError("Arquivos alterados não correspondem exatamente ao patch aprovado.")
+        run(["git", "-c", "core.attributesFile=/dev/null", "-c", "core.hooksPath=/dev/null",
+             "add", "--"] + paths)
+        run(["git", "diff", "--cached", "--check"])
+        run(["git", "config", "user.name", "github-actions[bot]"])
+        run(["git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"])
+        run(["git", "-c", "core.hooksPath=/dev/null", "commit", "-m", "[AI Alpha] " + run_id])
+        run(["git", "-c", "core.hooksPath=/dev/null", "push", "origin", "HEAD"])
 
-    title = "[AI Alpha] " + run_id
-    body = ("AI-assisted Alpha proposal.\n\n"
-            "The selected implementer and two independent reviewers approved the patch in the read-only proposal job.\n"
-            "The privileged publisher received no OpenAI, Anthropic or Gemini API keys and executed no target-branch scripts or tests.\n"
-            "Patch allowlist, symlink/path checks and staged diff check passed.\n"
-            "Project CI runs separately with read-only permissions. Human review remains required.\n"
-            "No merge, Beta/Stable release, signing or installation was performed.\n\n"
-            "Files: " + ", ".join(files) + "\n\n"
-            "See the originating Actions run for the full reviewer report.")
-    run(["gh", "pr", "create", "--base", base, "--head", branch, "--title", title, "--body", body])
-    Path("ai-publish-report.md").write_text(
-        "Alpha PR created for " + base + ". Files: " + ", ".join(files) + "\n",
-        encoding="utf-8"
-    )
-    print("PR Alpha criada. Nenhum teste, merge ou release executado no job privilegiado.")
+        title = "[AI Alpha] " + run_id
+        body = ("AI-assisted Alpha proposal.\n\n"
+                "The selected implementer and two independent reviewers approved the patch in the read-only proposal job.\n"
+                "This privileged publisher received no OpenAI, Anthropic or Gemini API keys and executed no target-branch scripts or tests.\n"
+                "Patch allowlist, symlink/path checks and staged diff check passed.\n"
+                "Project CI runs separately with read-only permissions. Human review remains required.\n"
+                "No merge, Beta/Stable release, signing or installation was performed.\n\n"
+                "Files: " + ", ".join(files) + "\n\n"
+                "See the originating Actions run for the full reviewer report.")
+        run(["gh", "pr", "create", "--base", base, "--head", branch, "--title", title, "--body", body])
+        Path("ai-publish-report.md").write_text(
+            "Alpha PR created for " + base + ". Files: " + ", ".join(files) + "\n",
+            encoding="utf-8"
+        )
+        print("PR Alpha criada. Nenhum teste, merge ou release executado no job privilegiado.")
+    finally:
+        try:
+            os.unlink(patch_path)
+        except OSError:
+            pass
 
 if __name__ == "__main__":
     try:
