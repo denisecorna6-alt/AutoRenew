@@ -25,7 +25,11 @@ final class AppStore: ObservableObject {
         var restoredSnapshot = false
         if let data = try? Data(contentsOf: url),
            let snapshot = try? JSONDecoder().decode(Snapshot.self, from: data) {
-            apps = snapshot.apps
+            apps = snapshot.apps.map { app in
+                var app = app
+                if app.bundleID.hasPrefix("demo.") { app.isDemo = true }
+                return app
+            }
             attempts = snapshot.attempts
             settings = snapshot.settings
             restoredSnapshot = true
