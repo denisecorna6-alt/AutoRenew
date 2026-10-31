@@ -239,7 +239,7 @@ struct SettingsView: View {
                                     ? "Servidor respondeu com cabeçalhos Anisette válidos. Isso não renova nem assina aplicativos."
                                     : "O servidor não retornou dados Anisette válidos."
                             } catch {
-                                anisetteMessage = "Não foi possível obter Anisette: \\(error.localizedDescription)"
+                                anisetteMessage = "Não foi possível obter Anisette: \(error.localizedDescription)"
                             }
                         }
                     } label: {
