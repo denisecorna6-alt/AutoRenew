@@ -57,6 +57,16 @@ class EcosystemSafetyPolicy(unittest.TestCase):
         self.assertIn("summary.renewed", dashboard)
         self.assertIn("summary.failed", dashboard)
 
+    def test_private_signing_material_and_downloads_are_excluded_from_backups(self):
+        vault = read("SigningIdentityVault.swift")
+        profiles = read("ProfileInventory.swift")
+        catalog = read("AppCatalogView.swift")
+        self.assertIn("isExcludedFromBackup = true", vault)
+        self.assertIn(".completeFileProtection", vault)
+        self.assertIn("records.removeAll { $0.id == id }", vault)
+        self.assertIn("isExcludedFromBackup = true", profiles)
+        self.assertIn("isExcludedFromBackup = true", catalog)
+
     def test_notification_consent_is_user_initiated_and_bounded(self):
         app = read("AutoRenewApp.swift")
         ui = read("ContentView.swift")
