@@ -34,7 +34,7 @@ An Actions artifact is a temporary CI output. An IPA is only an archive. An unsi
 
 The portal only reads release/build metadata. It does not inspect code signatures, install apps, or observe first launch.
 
-The latest Xcode 26.6 build logs also emitted `All interface orientations must be supported unless the app requires full screen`. This PR adds explicit portrait/landscape support for iPhone and all four orientations for iPad. The benign `AppIntents` metadata-skipped warning is expected because the app does not link AppIntents; Node `punycode`/`url.parse` deprecation warnings originate in the GitHub Actions artifact action runtime, not AutoRenew source.
+The latest Xcode 26.6 build logs previously emitted `All interface orientations must be supported unless the app requires full screen`; explicit portrait/landscape support for iPhone and all four orientations for iPad removed that warning in the branch build. The app now also asks for notification permission only after the user taps **Ativar lembretes**, respects the current authorization state, and caps scheduled reminders at 60. The benign `AppIntents` metadata-skipped warning is expected because the app does not link AppIntents; Node `punycode`/`url.parse` deprecation warnings originate in the GitHub Actions artifact action runtime, not AutoRenew source.
 
 ## Repository shape
 
