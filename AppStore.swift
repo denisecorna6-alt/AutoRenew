@@ -61,7 +61,7 @@ final class AppStore: ObservableObject {
               let index = apps.firstIndex(where: { $0.id == app.id }) else { return }
         apps[index].expiresAt = newExpiry
         log(app, trigger: trigger, success: true,
-            message: "Renovação confirmada pelo backend até \\(newExpiry.formatted())")
+            message: "Renovação confirmada pelo backend até \(newExpiry.formatted())")
         Task { await Notifier.reschedule(apps, thresholdHours: settings.thresholdHours) }
     }
 
@@ -70,7 +70,7 @@ final class AppStore: ObservableObject {
         let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let cleanBundleID = bundleID.trimmingCharacters(in: .whitespacesAndNewlines)
         let validBundleID = cleanBundleID.range(
-            of: #"^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$"#,
+            of: #"^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$"#,
             options: .regularExpression
         ) != nil
         guard !cleanName.isEmpty, cleanName.count <= 80,
