@@ -100,7 +100,13 @@ def main():
     if app_info.get("CFBundleIdentifier") != args.bundle_id:
         fail("Bundle ID informado não corresponde ao Info.plist.")
     expiration = profile.get("ExpirationDate")
-    if not isinstance(expiration, dt.datetime) or expiration.replace(tzinfo=None) <= dt.datetime.utcnow():
+    if not isinstance(expiration, dt.datetime):
+        fail("Provisioning profile expirado ou sem data válida.")
+    if expiration.tzinfo is None:
+        expiration = expiration.replace(tzinfo=dt.timezone.utc)
+    else:
+        expiration = expiration.astimezone(dt.timezone.utc)
+    if expiration <= dt.datetime.now(dt.timezone.utc):
         fail("Provisioning profile expirado ou sem data válida.")
     profile_ent = profile.get("Entitlements")
     if not isinstance(profile_ent, dict):
