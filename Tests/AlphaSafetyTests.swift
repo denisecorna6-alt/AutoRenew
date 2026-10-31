@@ -279,6 +279,35 @@ final class AlphaSafetyTests: XCTestCase {
     }
 
 
+    func testBackgroundTaskFailsWhenRefreshBackendFails() {
+        let summary = RefreshRunSummary(
+            considered: 1, renewed: 0, failed: 1, skipped: false,
+            message: "Backend de assinatura indisponível."
+        )
+        XCTAssertFalse(summary.backgroundTaskSucceeded)
+    }
+
+    func testBackgroundTaskSucceedsWhenNoAppsAreDue() {
+        let summary = RefreshRunSummary(
+            considered: 0, renewed: 0, failed: 0, skipped: false,
+            message: "Nenhum aplicativo precisa de renovação neste momento."
+        )
+        XCTAssertTrue(summary.backgroundTaskSucceeded)
+    }
+
+    func testBackgroundTaskDoesNotReportSuccessWhenSkippedOrTimedOut() {
+        let skipped = RefreshRunSummary(
+            considered: 0, renewed: 0, failed: 0, skipped: true,
+            message: "Uma verificação já está em andamento."
+        )
+        let timedOut = RefreshRunSummary(
+            considered: 1, renewed: 0, failed: 0, skipped: false,
+            message: "Verificação interrompida pelo cancelamento ou pelo limite de tempo."
+        )
+        XCTAssertFalse(skipped.backgroundTaskSucceeded)
+        XCTAssertFalse(timedOut.backgroundTaskSucceeded)
+    }
+
     func testRenewalDateMustBeFutureAndLaterThanCurrentExpiry() {
         let now = Date(timeIntervalSince1970: 1_900_000_000)
         let currentExpiry = now.addingTimeInterval(24 * 3600)
