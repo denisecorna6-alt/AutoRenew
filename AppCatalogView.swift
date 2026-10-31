@@ -259,7 +259,7 @@ private final class AppCatalogModel: ObservableObject {
                 [.protectionKey: FileProtectionType.complete],
                 ofItemAtPath: destination.path
             )
-            statusMessage = "\(appName) \(version.version) baixado. ZIP e SHA-256 verificados; assinatura e instalação não foram verificadas. SHA-256: \(inspection.sha256.prefix(16))…"
+            statusMessage = "\(appName) \(version.version) baixado. \(inspection.validationScope) SHA-256: \(inspection.sha256.prefix(16))…"
             refreshDownloadedFiles()
         } catch {
             errorMessage = "Não foi possível baixar \(appName): \(error.localizedDescription)"
