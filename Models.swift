@@ -25,5 +25,6 @@ struct AppSettings: Codable {
 enum RefreshError: Error, Equatable {
     case notImplemented
     case network
+    case anisetteUnavailable
     case other
 }
