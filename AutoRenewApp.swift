@@ -5,7 +5,10 @@ struct AutoRenewApp: App {
     @StateObject private var store = AppStore.shared
     @Environment(\.scenePhase) private var phase
 
-    init() { BackgroundScheduler.register() }
+    init() {
+        LegacyCredentialCleanup.removePreviouslyStoredApplePassword()
+        BackgroundScheduler.register()
+    }
 
     var body: some Scene {
         WindowGroup {
