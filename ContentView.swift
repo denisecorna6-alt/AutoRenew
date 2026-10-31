@@ -208,9 +208,18 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Privacidade e integração") {
-                    Text("Esta Alpha não solicita nem armazena senha Apple ID, código 2FA ou sessão da Apple. A integração real de assinatura ainda não foi implementada.")
+                    Text("Esta Alpha não solicita nem armazena senha Apple ID, código 2FA ou sessão da Apple.")
                     Text("Não informe credenciais Apple nesta versão.")
                         .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                Section("Anisette oficial do SideStore") {
+                    Toggle("Permitir uso do servidor Anisette", isOn: $store.settings.allowRemoteAnisette)
+                    Text("Desativado por padrão. Se você ativar, o AutoRenew poderá enviar o identificador Anisette e o ADI do dispositivo para https://ani.sidestore.io e fazer as solicitações de provisionamento necessárias à Apple. Esses dados são usados para obter os cabeçalhos Anisette; não incluem sua senha Apple ID nem o código 2FA.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("Servidor configurado: https://ani.sidestore.io. Você pode continuar usando o SideStore manualmente sem ativar esta opção.")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Section("Perfis de provisionamento importados") {
@@ -265,7 +274,7 @@ struct SettingsView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Integração em desenvolvimento") {
-                    Text("Login Apple, Anisette, inventário de certificados e assinatura ainda não estão conectados. Esta versão não lê os apps instalados.")
+                    Text("O provisionamento Anisette está em integração Alpha. Inventário de certificados e assinatura ainda não estão conectados. Esta versão não lê os apps instalados.")
                         .font(.caption).foregroundStyle(.secondary)
                     Text("O bloqueio de domínios por VPN também não está implementado e exigiria permissões específicas.")
                         .font(.caption).foregroundStyle(.secondary)
