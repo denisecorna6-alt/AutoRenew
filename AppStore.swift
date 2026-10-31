@@ -53,11 +53,23 @@ final class AppStore: ObservableObject {
         }
     }
 
-    func didRefresh(_ app: ManagedApp, newExpiry: Date, trigger: String) {
-        guard let index = apps.firstIndex(where: { $0.id == app.id }) else { return }
+    /// Applies a renewal only if the app still matches the snapshot used to sign it.
+    /// This prevents stale background work from overwriting newer user edits.
+    @discardableResult
+    func didRefresh(_ app: ManagedApp, newExpiry: Date, trigger: String) -> Bool {
+        guard let index = apps.firstIndex(where: { $0.id == app.id }),
+              apps[index].isActive,
+              apps[index].expiresAt == app.expiresAt,
+              RefreshCoordinator.isValidRenewalDate(
+                  newExpiry, previous: apps[index].expiresAt
+              ) else {
+            return false
+        }
+
         apps[index].expiresAt = newExpiry
         log(app, trigger: trigger, success: true,
             message: "Renovação confirmada até \(newExpiry.formatted())")
+        return true
     }
 
     private var profilesDirectory: URL {
@@ -78,7 +90,6 @@ final class AppStore: ObservableObject {
     }
 
     func removeProfile(_ profile: ImportedProfile) {
-        // Only delete files whose names match the generated UUID-based storage format.
         guard profile.storedFileName == "\(profile.id).mobileprovision" else { return }
         try? FileManager.default.removeItem(
             at: profilesDirectory.appendingPathComponent(profile.storedFileName)
