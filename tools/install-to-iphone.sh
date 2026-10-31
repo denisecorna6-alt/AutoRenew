@@ -70,7 +70,7 @@ fi
 echo "Verificando a assinatura do aplicativo…"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 security cms -V -i "$APP_PATH/embedded.mobileprovision"
-PROFILE_PLIST="$WORK/profile.plist"
+PROFILE_PLIST="$WORK_DIR/profile.plist"
 security cms -D -i "$APP_PATH/embedded.mobileprovision" > "$PROFILE_PLIST"
 BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")
 echo "Dispositivos conhecidos pelo Xcode:"
