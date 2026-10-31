@@ -29,7 +29,7 @@ struct RemoteAnisetteProvider: AnisetteProvider {
         }
         var request = URLRequest(url: url, timeoutInterval: 8)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await InstallerDownloadPolicy.fetchData(for: request, maximumBytes: 1 * 1_024 * 1_024)
         guard let http = response as? HTTPURLResponse,
               (200...299).contains(http.statusCode) else {
             throw RefreshError.network
