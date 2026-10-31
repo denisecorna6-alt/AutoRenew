@@ -13,7 +13,7 @@ Esta etapa é uma implementação experimental inspirada na separação de fases
 5. verifica Bundle ID, validade do perfil, Team ID, escopo de dispositivo, DeveloperCertificates e correspondência da identidade;
 6. valida que cada entitlement solicitado está autorizado pelo perfil, exige application-identifier/Team ID exatos e permite reduzir privilégios, não elevá-los;
 7. assina frameworks/dylibs aninhados, depois extensões e apps do nível mais interno para o externo;
-8. verifica a assinatura dos bundles e reconstrói o IPA preservando os metadados suportados por `ditto`.
+8. verifica a assinatura dos bundles e reconstrói o IPA inteiro a partir da raiz extraída, preservando diretórios de suporte como `SwiftSupport` e metadados suportados por `ditto`.
 
 ## Manifesto
 
