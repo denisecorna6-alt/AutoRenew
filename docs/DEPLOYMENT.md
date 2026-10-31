@@ -6,7 +6,7 @@ Audit date: 2026-10-31.
 
 - URL: https://xlightxt.github.io/AutoRenew/
 - The portal is public and reads GitHub Releases and Actions metadata dynamically.
-- Latest deployment verified after the portal and CI policy merges: run [#41243799895](https://github.com/xlightxt/AutoRenew/actions/runs/41243799895), success, main commit e927776.
+- Latest deployment verified after the portal, CI policy, orientation and reminder-consent merges: run [#41244510524](https://github.com/xlightxt/AutoRenew/actions/runs/41244510524), success, main commit bcdeb0b.
 - The live portal now filters Alpha/Beta/Official by exact branch, labels unsigned and unverified releases, restricts dynamic links to GitHub HTTPS, and includes keyboard skip/focus and screen-reader status support.
 
 ## Release catalog observed
@@ -22,19 +22,19 @@ Audit date: 2026-10-31.
 
 | Channel | Verified Actions run | Result | What it proves |
 |---|---|---|---|
-| Alpha | [#41237485558](https://github.com/xlightxt/AutoRenew/actions/runs/41237485558) | Success; 23 Swift tests passed | Alpha app/Installer build and test pipeline ran on Xcode 16.4; produced unsigned test packages |
+| Alpha | [#41242635812](https://github.com/xlightxt/AutoRenew/actions/runs/41242635812) | Success; 23 Swift tests passed | Alpha app/Installer build ran on Xcode 16.4 / iOS 18.5; produced two unsigned Actions artifacts |
 | Beta | [#41181299910](https://github.com/xlightxt/AutoRenew/actions/runs/41181299910) | Success | Workflow ran on the actual beta branch; no Beta Release exists |
 | Beta PR | [#41182023247](https://github.com/xlightxt/AutoRenew/actions/runs/41182023247) | Success | This was a PR branch (codex/ipa-packaging-validation), not the beta branch; it must not be shown as the Beta channel's latest build |
-| Official CI | [#41243799862](https://github.com/xlightxt/AutoRenew/actions/runs/41243799862) | Success on Xcode 26.6 / iOS Simulator SDK 26.5; 9 Python regression/policy tests passed | Simulator compile plus repository policy tests; no XCTest target on main |
-| Official IPA | [#41243799878](https://github.com/xlightxt/AutoRenew/actions/runs/41243799878) | Success on Xcode 26.6 / iOS SDK 26.5 | Uploaded `AutoRenew-Official-unsigned-IPA` (61,596 bytes); no signature or installation validation |
-| Main build | [#41243799918](https://github.com/xlightxt/AutoRenew/actions/runs/41243799918) | Success on Xcode 16.4 / iOS SDK 18.5 | Uploaded `AutoRenew-ipa-unsigned` (93,605 bytes); legacy runner remains older than Official CI |
-| Portal deploy | [#41243799895](https://github.com/xlightxt/AutoRenew/actions/runs/41243799895) | Success | GitHub Pages deployment completed for main commit e927776 |
+| Official CI | [#41244510526](https://github.com/xlightxt/AutoRenew/actions/runs/41244510526) | Success on Xcode 26.6 / iOS Simulator SDK 26.5; 11 Python regression/policy tests passed | Simulator compile plus repository policy tests; main still has no XCTest target |
+| Official IPA | [#41244510519](https://github.com/xlightxt/AutoRenew/actions/runs/41244510519) | Success on Xcode 26.6 / iOS SDK 26.5 | Uploaded `AutoRenew-Official-unsigned-IPA` (70,958 bytes); no signature or installation validation |
+| Main build | [#41244510725](https://github.com/xlightxt/AutoRenew/actions/runs/41244510725) | Success on Xcode 16.4 / iOS SDK 18.5 | Uploaded `AutoRenew-ipa-unsigned` (106,133 bytes); legacy runner remains older than Official CI |
+| Portal deploy | [#41244510524](https://github.com/xlightxt/AutoRenew/actions/runs/41244510524) | Success | GitHub Pages deployment completed for main commit bcdeb0b |
 
 An Actions artifact is a temporary CI output. An IPA is only an archive. An unsigned IPA has no valid Apple code signature and embedded provisioning profile, so it is not an installable deliverable. A signed IPA still needs a valid certificate/profile/entitlement match and device eligibility. An installation is validated only after installation on a physical iPhone/iPad. First launch is a separate validation step: the app must open successfully on that device. None of the current runs proves the last three states.
 
 The portal only reads release/build metadata. It does not inspect code signatures, install apps, or observe first launch.
 
-The latest Xcode 26.6 build logs previously emitted `All interface orientations must be supported unless the app requires full screen`; explicit portrait/landscape support for iPhone and all four orientations for iPad removed that warning in the branch build. The app now also asks for notification permission only after the user taps **Ativar lembretes**, respects the current authorization state, and caps scheduled reminders at 60. The benign `AppIntents` metadata-skipped warning is expected because the app does not link AppIntents; Node `punycode`/`url.parse` deprecation warnings originate in the GitHub Actions artifact action runtime, not AutoRenew source.
+The `All interface orientations must be supported unless the app requires full screen` warning is absent from the post-merge Xcode 26.6/26.5 archive and simulator logs after explicit iPhone/iPad orientation declarations. The app now asks for notification permission only after the user taps **Ativar lembretes**, respects the current authorization state, and caps scheduled reminders at 60. Remaining benign warnings: Xcode selects the first of multiple matching simulator destinations; AppIntents metadata extraction is skipped because the app does not link AppIntents; Node `punycode`/`url.parse` deprecation warnings originate in the GitHub Actions artifact action runtime, not AutoRenew source.
 
 ## Repository shape
 
