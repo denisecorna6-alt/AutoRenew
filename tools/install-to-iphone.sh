@@ -62,7 +62,35 @@ fi
 
 echo "Verificando a assinatura do aplicativo…"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
-security cms -D -i "$APP_PATH/embedded.mobileprovision" >/dev/null
+security cms -V -i "$APP_PATH/embedded.mobileprovision"
+PROFILE_PLIST="$WORK/profile.plist"
+security cms -D -i "$APP_PATH/embedded.mobileprovision" > "$PROFILE_PLIST"
+BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")
+python3 - "$PROFILE_PLIST" "$BUNDLE_ID" <<'PY'
+import datetime, plistlib, sys
+with open(sys.argv[1], "rb") as f:
+    profile = plistlib.load(f)
+bundle_id = sys.argv[2]
+entitlements = profile.get("Entitlements", {})
+application_id = entitlements.get("application-identifier", "")
+if not isinstance(application_id, str) or "." not in application_id:
+    raise SystemExit("Perfil sem application-identifier válido.")
+prefix, pattern = application_id.split(".", 1)
+matches = pattern == "*" or pattern == bundle_id or (
+    pattern.endswith(".*") and bundle_id.startswith(pattern[:-1])
+)
+if not matches:
+    raise SystemExit("Bundle ID do app não corresponde ao perfil de provisionamento.")
+if prefix not in profile.get("ApplicationIdentifierPrefix", []):
+    raise SystemExit("Prefixo de aplicação não corresponde ao perfil.")
+team_id = entitlements.get("com.apple.developer.team-identifier")
+if team_id not in profile.get("TeamIdentifier", []):
+    raise SystemExit("Team ID do app não corresponde ao perfil.")
+expiration = profile.get("ExpirationDate")
+if not isinstance(expiration, datetime.datetime) or expiration <= datetime.datetime.now(expiration.tzinfo):
+    raise SystemExit("Perfil de provisionamento expirado ou sem validade.")
+print("Assinatura, CMS, Bundle ID, Team ID e validade do perfil verificados.")
+PY
 
 echo "Dispositivos conhecidos pelo Xcode:"
 xcrun devicectl list devices
