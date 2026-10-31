@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Fail-closed checks for a macOS codesign handoff; no signing material is read."""
+"""Fail-closed checks for IPA archives, provisioning profiles and requested entitlements."""
 import argparse
 import datetime as dt
 import hashlib
 import plistlib
 import re
+import stat
 import sys
 import zipfile
 from pathlib import PurePosixPath
@@ -21,15 +22,26 @@ def safe_archive(path):
                 fail("IPA vazio.")
             seen = set()
             total = 0
+            if len(names) > 100000:
+                fail("IPA contém entradas demais.")
             for info in archive.infolist():
                 name = info.filename
                 p = PurePosixPath(name)
-                if p.is_absolute() or ".." in p.parts or name.startswith("/"):
+                mode = (info.external_attr >> 16) & 0xFFFF
+                if p.is_absolute() or ".." in p.parts or name.startswith("/") or "\\\\" in name or "\\x00" in name:
                     fail("IPA contém caminho inseguro.")
+                if stat.S_ISLNK(mode):
+                    fail("IPA contém link simbólico; extração bloqueada.")
                 normalized = str(p)
                 if normalized in seen:
                     fail("IPA contém entradas duplicadas.")
                 seen.add(normalized)
+                if info.file_size > 1024 * 1024 * 1024:
+                    fail("Entrada individual excede 1 GiB.")
+                if info.compress_size == 0 and info.file_size > 0:
+                    fail("Entrada ZIP possui tamanho comprimido inválido.")
+                if info.compress_size > 0 and info.file_size / info.compress_size > 200:
+                    fail("Taxa de compressão suspeita; possível ZIP bomb.")
                 total += info.file_size
                 if total > 4 * 1024 * 1024 * 1024:
                     fail("Conteúdo descompactado excede 4 GiB.")
@@ -45,7 +57,7 @@ def wildcard_match(allowed, requested):
         return requested.startswith(allowed[:-1])
     return False
 
-def entitlement_allowed(key, requested, allowed):
+def entitlement_allowed(requested, allowed):
     if isinstance(requested, bool):
         return requested is False or allowed is True
     if isinstance(requested, str):
@@ -57,25 +69,34 @@ def entitlement_allowed(key, requested, allowed):
         )
     if isinstance(requested, dict):
         return isinstance(allowed, dict) and all(
-            k in allowed and entitlement_allowed(k, v, allowed[k])
+            k in allowed and entitlement_allowed(v, allowed[k])
             for k, v in requested.items()
         )
     return requested == allowed
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--profile", required=True)
-    parser.add_argument("--app-info", required=True)
-    parser.add_argument("--entitlements", required=True)
-    parser.add_argument("--identity-list", required=True)
-    parser.add_argument("--bundle-id", required=True)
-    parser.add_argument("--ipa", required=True)
+    parser.add_argument("--inspect-ipa")
+    parser.add_argument("--profile")
+    parser.add_argument("--app-info")
+    parser.add_argument("--entitlements")
+    parser.add_argument("--identity-list")
+    parser.add_argument("--bundle-id")
+    parser.add_argument("--ipa")
     args = parser.parse_args()
 
+    if args.inspect_ipa:
+        safe_archive(args.inspect_ipa)
+        print("IPA ZIP estruturalmente aceitável; assinatura não avaliada nesta etapa.")
+        return
+    if not all([args.profile, args.app_info, args.entitlements, args.identity_list, args.bundle_id, args.ipa]):
+        fail("Informe todos os parâmetros de validação do perfil/entitlements.")
     safe_archive(args.ipa)
     with open(args.profile, "rb") as f: profile = plistlib.load(f)
     with open(args.app_info, "rb") as f: app_info = plistlib.load(f)
     with open(args.entitlements, "rb") as f: requested = plistlib.load(f)
+    if not isinstance(requested, dict):
+        fail("Arquivo de entitlements precisa conter um dicionário.")
     if app_info.get("CFBundleIdentifier") != args.bundle_id:
         fail("Bundle ID informado não corresponde ao Info.plist.")
     expiration = profile.get("ExpirationDate")
@@ -97,17 +118,16 @@ def main():
     if profile.get("ProvisionedDevices") is None and not profile.get("ProvisionsAllDevices", False):
         fail("Perfil não declara escopo de instalação em dispositivo.")
     for key, value in requested.items():
-        if key not in profile_ent or not entitlement_allowed(key, value, profile_ent[key]):
+        if key not in profile_ent or not entitlement_allowed(value, profile_ent[key]):
             fail("Entitlement solicitado não é permitido pelo perfil: " + key)
-    requested_app_id = requested.get("application-identifier")
-    if requested_app_id != prefix + "." + args.bundle_id:
+    if requested.get("application-identifier") != prefix + "." + args.bundle_id:
         fail("Entitlements precisam conter o application-identifier exato do app.")
-    requested_team = requested.get("com.apple.developer.team-identifier")
-    if requested_team not in team_ids:
+    if requested.get("com.apple.developer.team-identifier") not in team_ids:
         fail("Entitlements precisam conter o Team ID correto.")
     certs = profile.get("DeveloperCertificates", [])
     profile_sha1 = {hashlib.sha1(c).hexdigest().upper() for c in certs if isinstance(c, bytes)}
-    identities = set(re.findall(r"\b([0-9A-Fa-f]{40})\b", open(args.identity_list, encoding="utf-8").read()))
+    with open(args.identity_list, encoding="utf-8") as f:
+        identities = set(re.findall(r"\\b([0-9A-Fa-f]{40})\\b", f.read()))
     matches = profile_sha1.intersection(x.upper() for x in identities)
     if not matches:
         fail("Nenhuma identidade de assinatura disponível corresponde a DeveloperCertificates do perfil.")
