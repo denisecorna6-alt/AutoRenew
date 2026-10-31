@@ -6,6 +6,7 @@ Esta compilação de avaliação permite cadastrar manualmente aplicativos, acom
 
 - Interface SwiftUI para cadastro manual de nome, Bundle ID e data informada de expiração.
 - Painel com estados calculados a partir dessa data manual.
+- Catálogo de IPAs com fontes JSON no formato AltStore/SideStore (AltSources): busca, versões e download HTTPS para armazenamento local. O catálogo não assina nem instala.
 - Persistência local e histórico limitado.
 - Importação explícita de arquivos `.mobileprovision`, com cópia privada local, limite de 25 MB, detecção de duplicatas por SHA-256 e opção de remover a cópia importada.
 - Inventário de metadados: nome do arquivo, tamanho, data de importação e hash SHA-256.
@@ -15,6 +16,7 @@ Esta compilação de avaliação permite cadastrar manualmente aplicativos, acom
 ## O que NÃO está implementado
 
 - Login Apple, autenticação de dois fatores ou integração real com SideSign/AltSign/minimuxer.
+- Assinatura ou instalação dos IPAs baixados pelo catálogo; o download é apenas a transferência do arquivo.
 - Leitura automática da lista de apps instalados.
 - Decodificação do conteúdo CMS de provisioning profiles e extração/validação de datas, Bundle IDs, equipe, UDID ou estado de revogação.
 - Reassinatura, reinstalação ou renovação real de IPA.
