@@ -37,9 +37,8 @@ class CentralSafety(unittest.TestCase):
         validation = FLOW.split("  validate:", 1)[1].split("  project-validation:", 1)[0]
         self.assertIn("contents: read", validation)
         self.assertNotIn("contents: write", validation)
-        self.assertNotIn("OPENAI_API_KEY", validation)
-        self.assertNotIn("ANTHROPIC_API_KEY", validation)
-        self.assertNotIn("GEMINI_API_KEY", validation)
+        self.assertNotIn("secrets.", validation)
+        self.assertNotIn("pull-requests: write", validation)
 
     def test_provider_secret_job_is_read_only(self):
         proposal = FLOW.split("  propose:", 1)[1].split("  publish:", 1)[0]
@@ -59,8 +58,8 @@ class CentralSafety(unittest.TestCase):
     def test_proposal_never_pushes_or_opens_pull_requests(self):
         self.assertNotIn('"git", "push"', PROPOSE)
         self.assertNotIn('"gh", "pr", "create"', PROPOSE)
-        self.assertIn("git fetch", PROPOSE)
-        self.assertIn("git switch", PROPOSE)
+        self.assertIn('"git", "fetch"', PROPOSE)
+        self.assertIn('"git", "switch"', PROPOSE)
 
     def test_publisher_does_not_call_provider_apis(self):
         self.assertNotIn("api.openai.com", PUBLISH)
