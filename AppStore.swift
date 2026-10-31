@@ -101,14 +101,24 @@ final class AppStore: ObservableObject {
     func addApp(name: String, bundleID: String, expiresAt: Date) -> Bool {
         let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedID = bundleID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalizedName.isEmpty, !normalizedID.isEmpty,
+        let validBundleID = normalizedID.range(
+            of: #"^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$"#,
+            options: .regularExpression
+        ) != nil
+        guard !normalizedName.isEmpty, normalizedName.count <= 80,
+              normalizedID.count <= 255, validBundleID, expiresAt > Date(),
               !apps.contains(where: {
                   $0.bundleID.caseInsensitiveCompare(normalizedID) == .orderedSame
               }) else {
             return false
         }
         apps.append(ManagedApp(bundleID: normalizedID, name: normalizedName, expiresAt: expiresAt))
-        Notifier.reschedule(apps)
+        Task { await Notifier.reschedule(apps, thresholdHours: settings.thresholdHours) }
         return true
+    }
+
+    func removeApps(at offsets: IndexSet) {
+        apps.remove(atOffsets: offsets)
+        Task { await Notifier.reschedule(apps, thresholdHours: settings.thresholdHours) }
     }
 }
