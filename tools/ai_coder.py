@@ -23,7 +23,13 @@ def cl(k,m,s,p):
 def ge(k,m,s,p):
     d=call("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent",{"x-goog-api-key":k},{"systemInstruction":{"parts":[{"text":s}]},"contents":[{"role":"user","parts":[{"text":p}]}],"generationConfig":{"maxOutputTokens":6500}},k)
     return "\n".join(x.get("text","") for x in d["candidates"][0]["content"]["parts"] if "text" in x)
-def run(a):return subprocess.run(a,check=True,text=True,capture_output=True).stdout.strip()
+def run(a):
+    result=subprocess.run(a,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    if result.returncode:
+        if result.stdout:
+            print(result.stdout,file=sys.stderr)
+        raise RuntimeError("Comando falhou ("+str(result.returncode)+"): "+" ".join(a))
+    return result.stdout.strip()
 def get_context():
     out=[]
     for n in run(["git","ls-files"]).splitlines():
