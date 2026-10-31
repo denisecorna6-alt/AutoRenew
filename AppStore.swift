@@ -24,14 +24,19 @@ final class AppStore: ObservableObject {
     private var loading = true
 
     private init() {
+        var restoredSnapshot = false
         if let data = try? Data(contentsOf: url),
            let snapshot = try? JSONDecoder().decode(Snapshot.self, from: data) {
             apps = snapshot.apps
             attempts = snapshot.attempts
             settings = snapshot.settings
             profiles = snapshot.profiles ?? []
+            restoredSnapshot = true
         }
         loading = false
+        // Re-encode decoded state using the current schema. JSONDecoder ignores
+        // unknown legacy keys, so old password fields are removed from disk.
+        if restoredSnapshot { save() }
     }
 
     private func save() {
