@@ -76,11 +76,6 @@ actor RefreshCoordinator {
             }
             do {
                 let newExpiry = try await backend.refresh(app: app)
-                if Task.isCancelled {
-                    cancelled = true
-                    deferred += due.count - index
-                    break
-                }
                 guard newExpiry > app.expiresAt else {
                     await fail(app, trigger,
                                "O backend não confirmou uma validade posterior. Nenhuma alteração foi feita.")
@@ -91,6 +86,11 @@ actor RefreshCoordinator {
                     AppStore.shared.didRefresh(app, newExpiry: newExpiry, trigger: trigger)
                 }
                 renewed += 1
+                if Task.isCancelled {
+                    cancelled = true
+                    deferred += due.count - index - 1
+                    break
+                }
             } catch let error as RefreshError {
                 if Task.isCancelled {
                     cancelled = true
