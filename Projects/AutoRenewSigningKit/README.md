@@ -15,6 +15,7 @@
 - A assinatura Mach-O é delegada a `codesign`; o projeto ainda não implementa um gerador CodeDirectory/SuperBlob próprio.
 - O pipeline ainda não foi validado com certificados/perfis reais nem em iPhone físico. CI de sintaxe e testes sintéticos não equivale a assinatura real.
 - A senha do PKCS#12 não é gravada no repositório nem no keychain persistente; a importação usa keychain temporário. O argumento de importação pode ficar brevemente visível a processos locais com privilégios equivalentes.
+- Este helper manipula material de chave privada PKCS#12 localmente. Sob a política atual, não execute o pipeline com chaves reais nem solicite/registre material privado; mantenha a integração Draft até autorização explícita e validação em dispositivo físico.
 
 ## Próximas etapas
 
