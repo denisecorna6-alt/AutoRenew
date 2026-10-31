@@ -6,8 +6,8 @@ Audit date: 2026-10-31.
 
 - URL: https://xlightxt.github.io/AutoRenew/
 - The portal is public and reads GitHub Releases and Actions metadata dynamically.
-- Last deployment verified before this portal correction: run [#41241899920](https://github.com/xlightxt/AutoRenew/actions/runs/41241899920), success, main commit 600fa50.
-- This branch adds exact branch filtering for Alpha/Beta/Official, explicit unsigned labels, safe GitHub-only download links, keyboard focus/skip navigation and screen-reader status regions. It is not live until its PR is merged and the Pages deployment succeeds.
+- Latest deployment verified after the portal correction: run [#41243192941](https://github.com/xlightxt/AutoRenew/actions/runs/41243192941), success, main commit b29dae9.
+- The live portal now filters Alpha/Beta/Official by exact branch, labels unsigned and unverified releases, restricts dynamic links to GitHub HTTPS, and includes keyboard skip/focus and screen-reader status support.
 
 ## Release catalog observed
 
@@ -25,7 +25,9 @@ Audit date: 2026-10-31.
 | Alpha | [#41237485558](https://github.com/xlightxt/AutoRenew/actions/runs/41237485558) | Success; 23 Swift tests passed | Alpha app/Installer build and test pipeline ran on Xcode 16.4; produced unsigned test packages |
 | Beta | [#41181299910](https://github.com/xlightxt/AutoRenew/actions/runs/41181299910) | Success | Workflow ran on the actual beta branch; no Beta Release exists |
 | Beta PR | [#41182023247](https://github.com/xlightxt/AutoRenew/actions/runs/41182023247) | Success | This was a PR branch (codex/ipa-packaging-validation), not the beta branch; it must not be shown as the Beta channel's latest build |
-| Official | [#41241899913](https://github.com/xlightxt/AutoRenew/actions/runs/41241899913) | Success | Main branch generated an unsigned Actions artifact; no Official Release was published |
+| Official | [#41243192913](https://github.com/xlightxt/AutoRenew/actions/runs/41243192913) | Success on Xcode 26.6 / iOS Simulator SDK 26.5 | Simulator build only; this run predates the new Python policy-test step |
+| Official IPA | [#41243192923](https://github.com/xlightxt/AutoRenew/actions/runs/41243192923) | Success on Xcode 16.4 / iOS SDK 18.5 | Uploaded `AutoRenew-Official-unsigned-IPA`; no signature or installation validation |
+| Main build | [#41243192899](https://github.com/xlightxt/AutoRenew/actions/runs/41243192899) | Success on Xcode 16.4 / iOS SDK 18.5 | Historical artifact name `AutoRenew-ipa` was ambiguous; this PR renames future outputs to `AutoRenew-ipa-unsigned` |
 | Main build | [#41241899850](https://github.com/xlightxt/AutoRenew/actions/runs/41241899850) | Success | Main build workflow ran; its artifact name still needs an explicit unsigned suffix |
 
 An Actions artifact is a temporary CI output. An IPA is only an archive. An unsigned IPA has no valid Apple code signature and embedded provisioning profile, so it is not an installable deliverable. A signed IPA still needs a valid certificate/profile/entitlement match and device eligibility. An installation is validated only after installation on a physical iPhone/iPad. First launch is a separate validation step: the app must open successfully on that device. None of the current runs proves the last three states.
@@ -39,7 +41,7 @@ The portal only reads release/build metadata. It does not inspect code signature
 - The Alpha feature branch codex/alpha-installer-download-hardening-20261031 contains the separate AutoRenewInstaller app target and AutoRenewTests. Its latest successful run reports 23 Swift tests. Installer UI-specific end-to-end tests and physical device tests remain outstanding.
 - PacketTunnelProvider.swift is excluded from the project; no Network Extension target or entitlement is configured.
 - The Projects/ folders in the Alpha feature branch are architecture/readme placeholders, not independently buildable Swift packages. No Package.swift dependency graph is present in AutoRenew.
-- Main's build.yml produces an unsigned app archive. The separate Beta/Official workflows also produce unsigned Actions artifacts after the release-policy correction.
+- Main's build.yml produces an unsigned app archive; this PR changes its filename/artifact to `AutoRenew-unsigned.ipa` / `AutoRenew-ipa-unsigned` and adds a regression assertion. The separate Beta/Official workflows already use explicit unsigned labels.
 
 ## External architecture and policy research
 
