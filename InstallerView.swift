@@ -149,6 +149,11 @@ struct InstallerView: View {
     @StateObject private var catalog = InstallerCatalog()
     @State private var selectedChannel = "Todas"
     @State private var showingIPAImporter = false
+    @StateObject private var signingVault = SigningIdentityVault()
+    @State private var showingP12Importer = false
+    @State private var pendingP12URL: URL?
+    @State private var p12Password = ""
+    @State private var certificateMessage: String?
 
     private let channels = ["Todas", "Stable", "Beta", "Alpha"]
 
@@ -257,11 +262,62 @@ struct InstallerView: View {
                     }
                 }
 
-                Section("Conta Apple e assinatura") {
-                    Label("Login Apple ainda não conectado", systemImage: "person.crop.circle.badge.questionmark")
+                Section("Conta Apple e certificados") {
+                    Label("Apple ID não conectado", systemImage: "person.crop.circle.badge.questionmark")
                         .font(.headline)
-                    Text("O Apple ID não é necessário para baixar um IPA público. Ele só entra em um fluxo de assinatura compatível. A Alpha ainda não implementa esse fluxo; não digite sua senha aqui.")
+                    Text("Por segurança, esta versão não coleta senha Apple ID nem códigos 2FA. A Apple não oferece um login genérico de Apple ID que autorize assinar IPAs. Sign in with Apple identifica o usuário no app, mas não concede permissões de Developer Program.")
                         .font(.caption).foregroundStyle(.secondary)
+                    Text("Você pode importar sua identidade de assinatura .p12. O arquivo permanece criptografado pela própria senha e protegido pelo iOS; a senha é usada apenas para validar a importação e não é salva.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button {
+                        showingP12Importer = true
+                    } label: {
+                        Label("Importar certificado e chave (.p12)", systemImage: "key.horizontal")
+                    }
+                    if let pendingP12URL {
+                        Text("Selecionado: \(pendingP12URL.lastPathComponent)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        SecureField("Senha do arquivo .p12", text: $p12Password)
+                            .textContentType(.password)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        Button("Validar e guardar com proteção do iOS") {
+                            do {
+                                try signingVault.importIdentity(from: pendingP12URL, password: p12Password)
+                                certificateMessage = "Identidade validada e guardada localmente. A senha não foi armazenada."
+                                self.pendingP12URL = nil
+                                p12Password = ""
+                            } catch {
+                                certificateMessage = error.localizedDescription
+                                p12Password = ""
+                            }
+                        }
+                        .disabled(p12Password.isEmpty)
+                        Button("Cancelar importação", role: .cancel) {
+                            self.pendingP12URL = nil
+                            p12Password = ""
+                        }
+                    }
+                    if signingVault.records.isEmpty {
+                        Text("Nenhuma identidade de assinatura importada.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        ForEach(signingVault.records) { record in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Label(record.displayName, systemImage: "checkmark.seal")
+                                    .font(.subheadline.weight(.medium))
+                                Text("Importado em \(record.importedAt.formatted(date: .abbreviated, time: .shortened)) · SHA-256 \(record.sha256.prefix(12))…")
+                                    .font(.caption2).foregroundStyle(.secondary)
+                                Button("Remover identidade", role: .destructive) {
+                                    signingVault.remove(record)
+                                }
+                                .font(.caption)
+                            }
+                        }
+                    }
+                    Text("Importar o certificado ainda não assina nem instala IPA. A assinatura requer compatibilidade do perfil, Bundle ID e dispositivo, além de um mecanismo de assinatura suportado. O arquivo .p12 é guardado localmente; a senha não é persistida.")
+                        .font(.caption).foregroundStyle(.orange)
                 }
 
                 if let message = catalog.statusMessage {
@@ -291,6 +347,24 @@ struct InstallerView: View {
                 } catch {
                     catalog.errorMessage = "Não foi possível importar o IPA: \(error.localizedDescription)"
                 }
+            }
+            .fileImporter(isPresented: $showingP12Importer, allowedContentTypes: [UTType(filenameExtension: "p12", conformingTo: .data) ?? .data]) { result in
+                switch result {
+                case .success(let url):
+                    pendingP12URL = url
+                    p12Password = ""
+                    certificateMessage = nil
+                case .failure(let error):
+                    certificateMessage = "Não foi possível selecionar o certificado: \(error.localizedDescription)"
+                }
+            }
+            .alert("Certificado de assinatura", isPresented: Binding(
+                get: { certificateMessage != nil },
+                set: { if !$0 { certificateMessage = nil } }
+            )) {
+                Button("OK") { certificateMessage = nil }
+            } message: {
+                Text(certificateMessage ?? "")
             }
         }
     }
