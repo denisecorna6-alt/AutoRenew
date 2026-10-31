@@ -1,28 +1,36 @@
 import Foundation
 
-/// Ponto de integração com AltSign + minimuxer.
+/// Interface entre o agendador e o mecanismo real de assinatura/reinstalação.
 protocol SigningBackend {
+    var isAvailable: Bool { get }
+
     func login(appleID: String, password: String, anisette: AnisetteData,
                twoFactorCode: @escaping () async -> String?) async throws
     /// Reassina/reinstala o app e retorna a nova data de expiração.
     func refresh(app: ManagedApp, anisette: AnisetteData) async throws -> Date
 }
 
-/// Backend simulado para testar agendamento, notificações e UI.
-struct StubSigningBackend: SigningBackend {
+/// Implementação segura enquanto SideSign/Minimuxer não estiverem integrados.
+/// Nunca simula uma nova data de expiração nem registra sucesso falso.
+struct UnavailableSigningBackend: SigningBackend {
+    let isAvailable = false
+
     func login(appleID: String, password: String, anisette: AnisetteData,
-               twoFactorCode: @escaping () async -> String?) async throws {}
+               twoFactorCode: @escaping () async -> String?) async throws {
+        throw RefreshError.integrationUnavailable
+    }
+
     func refresh(app: ManagedApp, anisette: AnisetteData) async throws -> Date {
-        try await Task.sleep(for: .milliseconds(400))
-        return Date(timeIntervalSinceNow: 7 * 86_400)
+        throw RefreshError.integrationUnavailable
     }
 }
 
 /*
- TODO backend real (AltSignBackend):
-  1. ALTAppleAPI.shared.authenticate(...) -> ALTAccount + ALTAppleAPISession (persistir no Keychain)
-  2. fetchTeams -> fetchCertificates; reutilizar certificado se o serial local existir, senão recriar
-  3. fetchAppIDs (reutilizar) -> fetchProvisioningProfile(for:team:)
-  4. ALTSigner(team:certificate:).signApp(at:provisioningProfiles:)
-  5. minimuxer: instalar o IPA via loopback (VPN ativa + pairing file)
-*/
+ Próximas etapas para o backend real:
+ 1. Mapear AnisetteData para SideSign.AnisetteData e autenticar via DeveloperPortal.
+ 2. Buscar/criar App ID, certificado de desenvolvimento e provisioning profile.
+ 3. Extrair o IPA, assinar o .app e extensões com AppBundleSigner.
+ 4. Instalar o bundle assinado no dispositivo usando Minimuxer somente quando
+    houver pairing file válido e transporte/VPN configurados.
+ 5. Persistir sessão e material privado no Keychain; nunca registrar senha ou tokens.
+ */
