@@ -114,12 +114,26 @@ struct AnisetteV3Provisioner: Sendable {
         )
 
         let webSocketURL = try Self.makeWebSocketURL(serverURL: serverURL)
+        guard let webSocketHost = webSocketURL.host else {
+            throw RefreshError.anisetteUnavailable
+        }
+        // Use a dedicated session so the WebSocket handshake cannot redirect
+        // identifier or provisioning messages to a different host.
+        let redirectDelegate = AnisetteV3SameHostRedirectDelegate(allowedHost: webSocketHost)
+        let webSocketSession = URLSession(
+            configuration: .ephemeral,
+            delegate: redirectDelegate,
+            delegateQueue: nil
+        )
         var socketRequest = URLRequest(url: webSocketURL)
         socketRequest.timeoutInterval = 20
-        let socket = session.webSocketTask(with: socketRequest)
+        let socket = webSocketSession.webSocketTask(with: socketRequest)
         socket.maximumMessageSize = 2_000_000
         socket.resume()
-        defer { socket.cancel(with: .normalClosure, reason: nil) }
+        defer {
+            socket.cancel(with: .normalClosure, reason: nil)
+            webSocketSession.invalidateAndCancel()
+        }
 
         var machine = AnisetteV3ProvisioningStateMachine()
         for _ in 0..<8 {
