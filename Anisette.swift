@@ -76,13 +76,29 @@ actor AnisetteRouter: AnisetteProvider {
         }
     }
 
+    /// Injectable provider list keeps routing behavior testable without network access.
+    init(providers: [any AnisetteProvider], remoteRequestsEnabled: Bool = true) {
+        self.providers = providers
+        self.remoteRequestsEnabled = remoteRequestsEnabled
+    }
+
     func fetch() async throws -> AnisetteData {
+        // Cancellation must win over both the opt-in guard and provider fallback.
+        try Task.checkCancellation()
         guard remoteRequestsEnabled else { throw RefreshError.anisetteUnavailable }
         if let cached = cache, cached.isValid { return cached }
         for provider in providers {
-            if let value = try? await provider.fetch(), value.isValid {
-                cache = value
-                return value
+            do {
+                let value = try await provider.fetch()
+                if value.isValid {
+                    cache = value
+                    return value
+                }
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                // Try the next configured provider for ordinary network/server errors.
+                continue
             }
         }
         throw RefreshError.anisetteUnavailable
