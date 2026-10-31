@@ -28,7 +28,7 @@ enum Notifier {
 
         let threshold = min(max(thresholdHours, 6), 120)
         let reminderHours = Array(Set([threshold, 24.0, 6.0])).sorted(by: >)
-        let orderedApps = apps.filter(\.isActive).sorted { $0.expiresAt < $1.expiresAt }
+        let orderedApps = apps.filter { $0.isActive && $0.isDemo != true }.sorted { $0.expiresAt < $1.expiresAt }
         // Keep below iOS's pending-notification cap and leave room for other features.
         let maximumPendingReminders = 60
         var scheduledCount = 0
