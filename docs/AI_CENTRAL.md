@@ -2,25 +2,21 @@
 
 ## Dois modos
 
-A central possui dois modos manuais:
+- **Review:** OpenAI, Claude e Gemini fazem avaliações independentes; OpenAI sintetiza os resultados.
+- **Implement:** uma IA propõe um unified diff; as outras duas revisam. O patch só é aplicado se ambas aprovarem e abre uma PR para uma branch Alpha.
 
-- **Review:** OpenAI, Claude e Gemini fazem avaliações independentes; OpenAI sintetiza os resultados e gera relatório.
-- **Implement:** o usuário escolhe qual IA será implementadora. Ela propõe um unified diff; as outras duas revisam independentemente. O patch só é aplicado quando ambas respondem APPROVE. O workflow executa verificações locais e abre uma PR em outra branch Alpha.
+## Segurança do executor
 
-## Limites da implementação assistida
-
-- Só aceita branch-base com prefixo codex/alpha-.
-- Cria branch `codex/alpha-ai-work-*` e PR direcionada à branch Alpha escolhida.
-- A branch-base precisa conter os scripts e workflow da central; a opção padrão é `codex/alpha-ai-central-20261031`.
-- Allowlist de arquivos: Swift, Tests/, docs/ e README.md.
-- Bloqueia workflows, configuração de build, Keychain, assinatura, provisioning, certificados, Anisette e entitlements.
-- Rejeita remoção de arquivos, patch inválido, divergência de arquivos e falha em diff check/testes locais.
-- Pushes e PRs Alpha acionam CI read-only em macOS: XcodeGen, builds de todos os schemes de app presentes, testes de simulador quando há target/runtime e testes Python; se não houver simulador, compila os testes.
-- O job implementador tem contents: write e pull-requests: write apenas durante execução manual. O job de revisão permanece read-only.
+- Os jobs Review e Implement fazem checkout explícito da branch principal, nunca da branch escolhida como base.
+- O executor confiável é carregado antes de trocar para a branch Alpha. A branch-alvo é tratada como dados: os arquivos são lidos como texto e nunca se executam scripts, testes ou workflows dela no job privilegiado.
+- O job Implement tem permissão de escrita em conteúdo e PR apenas durante execução manual; o job Review e o CI do projeto são read-only.
+- O patch permite somente Swift, Tests/, docs/ e README.md; bloqueia workflows, project.yml, Keychain, assinatura, certificados, provisioning, Anisette e entitlements.
+- Rejeita binários, symlinks, alterações de modo, rename/copy, exclusões, caminhos fora da allowlist e paths com caracteres de controle.
+- O job privilegiado faz apenas validação estrutural do patch, git apply, diff staged, commit e abertura de PR. Não executa o código ou os testes da branch-alvo.
+- O CI separado da PR executa XcodeGen, Python, shell, builds dos schemes e testes de simulador com token read-only e sem as chaves das APIs.
 - Não faz merge, não publica Beta/Stable, não assina nem instala apps.
-- A PR só deve ser considerada após o job `project-validation` passar e uma pessoa revisar o resultado.
 
-Essa é uma barreira inicial, não uma sandbox perfeita. A saída dos modelos é código não confiável; por isso a PR é obrigatória e os testes do projeto continuam necessários.
+A PR continua sujeita a revisão humana. A validação estrutural não substitui CI, revisão de código ou testes em dispositivo.
 
 ## Segredos
 
@@ -29,35 +25,34 @@ No GitHub: Settings → Secrets and variables → Actions → Repository secrets
 - ANTHROPIC_API_KEY
 - GEMINI_API_KEY
 
-O GitHub não permite ler o valor de volta por este fluxo. O script não imprime as chaves. Nunca cole chaves, Apple ID, senhas, certificados privados, tokens ou dados pessoais nos campos de tarefa/contexto.
+O GitHub não permite ler os valores por este fluxo. A execução falha se uma chave necessária estiver ausente. Nunca inclua Apple ID, senhas, 2FA, tokens de sessão, certificados ou chaves privadas nos campos de tarefa/contexto.
 
 ## Como executar
 
-Depois que a PR desta central for revisada e integrada à branch padrão:
+Depois que a central estiver integrada à branch padrão:
 
 1. Abra Actions → AutoRenew AI Central → Run workflow.
 2. Escolha Review ou Implement.
 3. Informe a tarefa em task.
-4. No modo Implement, escolha a IA implementadora (OpenAI, Claude ou Gemini).
-5. Informe uma branch-base Alpha existente, por exemplo codex/alpha-ai-central-20261031.
-6. Execute. Se os dois revisores aprovarem e as verificações passarem, o workflow abrirá uma PR para a branch Alpha. Caso contrário, não aplica patch nem abre PR.
+4. No modo Implement, escolha a IA implementadora.
+5. Informe uma branch-base existente com prefixo codex/alpha-.
+6. Se as duas revisões aprovarem, o workflow cria uma PR para a branch Alpha. O CI da PR valida o projeto separadamente.
 
-A central é manual; não é um agente 24/7. Chamadas às APIs podem gerar cobrança independente em cada provedor.
+A central é manual, não é um agente 24/7. As chamadas podem gerar cobrança em cada provedor. Claude/Gemini só são chamados se as respectivas chaves de API reais estiverem configuradas; não há fallback que simule esses provedores.
 
-## Modelos padrão verificados na documentação pública
+## Modelos padrão documentados em 31/10/2026
 
-- OpenAI: gpt-6.1-sol (Responses API)
-- Ações GitHub: checkout v7.0.1, setup-python v7.1.0 e upload-artifact v7.0.2 (Node 24).
-- Claude: claude-sonnet-5-5 (Messages API)
-- Gemini: gemini-3.8-flash (generateContent)
+- OpenAI: gpt-6.1-sol (Responses API).
+- Anthropic: claude-sonnet-5-5 (Messages API).
+- Gemini: gemini-3.8-flash (generateContent).
 
-Os modelos e preços podem mudar; confira a documentação dos provedores.
+Confirme disponibilidade, limites e custos diretamente nos provedores antes de uso.
 
 ## Referências oficiais
 
 - OpenAI Models: https://developers.openai.com/api/docs/models
 - OpenAI Responses: https://developers.openai.com/api/reference/resources/responses
-- Anthropic Models: https://platform.claude.com/docs/pt-BR/models/overview
+- Anthropic Claude Sonnet 5.5: https://platform.claude.com/docs/en/models/sonnet-5-5/overview
 - Anthropic Messages: https://platform.claude.com/docs/en/api/messages/create
 - Gemini Models: https://ai.google.dev/gemini-api/docs/models
 - Gemini generateContent: https://ai.google.dev/api/generate-content
