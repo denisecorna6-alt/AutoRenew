@@ -18,20 +18,30 @@ protocol AnisetteProvider: Sendable {
     func fetch() async throws -> AnisetteData
 }
 
-/// Placeholder only. SideStore Anisette V3 requires a provisioning WebSocket
-/// session and a POST to /v3/get_headers with a provisioned ADI blob and identifier.
-/// A GET to the server root is not a valid V3 client, so this provider deliberately
-/// makes no network request until that flow is implemented and independently tested.
+/// Uses the official V3 flow only after the user has enabled remote Anisette in Settings.
+/// Provisioning state remains in the device-only Keychain vault.
 struct RemoteAnisetteProvider: AnisetteProvider {
     let url: URL
+    let vault: AnisetteV3StateVault
+
+    init(url: URL, vault: AnisetteV3StateVault = AnisetteV3StateVault()) {
+        self.url = url
+        self.vault = vault
+    }
 
     func fetch() async throws -> AnisetteData {
         guard url.scheme?.lowercased() == "https",
+              url.host?.lowercased() == "ani.sidestore.io",
               url.user == nil, url.password == nil,
-              url.fragment == nil else {
+              url.query == nil, url.fragment == nil else {
             throw RefreshError.anisetteUnavailable
         }
-        throw RefreshError.anisetteUnavailable
+
+        try await AnisetteV3Provisioner(serverURL: url, vault: vault).provisionIfNeeded()
+        guard let state = try await vault.loadProvisioningState() else {
+            throw RefreshError.anisetteUnavailable
+        }
+        return try await AnisetteV3HeadersClient(serverURL: url).fetch(using: state)
     }
 }
 
@@ -39,19 +49,22 @@ struct RemoteAnisetteProvider: AnisetteProvider {
 actor AnisetteRouter: AnisetteProvider {
     private var cache: AnisetteData?
     private let providers: [any AnisetteProvider]
+    private let remoteRequestsEnabled: Bool
 
-    init(urls: [String]) {
+    init(urls: [String], remoteRequestsEnabled: Bool = false) {
+        self.remoteRequestsEnabled = remoteRequestsEnabled
         providers = urls.compactMap { raw in
             guard let url = URL(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)),
                   url.scheme?.lowercased() == "https",
-                  url.host != nil,
+                  url.host?.lowercased() == "ani.sidestore.io",
                   url.user == nil, url.password == nil,
-                  url.fragment == nil else { return nil }
+                  url.query == nil, url.fragment == nil else { return nil }
             return RemoteAnisetteProvider(url: url)
         }
     }
 
     func fetch() async throws -> AnisetteData {
+        guard remoteRequestsEnabled else { throw RefreshError.anisetteUnavailable }
         if let cached = cache, cached.isValid { return cached }
         for provider in providers {
             if let value = try? await provider.fetch(), value.isValid {
