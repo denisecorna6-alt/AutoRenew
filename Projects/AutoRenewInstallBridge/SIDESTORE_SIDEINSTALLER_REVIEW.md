@@ -51,12 +51,20 @@ O motor de instalação organiza etapas explícitas: rede/VPN, pairing, conexão
 
 ## Falhas e melhorias encontradas no Installer atual
 
-A revisão do código Alpha identificou dois problemas concretos no catálogo do Installer:
+A revisão Alpha também encontrou riscos no catálogo AltStore de fontes configuráveis: JSON sem limite de tamanho, número de fontes/apps/versões sem limite, downloads de IPA sem limite durante a transferência e ausência de inspeção do arquivo antes de o guardar.
 
-1. Download de assets de Releases verificava HTTP 2xx, mas não conferia a URL final após redirects, limite de tamanho nem nome de arquivo IPA.
-2. Download/importação com nome já existente removia o arquivo anterior, podendo destruir uma cópia válida do usuário.
+Correções aplicadas na branch Alpha:
 
-A correção Alpha verifica HTTPS na URL final, nome do asset, tamanho depois que o download termina, cabeçalho ZIP/SHA-256 e cria nome único sem apagar arquivos existentes. Testes cobrem redirect HTTP, tamanho/nome inválido e preservação do arquivo anterior. **Limitação ainda aberta:** o limite de tamanho é aplicado depois da transferência completa (não é um limite de streaming), o host final HTTPS não tem allowlist e o IPAInspector só reconhece o cabeçalho ZIP; não valida central directory, CRC, caminhos ou symlinks. Antes de tratar downloads de URLs arbitrárias como seguros, implementar download limitado em streaming, allowlist/consentimento do host final e validação ZIP estrutural.
+1. Downloads de IPAs no Installer e no catálogo AltStore agora usam `BoundedIPADownloader`, que cancela quando o tamanho esperado ou recebido excede 1,5 GB, rejeita HTTP não-2xx e redirects para HTTP, e só devolve arquivo temporário depois de confirmar tamanho e URL final HTTPS.
+2. O catálogo AltStore lê JSON em streaming com limite de 5 MB por fonte e timeout, aceita no máximo 20 fontes, 500 apps por fonte e 50 versões por app, e rejeita links de versão que não sejam HTTPS ou contenham credenciais.
+3. Downloads do catálogo AltStore passam por `IPAInspector` antes de entrar na biblioteca; o inspector verifica extensão, tamanho, cabeçalho ZIP e SHA-256. Ícones remotos só são usados quando HTTPS.
+4. `tools/install-to-iphone.sh` valida a estrutura ZIP antes de extrair, verifica CMS de cada provisioning profile `.app`/`.appex`, validade, Bundle ID, prefixo, Team ID, escopo de dispositivo e DeveloperCertificates, e então executa `codesign --verify`.
+5. A validação de expiração do perfil no Python usa UTC timezone-aware.
+6. Os nomes de destino continuam únicos; nenhum download/importação sobrescreve arquivo existente.
+
+Testes de regressão cobrem limites de streaming, HTTPS sem credenciais, limites do catálogo, validação ZIP/SHA, CMS antes de decodificar, perfis expirados e proteção contra sobrescrita.
+
+**Limitações restantes:** `IPAInspector` no iOS ainda não interpreta central directory/CRC/symlinks nem valida assinatura de código/CMS; isso só ocorre no helper macOS antes de instalar. Redirects entre hosts HTTPS ainda são aceitos, sem allowlist ou confirmação adicional. `AsyncImage` não tem limite próprio de bytes para ícones remotos. O catálogo ainda não tem quota total/limpeza automática dos IPAs guardados. O helper não compara o UDID informado com `ProvisionedDevices` e não confirma primeiro lançamento. Tudo isso requer teste adicional antes de afirmar instalação validada.
 
 ## Próximas etapas priorizadas
 
