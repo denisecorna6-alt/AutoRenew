@@ -7,6 +7,8 @@ Esta compilação de avaliação permite cadastrar manualmente aplicativos, acom
 - Interface SwiftUI para cadastro manual de nome, Bundle ID e data informada de expiração.
 - Painel com estados calculados a partir dessa data manual.
 - Persistência local e histórico limitado.
+- Importação explícita de arquivos `.mobileprovision`, com cópia privada local, limite de 25 MB, detecção de duplicatas por SHA-256 e opção de remover a cópia importada.
+- Inventário de metadados: nome do arquivo, tamanho, data de importação e hash SHA-256.
 - Lembretes 48h/24h/6h antes da data cadastrada.
 - Agendamento em segundo plano, sujeito às regras e decisões do iOS.
 
@@ -14,7 +16,7 @@ Esta compilação de avaliação permite cadastrar manualmente aplicativos, acom
 
 - Login Apple, autenticação de dois fatores ou integração real com SideSign/AltSign/minimuxer.
 - Leitura automática da lista de apps instalados.
-- Extração de datas reais de certificados e provisioning profiles.
+- Decodificação do conteúdo CMS de provisioning profiles e extração/validação de datas, Bundle IDs, equipe, UDID ou estado de revogação.
 - Reassinatura, reinstalação ou renovação real de IPA.
 - Revogação de certificados, instalação silenciosa ou bypass dos limites do iOS.
 
@@ -33,9 +35,9 @@ O backend `StubSigningBackend` informa que a integração não está implementad
 
 ## Próximas etapas
 
-1. Importação explícita e inventário local não destrutivo de perfis/certificados reais.
-2. Estados verificáveis: válido, próximo do vencimento, expirado, revogado e desconhecido.
-3. Integração com fluxo de assinatura documentado e suportado, condicionado a pareamento, dispositivo e autenticação explícita.
+1. Decodificar e validar o CMS do perfil com uma implementação compatível e documentada, sem extrair ou transmitir segredos.
+2. Extrair metadados verificáveis e distinguir validade temporal de revogação (que não pode ser inferida apenas pelo arquivo local).
+3. Integrar um fluxo de assinatura documentado e suportado, condicionado a pareamento, dispositivo e autenticação explícita.
 4. Testes automatizados, depois testes em iPhone físico com logs sem dados sensíveis.
 5. Avaliação de automações adicionais somente após comprovação técnica.
 
