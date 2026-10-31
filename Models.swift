@@ -26,5 +26,5 @@ struct AppSettings: Codable {
 }
 
 enum RefreshError: Error, Equatable {
-    case authentication, anisetteUnavailable, network, other
+    case authentication, anisetteUnavailable, network, integrationUnavailable, other
 }
