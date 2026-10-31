@@ -4,7 +4,7 @@ struct ContentView: View {
     var body: some View {
         TabView {
             DashboardView().tabItem { Label("Apps", systemImage: "app.badge.clock") }
-            LogsView().tabItem { Label("Logs", systemImage: "list.bullet.rectangle") }
+            LogsView().tabItem { Label("Atividade", systemImage: "list.bullet.rectangle") }
             SettingsView().tabItem { Label("Ajustes", systemImage: "gearshape") }
         }
     }
@@ -13,11 +13,11 @@ struct ContentView: View {
 struct AlphaNotice: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Label("ALPHA · versão de testes", systemImage: "flask")
+            Label("ALPHA · acompanhamento manual", systemImage: "flask")
                 .font(.headline)
-            Text("A assinatura real ainda não está integrada. O AutoRenew não altera a validade dos aplicativos nesta versão.")
+            Text("Cadastre seus apps e receba lembretes de expiração. A renovação e a leitura automática dos certificados ainda não estão integradas.")
                 .font(.caption)
-            Text("Use SideStore/AltStore ou outro método compatível para manter seus apps assinados.")
+            Text("As datas são informadas por você e não são verificadas pelo AutoRenew.")
                 .font(.caption.weight(.semibold))
         }
         .padding(12)
@@ -28,26 +28,39 @@ struct AlphaNotice: View {
 
 struct AppRow: View {
     let app: ManagedApp
-    private var tint: Color { app.daysLeft > 3 ? .green : app.daysLeft > 1 ? .yellow : .red }
+    private var tint: Color {
+        app.daysLeft <= 0 ? .red : app.daysLeft <= 1 ? .orange : app.daysLeft <= 3 ? .yellow : .green
+    }
+    private var status: String {
+        app.daysLeft <= 0 ? "Prazo informado expirado" :
+        app.daysLeft <= 1 ? "Vence em breve" :
+        app.daysLeft <= 3 ? "Atenção" : "Dentro do prazo informado"
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             Gauge(value: min(max(app.daysLeft / 7, 0), 1)) {
             } currentValueLabel: {
                 Text("\(max(Int(app.daysLeft.rounded(.up)), 0))d")
             }
-            .gaugeStyle(.accessoryCircularCapacity).tint(tint)
-            VStack(alignment: .leading) {
+            .gaugeStyle(.accessoryCircularCapacity)
+            .tint(tint)
+            VStack(alignment: .leading, spacing: 3) {
                 Text(app.name).font(.headline)
-                Text("Data estimada: \(app.expiresAt.formatted(.relative(presentation: .named)))")
-                    .font(.caption).foregroundStyle(.secondary)
+                Text(app.bundleID).font(.caption2).foregroundStyle(.secondary)
+                Text(status).font(.caption).foregroundStyle(tint)
+                Text("Data informada: \(app.expiresAt.formatted(.relative(presentation: .named)))")
+                    .font(.caption2).foregroundStyle(.secondary)
             }
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
 struct DashboardView: View {
     @EnvironmentObject var store: AppStore
     @State private var busy = false
+    @State private var showingAddApp = false
 
     var body: some View {
         NavigationStack {
@@ -57,35 +70,94 @@ struct DashboardView: View {
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         .listRowBackground(Color.clear)
                 }
-                Section("Apps monitorados (demonstração)") {
-                    ForEach(store.apps) { AppRow(app: $0) }
-                        .onDelete {
-                            store.apps.remove(atOffsets: $0)
-                            Notifier.reschedule(store.apps)
-                        }
+                Section("Seus aplicativos") {
+                    if store.apps.isEmpty {
+                        ContentUnavailableView(
+                            "Nenhum app cadastrado",
+                            systemImage: "app.dashed",
+                            description: Text("Adicione nome, Bundle ID e data de expiração para começar.")
+                        )
+                    } else {
+                        ForEach(store.apps) { AppRow(app: $0) }
+                            .onDelete { offsets in
+                                store.apps.remove(atOffsets: offsets)
+                                Notifier.reschedule(store.apps)
+                            }
+                    }
                 }
             }
-            .overlay {
-                if store.apps.isEmpty {
-                    ContentUnavailableView("Nenhum app", systemImage: "app.dashed",
-                                           description: Text("Toque em + para adicionar um item de demonstração."))
-                }
-            }
-            .navigationTitle("AutoRenew Alpha")
+            .navigationTitle("AutoRenew")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Verificar") {
+                    Button("Verificar agora") {
                         busy = true
                         Task {
                             await RefreshCoordinator.shared.runIfNeeded(
-                                trigger: "alpha-test", budget: .seconds(30), force: true
+                                trigger: "manual", budget: .seconds(30)
                             )
                             busy = false
                         }
-                    }.disabled(busy || store.apps.isEmpty)
+                    }
+                    .disabled(busy || store.apps.isEmpty)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { store.addDemoApp() } label: { Image(systemName: "plus") }
+                    Button { showingAddApp = true } label: { Image(systemName: "plus") }
+                        .accessibilityLabel("Adicionar aplicativo")
+                }
+            }
+            .sheet(isPresented: $showingAddApp) {
+                AddAppView()
+            }
+        }
+    }
+}
+
+struct AddAppView: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var bundleID = ""
+    @State private var expiry = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Dados do aplicativo") {
+                    TextField("Nome (ex.: Meu App)", text: $name)
+                        .textInputAutocapitalization(.words)
+                    TextField("Bundle ID (ex.: com.empresa.app)", text: $bundleID)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    DatePicker("Data de expiração", selection: $expiry,
+                               in: Date.distantPast...,
+                               displayedComponents: [.date, .hourAndMinute])
+                }
+                Section {
+                    Text("O cadastro é manual: confira a data no SideStore/AltStore. O AutoRenew ainda não lê a lista de apps instalados.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if let errorMessage {
+                    Section { Text(errorMessage).foregroundStyle(.red) }
+                }
+            }
+            .navigationTitle("Adicionar app")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancelar") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Salvar") {
+                        guard store.addApp(name: name, bundleID: bundleID, expiresAt: expiry) else {
+                            errorMessage = "Preencha os campos e use um Bundle ID que ainda não esteja cadastrado."
+                            return
+                        }
+                        dismiss()
+                    }
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                              bundleID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
@@ -98,14 +170,15 @@ struct LogsView: View {
         NavigationStack {
             List(store.attempts.reversed()) { attempt in
                 VStack(alignment: .leading, spacing: 2) {
-                    Label(attempt.bundleID, systemImage: attempt.success ? "checkmark.circle.fill" : "xmark.octagon.fill")
+                    Label(attempt.bundleID,
+                          systemImage: attempt.success ? "checkmark.circle.fill" : "xmark.octagon.fill")
                         .foregroundStyle(attempt.success ? .green : .red)
                     Text(attempt.message).font(.caption)
                     Text("\(attempt.date.formatted()) · \(attempt.trigger)")
                         .font(.caption2).foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("Logs")
+            .navigationTitle("Atividade")
         }
     }
 }
@@ -122,21 +195,16 @@ struct SettingsView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
-                Section("Servidores Anisette (HTTPS, separados por vírgula)") {
-                    TextField("https://servidor.example", text: Binding(
-                        get: { store.settings.anisetteURLs.joined(separator: ", ") },
-                        set: { store.settings.anisetteURLs = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } }
-                    ))
-                    .textInputAutocapitalization(.never).autocorrectionDisabled()
-                }
-                Section("Monitoramento") {
-                    Stepper("Avisar com menos de \(Int(store.settings.thresholdHours))h",
+                Section("Alertas de expiração") {
+                    Stepper("Verificar quando faltar menos de \(Int(store.settings.thresholdHours))h",
                             value: $store.settings.thresholdHours, in: 6...120, step: 6)
-                    Text("O prazo exibido é apenas uma estimativa inserida para demonstração; ainda não é lido de um perfil real.")
+                    Text("Os lembretes locais são programados para 48h, 24h e 6h antes da data cadastrada. O iOS pode limitar tarefas em segundo plano.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
-                Section("Recursos futuros") {
-                    Text("Monitoramento real de certificados, controle de domínios e VPN ainda não estão implementados.")
+                Section("Integração em desenvolvimento") {
+                    Text("Login Apple, Anisette, inventário de certificados e assinatura ainda não estão conectados. Esta versão não lê os apps instalados.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text("O bloqueio de domínios por VPN também não está implementado e exigiria permissões específicas.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
