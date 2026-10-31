@@ -223,4 +223,46 @@ final class AlphaSafetyTests: XCTestCase {
         return Data("CMS-ENVELOPE-TEST".utf8) + plistData + Data("CMS-TRAILER".utf8)
     }
 
+
+    func testInstallerDownloadPolicyRejectsHTTPRedirect() throws {
+        let source = URL(string: "https://github.com/example/app.ipa")!
+        let responseURL = URL(string: "http://example.invalid/app.ipa")!
+        let response = HTTPURLResponse(url: responseURL, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: nil)!
+        XCTAssertThrowsError(try InstallerDownloadPolicy.validatedReleaseFilename(
+            sourceURL: source, response: response, assetName: "AutoRenew.ipa", fileSize: 1024
+        )) { error in
+            XCTAssertEqual(error as? InstallerDownloadError, .insecureURL)
+        }
+    }
+
+    func testInstallerDownloadPolicyRejectsOversizedAndInvalidAssets() throws {
+        let source = URL(string: "https://github.com/example/app.ipa")!
+        let response = HTTPURLResponse(url: source, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: nil)!
+        XCTAssertThrowsError(try InstallerDownloadPolicy.validatedReleaseFilename(
+            sourceURL: source, response: response, assetName: "AutoRenew.ipa",
+            fileSize: InstallerDownloadPolicy.maximumFileSize + 1
+        )) { error in
+            XCTAssertEqual(error as? InstallerDownloadError, .invalidFileSize)
+        }
+        XCTAssertThrowsError(try InstallerDownloadPolicy.validatedReleaseFilename(
+            sourceURL: source, response: response, assetName: "readme.txt", fileSize: 1024
+        )) { error in
+            XCTAssertEqual(error as? InstallerDownloadError, .invalidFilename)
+        }
+    }
+
+    func testInstallerDownloadPolicyKeepsExistingIPAAndCreatesUniqueName() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let existing = root.appendingPathComponent("AutoRenew.ipa")
+        try Data("keep me".utf8).write(to: existing)
+
+        let destination = InstallerDownloadPolicy.uniqueDestination(in: root, filename: "AutoRenew.ipa")
+        XCTAssertNotEqual(destination, existing)
+        XCTAssertTrue(destination.lastPathComponent.hasSuffix(".ipa"))
+        XCTAssertEqual(try Data(contentsOf: existing), Data("keep me".utf8))
+    }
+
 }
