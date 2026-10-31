@@ -6,20 +6,20 @@ Verificação em **31/10/2026**.
 
 - Página: [https://xlightxt.github.io/AutoRenew/](https://xlightxt.github.io/AutoRenew/).
 - Workflow: [.github/workflows/deploy-pages.yml](../.github/workflows/deploy-pages.yml).
-- Deploy inicial: [run #41185536948](https://github.com/xlightxt/AutoRenew/actions/runs/41185536948) falhou em Configure Pages com \`Get Pages site failed: Not Found\`.
+- Deploy inicial: [run #41185536948](https://github.com/xlightxt/AutoRenew/actions/runs/41185536948) falhou em Configure Pages com `Get Pages site failed: Not Found`.
 - Deploy seguinte: [run #41185796609](https://github.com/xlightxt/AutoRenew/actions/runs/41185796609) concluído com sucesso.
-- Deploy mais recente verificado: [run #41208603252](https://github.com/xlightxt/AutoRenew/actions/runs/41208603252), branch \`main\`, conclusão \`success\`.
+- Deploy mais recente verificado: [run #41208603252](https://github.com/xlightxt/AutoRenew/actions/runs/41208603252), branch `main`, conclusão `success`.
 - A página pública abriu e renderizou o catálogo de Releases e os cards de builds.
 
 ## Catálogo e builds observados
 
 - Stable: nenhuma Release.
 - Beta: nenhuma Release.
-- Alpha: \`alpha-2026.10.31-c1feeb6\`, com \`AutoRenew.ipa\` e \`AutoRenew-Installer.ipa\`, ambos identificados nas notas como unsigned.
+- Alpha: `alpha-2026.10.31-c1feeb6`, com `AutoRenew.ipa` e `AutoRenew-Installer.ipa`, ambos identificados nas notas como unsigned.
 - Builds: os cards exibem o estado das execuções do Actions; isso não transforma o artefato em IPA assinado.
 - A página ainda não confirma assinatura, instalação no iPhone ou primeiro lançamento.
 
-Esta PR corrige a consulta dos builds para filtrar Alpha por \`codex/alpha-*\`, Beta por \`beta\` e Oficial por \`main\`. A correção só ficará pública após revisão, merge e novo deploy; nenhum deploy foi feito por esta alteração.
+Esta PR corrige a consulta dos builds para filtrar Alpha por `codex/alpha-*`, Beta por `beta` e Oficial por `main`. A correção só ficará pública após revisão, merge e novo deploy; nenhum deploy foi feito por esta alteração.
 
 ## Distinções obrigatórias
 
