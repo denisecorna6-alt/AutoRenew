@@ -216,6 +216,7 @@ struct InstallerView: View {
     @State private var directIPALink = ""
     @State private var preparedIPA: IPAInspection?
     @State private var preparationMessage: String?
+    @State private var pendingDeepLinkURL: URL?
 
     private let channels = ["Todas", "Stable", "Beta", "Alpha"]
 
@@ -478,6 +479,28 @@ struct InstallerView: View {
             }
             .task { await catalog.load() }
             .refreshable { await catalog.load() }
+            .onOpenURL { incomingURL in
+                do {
+                    pendingDeepLinkURL = try InstallerDeepLink.parse(incomingURL)
+                    catalog.errorMessage = nil
+                } catch {
+                    catalog.errorMessage = error.localizedDescription
+                }
+            }
+            .alert("Baixar IPA externo?", isPresented: Binding(
+                get: { pendingDeepLinkURL != nil },
+                set: { if !$0 { pendingDeepLinkURL = nil } }
+            )) {
+                Button("Baixar IPA") {
+                    guard let url = pendingDeepLinkURL else { return }
+                    pendingDeepLinkURL = nil
+                    directIPALink = url.absoluteString
+                    Task { await catalog.downloadIPA(from: url.absoluteString) }
+                }
+                Button("Cancelar", role: .cancel) { pendingDeepLinkURL = nil }
+            } message: {
+                Text("O link solicita apenas o download de um IPA por HTTPS de \\(pendingDeepLinkURL?.host ?? "origem desconhecida"). O arquivo será salvo para inspeção. Não haverá assinatura nem instalação automática.")
+            }
             .fileImporter(isPresented: $showingIPAImporter, allowedContentTypes: [UTType(filenameExtension: "ipa") ?? .data]) { result in
                 do {
                     if case .success(let url) = result {
