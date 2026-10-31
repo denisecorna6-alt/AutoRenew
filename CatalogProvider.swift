@@ -1,16 +1,15 @@
 import Foundation
 
-/// Minimal, defensive reader for SideStore-compatible source JSON.
-///
-/// This intentionally handles public catalog metadata only. It does not perform
-/// Apple authentication, signing, installation, or refresh operations.
+/// Reads public SideStore/AltSource JSON metadata only.
+/// This component does not authenticate with Apple, sign, install, or refresh apps.
 struct CatalogApp: Identifiable, Sendable {
     let id: String
     let name: String
-    let developer: String?
-    let bundleIdentifier: String?
+    let developer: String
+    let bundleIdentifier: String
     let subtitle: String?
-    let iconURL: URL?
+    let description: String
+    let iconURL: URL
     let versions: [CatalogVersion]
 }
 
@@ -18,14 +17,16 @@ struct CatalogVersion: Identifiable, Sendable {
     let id: String
     let version: String
     let date: Date?
-    let downloadURL: URL?
-    let size: Int64?
+    let downloadURL: URL
+    let size: Int64
     let minimumOSVersion: String?
+    let maximumOSVersion: String?
     let description: String?
 }
 
 struct CatalogSnapshot: Sendable {
     let sourceURL: URL
+    let identifier: String
     let name: String
     let apps: [CatalogApp]
     let fetchedAt: Date
@@ -36,24 +37,21 @@ enum CatalogProviderError: LocalizedError {
     case invalidResponse
     case responseTooLarge
     case invalidJSON
-    case missingApps
+    case missingSourceFields
     case invalidSource(String)
 
     var errorDescription: String? {
         switch self {
-        case .insecureURL: return "A fonte precisa usar HTTPS."
+        case .insecureURL: return "A fonte e os downloads precisam usar HTTPS."
         case .invalidResponse: return "A fonte retornou uma resposta HTTP inválida."
         case .responseTooLarge: return "O catálogo excede o limite de 5 MB."
         case .invalidJSON: return "O catálogo não contém JSON válido."
-        case .missingApps: return "O catálogo não contém uma lista de aplicativos."
+        case .missingSourceFields: return "O catálogo precisa informar name, identifier e apps."
         case .invalidSource(let reason): return reason
         }
     }
 }
 
-/// Fetches public SideStore-style source documents. No credentials are accepted
-/// or sent, redirects to non-HTTPS destinations are rejected, and response size
-/// is bounded before parsing.
 actor CatalogProvider {
     static let shared = CatalogProvider()
     private let maximumResponseBytes = 5 * 1_024 * 1_024
@@ -71,16 +69,28 @@ actor CatalogProvider {
         request.timeoutInterval = 20
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        // Stream the body so the size limit is enforced while receiving bytes,
+        // rather than after URLSession has already allocated the whole response.
+        let (bytes, response) = try await URLSession.shared.bytes(for: request)
         guard let http = response as? HTTPURLResponse,
               (200..<300).contains(http.statusCode) else {
             throw CatalogProviderError.invalidResponse
         }
-        guard data.count <= maximumResponseBytes else {
-            throw CatalogProviderError.responseTooLarge
-        }
         if let finalURL = response.url, finalURL.scheme?.lowercased() != "https" {
             throw CatalogProviderError.insecureURL
+        }
+        if let length = http.value(forHTTPHeaderField: "Content-Length"),
+           let expected = Int64(length), expected > Int64(maximumResponseBytes) {
+            throw CatalogProviderError.responseTooLarge
+        }
+
+        var data = Data()
+        data.reserveCapacity(min(maximumResponseBytes, 64 * 1_024))
+        for try await byte in bytes {
+            guard data.count < maximumResponseBytes else {
+                throw CatalogProviderError.responseTooLarge
+            }
+            data.append(byte)
         }
 
         let root: Any
@@ -90,70 +100,104 @@ actor CatalogProvider {
             throw CatalogProviderError.invalidJSON
         }
         guard let object = root as? [String: Any],
+              let sourceName = Self.nonEmptyString(object["name"]),
+              let identifier = Self.nonEmptyString(object["identifier"]),
               let rawApps = object["apps"] as? [[String: Any]] else {
-            throw CatalogProviderError.missingApps
+            throw CatalogProviderError.missingSourceFields
         }
 
-        let sourceName = (object["name"] as? String)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
         let apps = rawApps.compactMap(Self.parseApp)
-        guard !apps.isEmpty || rawApps.isEmpty else {
+        guard apps.count == rawApps.count else {
             throw CatalogProviderError.invalidSource(
-                "Nenhum aplicativo possui os campos mínimos válidos."
+                "Um ou mais apps não possuem os campos obrigatórios do formato SideStore."
             )
+        }
+        let identifiers = apps.map(\.bundleIdentifier)
+        guard Set(identifiers).count == identifiers.count else {
+            throw CatalogProviderError.invalidSource("O catálogo contém bundle identifiers duplicados.")
         }
 
         return CatalogSnapshot(
             sourceURL: sourceURL,
-            name: sourceName.flatMap { $0.isEmpty ? nil : $0 } ?? sourceURL.host ?? "Source",
+            identifier: identifier,
+            name: sourceName,
             apps: apps,
             fetchedAt: Date()
         )
     }
 
     private static func parseApp(_ value: [String: Any]) -> CatalogApp? {
-        guard let name = nonEmptyString(value["name"]) else { return nil }
-        let bundleID = nonEmptyString(value["bundleIdentifier"])
-        let stableID = bundleID ?? name.lowercased()
-        let icon = secureURL(value["iconURL"])
-        let versions = (value["versions"] as? [[String: Any]] ?? []).compactMap(parseVersion)
+        guard let name = nonEmptyString(value["name"]),
+              let bundleID = nonEmptyString(value["bundleIdentifier"]),
+              let developer = nonEmptyString(value["developerName"]),
+              let description = nonEmptyString(value["localizedDescription"]),
+              let iconURL = secureURL(value["iconURL"]) else { return nil }
+
+        var versions = (value["versions"] as? [[String: Any]] ?? [])
+            .compactMap(parseVersion)
+
+        // Backward compatibility with legacy AltSource fields.
+        if versions.isEmpty,
+           let version = nonEmptyString(value["version"]),
+           let downloadURL = secureURL(value["downloadURL"]),
+           let size = nonNegativeSize(value["size"]) {
+            versions = [CatalogVersion(
+                id: version,
+                version: version,
+                date: parseDate(value["versionDate"]),
+                downloadURL: downloadURL,
+                size: size,
+                minimumOSVersion: nil,
+                maximumOSVersion: nil,
+                description: nonEmptyString(value["versionDescription"])
+            )]
+        }
 
         return CatalogApp(
-            id: stableID,
+            id: bundleID,
             name: name,
-            developer: nonEmptyString(value["developerName"]),
+            developer: developer,
             bundleIdentifier: bundleID,
-            subtitle: nonEmptyString(value["localizedDescription"]),
-            iconURL: icon,
+            subtitle: nonEmptyString(value["subtitle"]),
+            description: description,
+            iconURL: iconURL,
             versions: versions
         )
     }
 
     private static func parseVersion(_ value: [String: Any]) -> CatalogVersion? {
-        guard let version = nonEmptyString(value["version"]) else { return nil }
-        let date: Date?
-        if let rawDate = value["date"] as? String {
-            let formatter = ISO8601DateFormatter()
-            date = formatter.date(from: rawDate)
-        } else {
-            date = nil
-        }
-        let size: Int64?
-        if let number = value["size"] as? NSNumber, number.int64Value >= 0 {
-            size = number.int64Value
-        } else {
-            size = nil
-        }
+        guard let version = nonEmptyString(value["version"]),
+              let downloadURL = secureURL(value["downloadURL"]),
+              let size = nonNegativeSize(value["size"]) else { return nil }
 
         return CatalogVersion(
-            id: "\(version)-\(value["buildVersion"] as? String ?? "")",
+            id: version + "-" + (nonEmptyString(value["date"]) ?? ""),
             version: version,
-            date: date,
-            downloadURL: secureURL(value["downloadURL"]),
+            date: parseDate(value["date"]),
+            downloadURL: downloadURL,
             size: size,
             minimumOSVersion: nonEmptyString(value["minOSVersion"]),
-            description: nonEmptyString(value["versionDescription"])
+            maximumOSVersion: nonEmptyString(value["maxOSVersion"]),
+            description: nonEmptyString(value["localizedDescription"])
         )
+    }
+
+    private static func parseDate(_ value: Any?) -> Date? {
+        guard let raw = nonEmptyString(value) else { return nil }
+        let formatter = ISO8601DateFormatter()
+        if let date = formatter.date(from: raw) { return date }
+        formatter.formatOptions = [.withFullDate]
+        return formatter.date(from: raw)
+    }
+
+    private static func nonNegativeSize(_ value: Any?) -> Int64? {
+        guard let number = value as? NSNumber,
+              CFGetTypeID(number) != CFBooleanGetTypeID(),
+              number.doubleValue.isFinite,
+              number.doubleValue >= 0,
+              number.doubleValue <= Double(Int64.max),
+              number.doubleValue.rounded(.towardZero) == number.doubleValue else { return nil }
+        return number.int64Value
     }
 
     private static func nonEmptyString(_ value: Any?) -> String? {
