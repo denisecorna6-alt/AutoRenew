@@ -1,12 +1,15 @@
 # AutoRenew
 
-**Aplicativo iOS para acompanhar a validade de apps instalados por sideloading e preparar um fluxo seguro de renovação.**
+**Protótipo SwiftUI para explorar formas mais claras e seguras de acompanhar apps instalados por sideloading no iPhone.**
 
-> **Estado atual:** projeto em desenvolvimento. A renovação real ainda não está implementada. O backend atual é um stub de demonstração; não trate esta versão como renovador automático funcional.
+> **Estado atual (Alpha):** interface e fluxos de demonstração. O backend ativo é `StubSigningBackend`: ele simula uma expiração futura, mas não autentica na Apple, não assina IPA e não reinstala apps. Não use esta versão esperando renovação automática real.
 
 ## Comece aqui
 
 - [Estado do projeto e roadmap](docs/ROADMAP.md)
+- [Notas da Alpha](docs/ALPHA.md)
+- [Publicação do portal de downloads](docs/DEPLOYMENT.md)
+- [Kit de comunicação e colaboração](docs/social/2026-10-31.md)
 - [Issues abertas](https://github.com/xlightxt/AutoRenew/issues)
 - [Pull requests](https://github.com/xlightxt/AutoRenew/pulls)
 - [Execuções e builds](https://github.com/xlightxt/AutoRenew/actions)
@@ -16,14 +19,16 @@
 
 | Área | Situação |
 |---|---|
-| Interface SwiftUI e painel | Estrutura inicial |
-| Lembretes e acompanhamento de validade | Parcial; depende da branch/versão |
-| Assinatura de IPA | Não implementada no backend atual |
+| Interface SwiftUI e navegação | Protótipo inicial |
+| Dados apresentados no painel | Demonstração; o app ainda não lê os apps instalados no SideStore/AltStore |
+| Backend de assinatura | Stub demonstrativo; não executa assinatura |
+| Assinatura de IPA | Não implementada |
 | Renovação e reinstalação automáticas | Não implementadas |
-| Monitoramento de certificados Apple | Planejado; não conectado a uma API real |
-| Revogação automática | Não implementada; exige suporte oficial, propriedade verificada e autorização explícita |
-| Portal de downloads | Em revisão; ainda não é um site publicado |
-| IPA de CI | Artefatos de teste sem assinatura; não são releases instaláveis diretamente |
+| Monitoramento real de certificados Apple | Não implementado |
+| Revogação de certificados | Não implementada |
+| Portal de downloads | HTML e workflow existem; GitHub Pages ainda não foi habilitado para o repositório |
+| Releases públicas | Nenhuma publicada |
+| Artefatos de CI | Builds sem assinatura; não são instaladores prontos |
 
 ## Gerar o projeto (macOS)
 
@@ -33,11 +38,13 @@ xcodegen generate
 open AutoRenew.xcodeproj
 ```
 
-A geração e a compilação precisam ser verificadas no Xcode e em um iPhone real antes de declarar uma versão pronta.
+A geração e a compilação precisam ser verificadas no Xcode. Uma compilação bem-sucedida não comprova instalação, assinatura válida ou funcionamento em iPhone real.
 
-## Instalar builds
+## Builds e instalação
 
-Os artefatos atuais de CI são **unsigned**. Eles não podem ser instalados diretamente como se fossem um IPA assinado. Use um fluxo legítimo de assinatura no dispositivo, como SideStore/AltStore, e siga as limitações da conta Apple utilizada. Uma conta Apple gratuita não fornece certificados permanentes nem garante renovação silenciosa ilimitada.
+Consulte [GitHub Actions](https://github.com/xlightxt/AutoRenew/actions) para ver as execuções e os artefatos. Os IPAs gerados pela CI são **unsigned** (sem assinatura de desenvolvimento). Eles não podem ser instalados diretamente como se fossem um IPA assinado. Não há Release pública neste momento.
+
+A instalação de um IPA exige assinatura válida e um método compatível, como um fluxo legítimo do SideStore/AltStore. Os limites variam conforme a conta e o método; uma conta Apple gratuita não oferece certificado permanente nem garante renovação silenciosa ilimitada.
 
 ## Segurança
 
@@ -46,6 +53,7 @@ Os artefatos atuais de CI são **unsigned**. Eles não podem ser instalados dire
 - Falha de rede ou indisponibilidade de serviço deve resultar em estado **desconhecido**, nunca em falso diagnóstico de certificado revogado.
 - Revogação deve ser desativada por padrão, limitada a certificados próprios e só ocorrer com mecanismo oficialmente suportado e autorização explícita.
 - Não use endpoints privados/não documentados da Apple.
+- Não anuncie renovação real, assinatura funcional ou IPA pronto sem integração e teste físico comprovados.
 
 ## Fluxo de desenvolvimento
 
@@ -53,7 +61,7 @@ Os artefatos atuais de CI são **unsigned**. Eles não podem ser instalados dire
 2. Trabalhe em uma branch específica e envie um Pull Request.
 3. Execute validações/CI e registre limitações conhecidas.
 4. Mantenha mudanças experimentais como Draft até estarem testadas.
-5. Não publique Release nem anuncie renovação real sem teste completo em dispositivo.
+5. Não mescle PRs nem publique Releases sem aprovação explícita do mantenedor.
 
 ## Licença
 
