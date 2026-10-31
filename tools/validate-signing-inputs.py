@@ -30,6 +30,8 @@ def safe_archive(path):
                 mode = (info.external_attr >> 16) & 0xFFFF
                 if p.is_absolute() or ".." in p.parts or name.startswith("/") or "\\" in name or "\x00" in name:
                     fail("IPA contém caminho inseguro.")
+                if any(ord(char) < 0x20 or ord(char) == 0x7F for char in name):
+                    fail("IPA contém caracteres de controle em nomes de arquivo.")
                 if stat.S_ISLNK(mode):
                     fail("IPA contém link simbólico; extração bloqueada.")
                 normalized = str(p)
