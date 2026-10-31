@@ -59,58 +59,8 @@ while IFS= read -r -d '' BUNDLE_PATH; do
   security cms -V -i "$PROFILE" >/dev/null
   PROFILE_PLIST="$WORK_DIR/profile-$BUNDLE_INDEX.plist"
   security cms -D -i "$PROFILE" > "$PROFILE_PLIST"
-  python3 - "$PROFILE_PLIST" "$INFO" <<'PY'
-import datetime
-import plistlib
-import sys
-with open(sys.argv[1], "rb") as f:
-    profile = plistlib.load(f)
-with open(sys.argv[2], "rb") as f:
-    info = plistlib.load(f)
-def fail(message):
-    raise SystemExit("Erro: " + message)
-expiry = profile.get("ExpirationDate")
-if not isinstance(expiry, datetime.datetime):
-    fail("perfil sem ExpirationDate válida")
-if expiry.tzinfo is None:
-    expiry = expiry.replace(tzinfo=datetime.timezone.utc)
-else:
-    expiry = expiry.astimezone(datetime.timezone.utc)
-if expiry <= datetime.datetime.now(datetime.timezone.utc):
-    fail("perfil de provisionamento expirado")
-bundle_id = info.get("CFBundleIdentifier")
-entitlements = profile.get("Entitlements")
-teams = profile.get("TeamIdentifier")
-prefixes = profile.get("ApplicationIdentifierPrefix")
-if not isinstance(bundle_id, str) or not bundle_id or not isinstance(entitlements, dict):
-    fail("Info.plist ou Entitlements inválidos")
-if not isinstance(teams, list) or not teams:
-    fail("TeamIdentifier ausente")
-if not isinstance(prefixes, list):
-    fail("ApplicationIdentifierPrefix ausente")
-app_identifier = entitlements.get("application-identifier")
-if not isinstance(app_identifier, str) or "." not in app_identifier:
-    fail("application-identifier ausente")
-prefix, pattern = app_identifier.split(".", 1)
-if prefix not in prefixes:
-    fail("prefixo do application-identifier não corresponde ao perfil")
-if pattern == "*":
-    matches = True
-elif pattern.endswith(".*"):
-    matches = bundle_id.startswith(pattern[:-1])
-else:
-    matches = bundle_id == pattern
-if not matches:
-    fail("Bundle ID não é permitido pelo perfil")
-if entitlements.get("com.apple.developer.team-identifier") not in teams:
-    fail("Team ID do entitlement não corresponde ao perfil")
-devices = profile.get("ProvisionedDevices")
-if not ((isinstance(devices, list) and len(devices) > 0) or profile.get("ProvisionsAllDevices") is True):
-    fail("perfil não possui escopo de instalação em dispositivo")
-certificates = profile.get("DeveloperCertificates")
-if not isinstance(certificates, list) or not certificates or not all(isinstance(x, bytes) for x in certificates):
-    fail("perfil não contém DeveloperCertificates válidos")
-PY
+  # Validate bundle metadata and the exact selected device UDID after CMS verification.
+  python3 "$ROOT/tools/validate-device-profile.py" --profile "$PROFILE_PLIST" --info "$INFO" --device-id "$DEVICE_ID"
   BUNDLE_INDEX=$((BUNDLE_INDEX + 1))
 done < <(find "$PAYLOAD_DIR" -type d \( -name '*.app' -o -name '*.appex' \) -print0)
 
