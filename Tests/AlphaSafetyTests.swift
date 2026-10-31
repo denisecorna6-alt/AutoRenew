@@ -339,4 +339,13 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertTrue(ExpiryNotificationPolicy.reminders(for: [active], now: now, limit: 0).isEmpty)
     }
 
+
+    func testAnisetteProviderRejectsInsecureRedirectDestinations() {
+        XCTAssertTrue(RemoteAnisetteProvider.isSafeHTTPSURL(URL(string: "https://ani.example.test/data")))
+        XCTAssertFalse(RemoteAnisetteProvider.isSafeHTTPSURL(URL(string: "http://ani.example.test/data")))
+        XCTAssertFalse(RemoteAnisetteProvider.isSafeHTTPSURL(URL(string: "https://user:pass@ani.example.test/data")))
+        XCTAssertFalse(RemoteAnisetteProvider.isSafeHTTPSURL(URL(string: "https://ani.example.test/data#fragment")))
+        XCTAssertFalse(RemoteAnisetteProvider.isSafeHTTPSURL(nil))
+    }
+
 }
