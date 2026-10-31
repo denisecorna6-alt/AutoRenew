@@ -46,7 +46,7 @@ The `All interface orientations must be supported unless the app requires full s
 - The Alpha feature branch codex/alpha-installer-download-hardening-20261031 contains the separate AutoRenewInstaller app target and AutoRenewTests. Its latest successful run reports 23 Swift tests. Installer UI-specific end-to-end tests and physical device tests remain outstanding.
 - PacketTunnelProvider.swift is excluded from the project; no Network Extension target or entitlement is configured.
 - The Projects/ folders in the Alpha feature branch are architecture/readme placeholders, not independently buildable Swift packages. No Package.swift dependency graph is present in AutoRenew.
-- The artifact policy restricts automatic `build.yml` runs to Alpha branches and names the file `AutoRenew-unsigned.ipa` / artifact `AutoRenew-ipa-unsigned`. Beta/Official IPA workflows are manual-only and branch-guarded. No main-branch IPA artifact has been produced after PR #45; post-merge main runs are Official CI and Pages deploy only. No main-branch IPA artifact was produced after the policy merge; the post-merge main runs were Official CI and Pages deploy only.
+- The artifact policy restricts automatic `build.yml` runs to Alpha branches and names the file `AutoRenew-unsigned.ipa` / artifact `AutoRenew-ipa-unsigned`. Beta/Official IPA workflows are manual-only and branch-guarded. No main-branch IPA artifact has been produced after PR #45; post-merge main runs are Official CI and Pages deploy only.
 
 ## External architecture and policy research
 
