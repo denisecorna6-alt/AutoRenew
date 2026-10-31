@@ -8,11 +8,13 @@ final class AppStore: ObservableObject {
     @Published var apps: [ManagedApp] = [] { didSet { save() } }
     @Published var attempts: [RefreshAttempt] = [] { didSet { save() } }
     @Published var settings = AppSettings() { didSet { save() } }
+    @Published var profiles: [ImportedProfile] = [] { didSet { save() } }
 
     private struct Snapshot: Codable {
         var apps: [ManagedApp]
         var attempts: [RefreshAttempt]
         var settings: AppSettings
+        var profiles: [ImportedProfile]?
     }
     private let url: URL = {
         let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -27,13 +29,14 @@ final class AppStore: ObservableObject {
             apps = snapshot.apps
             attempts = snapshot.attempts
             settings = snapshot.settings
+            profiles = snapshot.profiles ?? []
         }
         loading = false
     }
 
     private func save() {
         guard !loading else { return }
-        let snapshot = Snapshot(apps: apps, attempts: Array(attempts.suffix(500)), settings: settings)
+        let snapshot = Snapshot(apps: apps, attempts: Array(attempts.suffix(500)), settings: settings, profiles: profiles)
         do {
             let data = try JSONEncoder().encode(snapshot)
             try data.write(to: url, options: .atomic)
@@ -55,6 +58,32 @@ final class AppStore: ObservableObject {
         apps[index].expiresAt = newExpiry
         log(app, trigger: trigger, success: true,
             message: "Renovação confirmada até \(newExpiry.formatted())")
+    }
+
+    private var profilesDirectory: URL {
+        url.deletingLastPathComponent().appendingPathComponent("ProvisioningProfiles", isDirectory: true)
+    }
+
+    @discardableResult
+    func importProfile(from sourceURL: URL) throws -> ImportedProfile {
+        let profile = try ProfileImporter.importProfile(from: sourceURL, into: profilesDirectory)
+        guard !profiles.contains(where: { $0.sha256 == profile.sha256 }) else {
+            try? FileManager.default.removeItem(
+                at: profilesDirectory.appendingPathComponent(profile.storedFileName)
+            )
+            throw ProfileImportError.duplicate
+        }
+        profiles.append(profile)
+        return profile
+    }
+
+    func removeProfile(_ profile: ImportedProfile) {
+        // Only delete files whose names match the generated UUID-based storage format.
+        guard profile.storedFileName == "\(profile.id).mobileprovision" else { return }
+        try? FileManager.default.removeItem(
+            at: profilesDirectory.appendingPathComponent(profile.storedFileName)
+        )
+        profiles.removeAll { $0.id == profile.id }
     }
 
     @discardableResult
