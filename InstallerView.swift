@@ -91,7 +91,15 @@ private final class InstallerCatalog: ObservableObject {
             var request = URLRequest(url: asset.browserDownloadURL)
             request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
             let (temporaryURL, response) = try await URLSession.shared.download(for: request)
-            let values = try temporaryURL.resourceValues(forKeys: [.fileSizeKey])
+            // URLSession gives its temporary file an arbitrary extension. Move it
+            // to a private .ipa staging name so IPAInspector can enforce its contract.
+            let stagingURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension("ipa")
+            try FileManager.default.moveItem(at: temporaryURL, to: stagingURL)
+            defer { try? FileManager.default.removeItem(at: stagingURL) }
+
+            let values = try stagingURL.resourceValues(forKeys: [.fileSizeKey])
             let safeName = try InstallerDownloadPolicy.validatedReleaseFilename(
                 sourceURL: asset.browserDownloadURL,
                 response: response,
@@ -99,13 +107,13 @@ private final class InstallerCatalog: ObservableObject {
                 fileSize: values.fileSize ?? 0
             )
             // Check the actual downloaded archive before it enters the library.
-            _ = try IPAInspector.inspect(fileURL: temporaryURL)
+            _ = try IPAInspector.inspect(fileURL: stagingURL)
 
             let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("DownloadedIPAs", isDirectory: true)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let destination = InstallerDownloadPolicy.uniqueDestination(in: directory, filename: safeName)
-            try FileManager.default.moveItem(at: temporaryURL, to: destination)
+            try FileManager.default.moveItem(at: stagingURL, to: destination)
             statusMessage = "Download concluído: \(destination.lastPathComponent). O arquivo foi salvo; ainda precisa de assinatura válida para instalação."
             refreshDownloadedFiles()
         } catch {
