@@ -24,6 +24,10 @@ struct SideStoreAutomationGuide: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.orange)
 
+                Text("A implementação atual do SideStore declara essa ação como ForegroundContinuableIntent e solicita continuação em primeiro plano se a operação ultrapassar cerca de 27 segundos. Portanto, o Atalhos pode trazer o SideStore para a frente; não há garantia de execução totalmente silenciosa ou sem desbloquear o iPhone.")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.orange)
+
                 Text("O AutoRenew ainda não consegue iniciar diretamente a App Intent privada de outro aplicativo. Esta integração usa o mecanismo oficial do SideStore por meio do Atalhos e exige configuração/consentimento no iPhone.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
