@@ -15,9 +15,9 @@ struct AlphaNotice: View {
         VStack(alignment: .leading, spacing: 6) {
             Label("ALPHA · versão de testes", systemImage: "flask")
                 .font(.headline)
-            Text("A renovação real ainda não está conectada. Os testes atuais simulam a operação e não estendem a validade dos apps.")
+            Text("A assinatura real ainda não está integrada. O AutoRenew não altera a validade dos aplicativos nesta versão.")
                 .font(.caption)
-            Text("Não use esta versão como garantia para manter apps assinados.")
+            Text("Use SideStore/AltStore ou outro método compatível para manter seus apps assinados.")
                 .font(.caption.weight(.semibold))
         }
         .padding(12)
@@ -38,7 +38,7 @@ struct AppRow: View {
             .gaugeStyle(.accessoryCircularCapacity).tint(tint)
             VStack(alignment: .leading) {
                 Text(app.name).font(.headline)
-                Text("Expira \(app.expiresAt.formatted(.relative(presentation: .named)))")
+                Text("Data estimada: \(app.expiresAt.formatted(.relative(presentation: .named)))")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -57,7 +57,7 @@ struct DashboardView: View {
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         .listRowBackground(Color.clear)
                 }
-                Section("Apps monitorados (dados de demonstração)") {
+                Section("Apps monitorados (demonstração)") {
                     ForEach(store.apps) { AppRow(app: $0) }
                         .onDelete { store.apps.remove(atOffsets: $0) }
                 }
@@ -65,16 +65,16 @@ struct DashboardView: View {
             .overlay {
                 if store.apps.isEmpty {
                     ContentUnavailableView("Nenhum app", systemImage: "app.dashed",
-                                           description: Text("Toque em + para adicionar um app de demonstração."))
+                                           description: Text("Toque em + para adicionar um item de demonstração."))
                 }
             }
             .navigationTitle("AutoRenew Alpha")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Testar fluxo") {
+                    Button("Verificar") {
                         busy = true
                         Task {
-                            await RefreshCoordinator.shared.runIfNeeded(trigger: "alpha-test", budget: .seconds(120), force: true)
+                            await RefreshCoordinator.shared.runIfNeeded(trigger: "alpha-test", budget: .seconds(30), force: true)
                             busy = false
                         }
                     }.disabled(busy || store.apps.isEmpty)
@@ -91,12 +91,13 @@ struct LogsView: View {
     @EnvironmentObject var store: AppStore
     var body: some View {
         NavigationStack {
-            List(store.attempts.reversed()) { a in
+            List(store.attempts.reversed()) { attempt in
                 VStack(alignment: .leading, spacing: 2) {
-                    Label(a.bundleID, systemImage: a.success ? "checkmark.circle.fill" : "xmark.octagon.fill")
-                        .foregroundStyle(a.success ? .green : .red)
-                    Text(a.message).font(.caption)
-                    Text("\(a.date.formatted()) · \(a.trigger)").font(.caption2).foregroundStyle(.secondary)
+                    Label(attempt.bundleID, systemImage: attempt.success ? "checkmark.circle.fill" : "xmark.octagon.fill")
+                        .foregroundStyle(attempt.success ? .green : .red)
+                    Text(attempt.message).font(.caption)
+                    Text("\(attempt.date.formatted()) · \(attempt.trigger)")
+                        .font(.caption2).foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("Logs")
@@ -111,27 +112,27 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Privacidade e integração") {
-                    Text("Esta Alpha não solicita nem armazena senha, código de autenticação ou sessão da Apple. A integração real de assinatura ainda não está implementada.")
+                    Text("Esta Alpha não solicita nem armazena senha Apple ID, código 2FA ou sessão da Apple. A integração real de assinatura ainda não foi implementada.")
                     Text("Não informe credenciais Apple nesta versão.")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
-                Section("Servidor Anisette (um por linha, em ordem de prioridade)") {
-                    TextField("URLs", text: Binding(
+                Section("Servidores Anisette (HTTPS, separados por vírgula)") {
+                    TextField("https://servidor.example", text: Binding(
                         get: { store.settings.anisetteURLs.joined(separator: ", ") },
                         set: { store.settings.anisetteURLs = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } }
                     ))
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                 }
-                Section("Renovação") {
-                    Stepper("Renovar com menos de \(Int(store.settings.thresholdHours))h",
+                Section("Monitoramento") {
+                    Stepper("Avisar com menos de \(Int(store.settings.thresholdHours))h",
                             value: $store.settings.thresholdHours, in: 6...120, step: 6)
-                    Text("Na Alpha, o backend é simulado. Nenhuma assinatura é renovada de verdade.")
+                    Text("O prazo exibido é apenas uma estimativa inserida para demonstração; ainda não é lido de um perfil real.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Avançado") {
                     Toggle("Bloquear domínios OCSP/PPQ (VPN)", isOn: $store.settings.blockDomains)
-                    Text("Requer a extensão de túnel (entitlement Network Extension). Não estende os 7 dias de conta gratuita.")
+                    Text("Requer extensão Network Extension e permissões específicas. Não estende a validade de certificados.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
