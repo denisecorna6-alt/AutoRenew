@@ -16,6 +16,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Generate Xcode project
         run: brew install xcodegen && xcodegen generate
+      - name: Validate macOS install helper syntax
+        run: bash -n tools/install-to-iphone.sh
       - name: Build AutoRenew for iOS
         run: |
           xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew -configuration Release \
