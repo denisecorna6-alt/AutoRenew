@@ -6,11 +6,14 @@ struct RefreshRunSummary: Sendable {
     let failed: Int
     let skipped: Bool
     let message: String
+    /// Apps intentionally left untouched because their snapshot changed or the
+    /// task was cancelled/expired before they could be processed.
+    var deferred: Int = 0
 
-    /// A background task is successful only when it was not skipped, every due app
-    /// was processed without failure, and the time budget was not exhausted.
+    /// A background task succeeds only when every app in the due snapshot was
+    /// either renewed or explicitly failed; silently skipped work is not success.
     var backgroundTaskSucceeded: Bool {
-        !skipped && failed == 0
+        !skipped && deferred == 0 && renewed + failed == considered
             && message != "Verificação interrompida pelo cancelamento ou pelo limite de tempo."
     }
 }
@@ -80,9 +83,13 @@ actor RefreshCoordinator {
         let router = AnisetteRouter(urls: settings.anisetteURLs)
         var renewed = 0
         var failed = 0
+        var deferred = 0
 
         for (index, app) in due.enumerated() {
-            guard !Task.isCancelled, clock.now < deadline else { break }
+            guard !Task.isCancelled, clock.now < deadline else {
+                deferred += due.count - index
+                break
+            }
 
             // Do not renew an app that was removed, disabled, or edited after the
             // initial snapshot was taken.
@@ -91,7 +98,10 @@ actor RefreshCoordinator {
                     $0.id == app.id && $0.isActive && $0.expiresAt == app.expiresAt
                 }
             }
-            guard isStillCurrent else { continue }
+            guard isStillCurrent else {
+                deferred += 1
+                continue
+            }
 
             do {
                 let anisette = try await fetchAnisette(
@@ -174,6 +184,7 @@ actor RefreshCoordinator {
                     failed += 1
                 }
             } catch is CancellationError {
+                deferred += due.count - index
                 break
             } catch {
                 await fail(
@@ -190,7 +201,7 @@ actor RefreshCoordinator {
             : "Verificação concluída."
         return RefreshRunSummary(
             considered: due.count, renewed: renewed, failed: failed,
-            skipped: false, message: message
+            skipped: false, message: message, deferred: deferred
         )
     }
 
