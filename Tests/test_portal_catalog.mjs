@@ -26,6 +26,7 @@ assert.equal(channelFor({ tag_name: "v1.0.0", prerelease: false }), "stable");
 assert.equal(isUnsignedRelease({ body: "Os dois IPAs são unsigned" }), true);
 assert.equal(isUnsignedRelease({ body: "Sem assinatura Apple" }), true);
 assert.equal(isUnsignedRelease({ body: "Assinatura ainda não verificada" }), false);
+assert.equal(isUnsignedRelease({ assets: [{ name: "AutoRenew-unsigned.ipa" }] }), true);
 
 const workflow = (name) => readFileSync(new URL("../.github/workflows/" + name, import.meta.url), "utf8");
 for (const name of ["beta-ci.yml", "beta-ipa.yml", "build.yml", "official-ci.yml", "official-ipa.yml", "deploy-pages.yml"]) {
