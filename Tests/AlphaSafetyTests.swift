@@ -15,7 +15,7 @@ final class AlphaSafetyTests: XCTestCase {
         } catch let error as RefreshError {
             XCTAssertEqual(error, .notImplemented)
         } catch {
-            XCTFail("Unexpected error: \(error)")
+            XCTFail("Unexpected error: \\(error)")
         }
         XCTAssertEqual(app.expiresAt, expiry)
     }
@@ -41,7 +41,7 @@ final class AlphaSafetyTests: XCTestCase {
         } catch let error as RefreshError {
             XCTAssertEqual(error, .anisetteUnavailable)
         } catch {
-            XCTFail("Unexpected error: \(error)")
+            XCTFail("Unexpected error: \\(error)")
         }
         XCTAssertTrue(AppSettings().anisetteURLs.isEmpty)
     }
@@ -54,7 +54,7 @@ final class AlphaSafetyTests: XCTestCase {
         } catch let error as RefreshError {
             XCTAssertEqual(error, .anisetteUnavailable)
         } catch {
-            XCTFail("Unexpected error: \(error)")
+            XCTFail("Unexpected error: \\(error)")
         }
     }
 
@@ -152,7 +152,6 @@ final class AlphaSafetyTests: XCTestCase {
         }
     }
 
-
     func testProvisioningProfileParserExtractsMetadataAndMatchesBundleID() throws {
         let expiration = Date(timeIntervalSince1970: 2_000_000_000)
         let data = try makeProvisioningProfilePayload(
@@ -236,7 +235,6 @@ final class AlphaSafetyTests: XCTestCase {
         return Data("CMS-ENVELOPE-TEST".utf8) + plistData + Data("CMS-TRAILER".utf8)
     }
 
-
     func testInstallerDownloadPolicyRejectsHTTPRedirect() throws {
         let source = URL(string: "https://github.com/example/app.ipa")!
         let responseURL = URL(string: "http://example.invalid/app.ipa")!
@@ -278,7 +276,6 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: existing), Data("keep me".utf8))
     }
 
-
     func testBackgroundTaskFailsWhenRefreshBackendFails() {
         let summary = RefreshRunSummary(
             considered: 1, renewed: 0, failed: 1, skipped: false,
@@ -318,15 +315,15 @@ final class AlphaSafetyTests: XCTestCase {
 
     func testBackgroundTaskSucceedsOnlyWhenEveryDueAppWasAccountedFor() {
         let complete = RefreshRunSummary(
+            considered: 2, renewed: 2, failed: 0, skipped: false,
+            message: "Verificação concluída."
+        )
+        let partialFailure = RefreshRunSummary(
             considered: 2, renewed: 1, failed: 1, skipped: false,
             message: "Verificação concluída."
         )
-        let incomplete = RefreshRunSummary(
-            considered: 2, renewed: 1, failed: 0, skipped: false,
-            message: "Verificação concluída."
-        )
         XCTAssertTrue(complete.backgroundTaskSucceeded)
-        XCTAssertFalse(incomplete.backgroundTaskSucceeded)
+        XCTAssertFalse(partialFailure.backgroundTaskSucceeded)
     }
 
     func testRenewalDateMustBeFutureAndLaterThanCurrentExpiry() {
