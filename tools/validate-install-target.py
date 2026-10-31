@@ -45,23 +45,35 @@ def validate(profile_path, bundle_id, devices_path, requested_id):
     except (OSError, json.JSONDecodeError):
         fail("Não foi possível ler a lista JSON de dispositivos do Xcode.")
 
-    devices = listing.get("result", {}).get("devices", [])
+    result = listing.get("result", {})
+    if not isinstance(result, dict):
+        fail("A resposta JSON do Xcode tem formato inválido.")
+    devices = result.get("devices", [])
     if not isinstance(devices, list):
         fail("A lista de dispositivos do Xcode tem formato inválido.")
+
+    def device_udid_fields(item):
+        hardware = item.get("hardwareProperties")
+        properties = item.get("properties")
+        hardware = hardware if isinstance(hardware, dict) else {}
+        properties = properties if isinstance(properties, dict) else {}
+        return hardware.get("udid") or properties.get("udid")
+
     matches = [
         item for item in devices
         if isinstance(item, dict) and (
             requested_id == item.get("identifier")
-            or requested_id == item.get("hardwareProperties", {}).get("udid")
-            or requested_id == item.get("properties", {}).get("udid")
+            or requested_id == device_udid_fields(item)
         )
     ]
     if len(matches) != 1:
         fail("Dispositivo não encontrado de forma única na lista JSON do devicectl.")
 
     device = matches[0]
-    hardware = device.get("hardwareProperties", {})
-    properties = device.get("properties", {})
+    hardware = device.get("hardwareProperties")
+    properties = device.get("properties")
+    hardware = hardware if isinstance(hardware, dict) else {}
+    properties = properties if isinstance(properties, dict) else {}
     udid = hardware.get("udid") or properties.get("udid")
     if not isinstance(udid, str) or not udid:
         candidate = device.get("identifier", "")
