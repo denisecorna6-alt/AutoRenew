@@ -16,6 +16,11 @@ private struct AltSourceApp: Decodable, Identifiable {
     let iconURL: URL?
     let versions: [AltSourceVersion]
 
+    var safeIconURL: URL? {
+        guard let iconURL, AltSourcePolicy.isSafeHTTPSURL(iconURL) else { return nil }
+        return iconURL
+    }
+
     var id: String { bundleIdentifier }
 }
 
@@ -38,6 +43,38 @@ private struct CatalogApp: Identifiable {
     var id: String { sourceURL.absoluteString + "|" + app.bundleIdentifier }
 }
 
+enum AltSourcePolicy {
+    static let maximumSourceCount = 20
+    static let maximumSourceJSONBytes = 5_000_000
+    static let maximumAppsPerSource = 500
+    static let maximumVersionsPerApp = 50
+
+    static func isSafeHTTPSURL(_ url: URL) -> Bool {
+        url.scheme?.lowercased() == "https" &&
+        url.host != nil &&
+        url.user == nil &&
+        url.password == nil
+    }
+
+    static func isSourceDataWithinLimit(_ byteCount: Int) -> Bool {
+        byteCount >= 0 && byteCount <= maximumSourceJSONBytes
+    }
+
+    static func isWithinCatalogLimits(sourceCount: Int, appCount: Int) -> Bool {
+        sourceCount <= maximumSourceCount && appCount <= maximumAppsPerSource
+    }
+
+    static func isValidAppMetadata(name: String, bundleIdentifier: String, versionCount: Int) -> Bool {
+        !name.isEmpty && name.count <= 120 &&
+        !bundleIdentifier.isEmpty && bundleIdentifier.count <= 255 &&
+        versionCount <= maximumVersionsPerApp
+    }
+
+    static func isValidVersionMetadata(version: String, downloadURL: URL) -> Bool {
+        !version.isEmpty && version.count <= 64 && isSafeHTTPSURL(downloadURL)
+    }
+}
+
 @MainActor
 private final class AppCatalogModel: ObservableObject {
     @Published private(set) var apps: [CatalogApp] = []
@@ -48,7 +85,6 @@ private final class AppCatalogModel: ObservableObject {
     @Published var statusMessage: String?
 
     private let defaultsKey = "AutoRenew.altSourceURLs"
-    private let maxDownloadSize = 1_500_000_000
 
     var sourceURLs: [String] {
         get { UserDefaults.standard.stringArray(forKey: defaultsKey) ?? [] }
@@ -61,9 +97,12 @@ private final class AppCatalogModel: ObservableObject {
 
     func addSource(_ rawValue: String) async {
         let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: value), url.scheme?.lowercased() == "https",
-              url.host != nil, url.user == nil, url.password == nil else {
+        guard let url = URL(string: value), AltSourcePolicy.isSafeHTTPSURL(url) else {
             errorMessage = "Adicione o endereço HTTPS público de um arquivo JSON de fonte."
+            return
+        }
+        guard sourceURLs.count < AltSourcePolicy.maximumSourceCount else {
+            errorMessage = "O catálogo aceita no máximo 20 fontes."
             return
         }
         guard !sourceURLs.contains(url.absoluteString) else {
@@ -79,6 +118,46 @@ private final class AppCatalogModel: ObservableObject {
         await loadSources()
     }
 
+    private func fetchSourceData(from url: URL) async throws -> (Data, URLResponse) {
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("AutoRenew-iOS", forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = 20
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 20
+        configuration.timeoutIntervalForResource = 30
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+
+        let (bytes, response) = try await session.bytes(for: request)
+        guard let http = response as? HTTPURLResponse,
+              (200..<300).contains(http.statusCode),
+              let finalURL = response.url,
+              AltSourcePolicy.isSafeHTTPSURL(finalURL) else {
+            throw URLError(.badServerResponse)
+        }
+        if response.expectedContentLength > Int64(AltSourcePolicy.maximumSourceJSONBytes) {
+            throw NSError(domain: "AutoRenew.Catalog", code: 3,
+                          userInfo: [NSLocalizedDescriptionKey: "O JSON da fonte excede o limite de 5 MB."])
+        }
+
+        var data = Data()
+        if response.expectedContentLength > 0 {
+            data.reserveCapacity(Int(min(Int64(AltSourcePolicy.maximumSourceJSONBytes), response.expectedContentLength)))
+        }
+        for try await byte in bytes {
+            guard AltSourcePolicy.isSourceDataWithinLimit(data.count + 1) else {
+                throw NSError(domain: "AutoRenew.Catalog", code: 3,
+                              userInfo: [NSLocalizedDescriptionKey: "O JSON da fonte excede o limite de 5 MB."])
+            }
+            data.append(byte)
+        }
+        guard !data.isEmpty else { throw URLError(.zeroByteResource) }
+        return (data, response)
+    }
+
     func loadSources() async {
         guard !loading else { return }
         loading = true
@@ -87,30 +166,44 @@ private final class AppCatalogModel: ObservableObject {
 
         var loaded: [CatalogApp] = []
         var failures: [String] = []
-        for value in sourceURLs {
-            guard let url = URL(string: value), url.scheme?.lowercased() == "https",
-                  url.host != nil, url.user == nil, url.password == nil else {
-                failures.append("Endereço inválido: \(value)")
+        if sourceURLs.count > AltSourcePolicy.maximumSourceCount {
+            failures.append("Somente as primeiras 20 fontes foram carregadas.")
+        }
+
+        for value in sourceURLs.prefix(AltSourcePolicy.maximumSourceCount) {
+            guard let url = URL(string: value), AltSourcePolicy.isSafeHTTPSURL(url) else {
+                failures.append("Endereço de fonte inválido.")
                 continue
             }
             do {
-                var request = URLRequest(url: url)
-                request.setValue("application/json", forHTTPHeaderField: "Accept")
-                request.setValue("AutoRenew-iOS", forHTTPHeaderField: "User-Agent")
-                let (data, response) = try await URLSession.shared.data(for: request)
-                guard let http = response as? HTTPURLResponse,
-                      (200..<300).contains(http.statusCode),
-                      response.url?.scheme?.lowercased() == "https" else {
-                    throw URLError(.badServerResponse)
-                }
+                let (data, _) = try await fetchSourceData(from: url)
                 let source = try JSONDecoder().decode(AltSourceDocument.self, from: data)
+                guard !source.name.isEmpty,
+                      source.name.count <= 120,
+                      AltSourcePolicy.isWithinCatalogLimits(sourceCount: 1, appCount: source.apps.count) else {
+                    throw NSError(domain: "AutoRenew.Catalog", code: 4,
+                                  userInfo: [NSLocalizedDescriptionKey: "A fonte excede os limites de metadados do catálogo."])
+                }
+                for app in source.apps {
+                    guard AltSourcePolicy.isValidAppMetadata(
+                        name: app.name,
+                        bundleIdentifier: app.bundleIdentifier,
+                        versionCount: app.versions.count
+                    ), app.versions.allSatisfy({
+                        AltSourcePolicy.isValidVersionMetadata(version: $0.version, downloadURL: $0.downloadURL)
+                    }) else {
+                        throw NSError(domain: "AutoRenew.Catalog", code: 4,
+                                      userInfo: [NSLocalizedDescriptionKey: "A fonte contém metadados ou links de versão inválidos."])
+                    }
+                }
                 loaded.append(contentsOf: source.apps.map {
                     CatalogApp(sourceName: source.name, sourceURL: url, app: $0)
                 })
             } catch {
-                failures.append("\(url.host ?? value): \(error.localizedDescription)")
+                failures.append("\(url.host ?? "fonte"): \(error.localizedDescription)")
             }
         }
+
         apps = loaded.sorted {
             $0.app.name.localizedCaseInsensitiveCompare($1.app.name) == .orderedAscending
         }
@@ -120,16 +213,14 @@ private final class AppCatalogModel: ObservableObject {
         if sourceURLs.isEmpty {
             statusMessage = "Adicione uma fonte AltStore compatível para procurar aplicativos."
         } else {
-            statusMessage = "Carregados \(apps.count) aplicativo(s) de \(sourceURLs.count) fonte(s)."
+            statusMessage = "Carregados \(apps.count) aplicativo(s) de até \(AltSourcePolicy.maximumSourceCount) fonte(s)."
         }
     }
 
     func download(_ version: AltSourceVersion, appName: String) async {
         let key = appName + "|" + version.id
         guard downloadingKey == nil else { return }
-        guard version.downloadURL.scheme?.lowercased() == "https",
-              version.downloadURL.host != nil,
-              version.downloadURL.user == nil, version.downloadURL.password == nil else {
+        guard AltSourcePolicy.isSafeHTTPSURL(version.downloadURL) else {
             errorMessage = "O link da versão não é HTTPS ou contém credenciais."
             return
         }
@@ -142,33 +233,33 @@ private final class AppCatalogModel: ObservableObject {
         do {
             var request = URLRequest(url: version.downloadURL)
             request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
-            let (temporaryURL, response) = try await URLSession.shared.download(for: request)
+            let (temporaryURL, response) = try await BoundedIPADownloader.download(for: request)
+            defer { try? FileManager.default.removeItem(at: temporaryURL) }
             guard let http = response as? HTTPURLResponse,
                   (200..<300).contains(http.statusCode),
                   let finalURL = response.url,
-                  finalURL.scheme?.lowercased() == "https",
-                  finalURL.user == nil, finalURL.password == nil else {
-                throw URLError(.badServerResponse)
-            }
-            let values = try temporaryURL.resourceValues(forKeys: [.fileSizeKey])
-            guard let size = values.fileSize, size > 0, size <= maxDownloadSize else {
-                throw NSError(domain: "AutoRenew.Catalog", code: 1,
-                              userInfo: [NSLocalizedDescriptionKey: "O arquivo está vazio ou excede 1,5 GB."])
+                  AltSourcePolicy.isSafeHTTPSURL(finalURL) else {
+                throw InstallerDownloadError.insecureURL
             }
             let fileName = URL(fileURLWithPath: finalURL.lastPathComponent).lastPathComponent
             guard fileName.lowercased().hasSuffix(".ipa"), fileName != ".ipa" else {
-                throw NSError(domain: "AutoRenew.Catalog", code: 2,
-                              userInfo: [NSLocalizedDescriptionKey: "A URL não terminou em um arquivo .ipa."])
+                throw InstallerDownloadError.invalidFilename
             }
+            let inspection = try IPAInspector.inspect(fileURL: temporaryURL)
             let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("DownloadedIPAs", isDirectory: true)
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            let destination = directory.appendingPathComponent(fileName)
-            let uniqueDestination = FileManager.default.fileExists(atPath: destination.path)
-                ? directory.appendingPathComponent("\(UUID().uuidString)-\(fileName)")
-                : destination
-            try FileManager.default.moveItem(at: temporaryURL, to: uniqueDestination)
-            statusMessage = "\(appName) \(version.version) baixado. O IPA está salvo no app; baixar não significa assinar ou instalar."
+            try FileManager.default.createDirectory(
+                at: directory,
+                withIntermediateDirectories: true,
+                attributes: [.protectionKey: FileProtectionType.complete]
+            )
+            let destination = InstallerDownloadPolicy.uniqueDestination(in: directory, filename: fileName)
+            try FileManager.default.moveItem(at: temporaryURL, to: destination)
+            try? FileManager.default.setAttributes(
+                [.protectionKey: FileProtectionType.complete],
+                ofItemAtPath: destination.path
+            )
+            statusMessage = "\(appName) \(version.version) baixado. ZIP e SHA-256 verificados; assinatura e instalação não foram verificadas. SHA-256: \(inspection.sha256.prefix(16))…"
             refreshDownloadedFiles()
         } catch {
             errorMessage = "Não foi possível baixar \(appName): \(error.localizedDescription)"
@@ -178,7 +269,11 @@ private final class AppCatalogModel: ObservableObject {
     func refreshDownloadedFiles() {
         let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("DownloadedIPAs", isDirectory: true)
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true,
+            attributes: [.protectionKey: FileProtectionType.complete]
+        )
         downloadedFiles = ((try? FileManager.default.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: [.fileSizeKey]
         )) ?? []).filter { $0.pathExtension.lowercased() == "ipa" }
@@ -264,7 +359,7 @@ struct AppCatalogView: View {
                         ForEach(visibleApps) { item in
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack(alignment: .top, spacing: 10) {
-                                    if let iconURL = item.app.iconURL {
+                                    if let iconURL = item.app.safeIconURL {
                                         AsyncImage(url: iconURL) { image in
                                             image.resizable().scaledToFill()
                                         } placeholder: {
