@@ -18,6 +18,10 @@ protocol AnisetteProvider: Sendable {
     func fetch() async throws -> AnisetteData
 }
 
+/// Placeholder only. SideStore Anisette V3 requires a provisioning WebSocket
+/// session and a POST to /v3/get_headers with a provisioned ADI blob and identifier.
+/// A GET to the server root is not a valid V3 client, so this provider deliberately
+/// makes no network request until that flow is implemented and independently tested.
 struct RemoteAnisetteProvider: AnisetteProvider {
     let url: URL
 
@@ -27,19 +31,7 @@ struct RemoteAnisetteProvider: AnisetteProvider {
               url.fragment == nil else {
             throw RefreshError.anisetteUnavailable
         }
-        var request = URLRequest(url: url, timeoutInterval: 8)
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let (data, response) = try await InstallerDownloadPolicy.fetchData(for: request, maximumBytes: 1 * 1_024 * 1_024)
-        guard let http = response as? HTTPURLResponse,
-              (200...299).contains(http.statusCode) else {
-            throw RefreshError.network
-        }
-        guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw RefreshError.anisetteUnavailable
-        }
-        let result = AnisetteData(headers: object.compactMapValues { $0 as? String })
-        guard result.isValid else { throw RefreshError.anisetteUnavailable }
-        return result
+        throw RefreshError.anisetteUnavailable
     }
 }
 
