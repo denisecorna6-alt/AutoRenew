@@ -36,9 +36,12 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
       - name: Package explicitly unsigned IPA
         run: |
+          test -d build/Build/Products/Release-iphoneos/AutoRenew.app
+          rm -rf Payload
           mkdir -p Payload
           cp -R build/Build/Products/Release-iphoneos/AutoRenew.app Payload/
           zip -qr AutoRenew-unsigned.ipa Payload
+          unzip -t AutoRenew-unsigned.ipa
       - name: Upload explicitly unsigned Alpha IPA artifact
         uses: actions/upload-artifact@v7.0.2
         with:
