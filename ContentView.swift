@@ -24,6 +24,7 @@ struct AppRow: View {
                 Text(app.name).font(.headline)
                 Text("Expira \(app.expiresAt.formatted(.relative(presentation: .named)))")
                     .font(.caption).foregroundStyle(.secondary)
+                Text(app.bundleID).font(.caption2).foregroundStyle(.tertiary)
             }
         }
     }
@@ -32,39 +33,99 @@ struct AppRow: View {
 struct DashboardView: View {
     @EnvironmentObject var store: AppStore
     @State private var busy = false
+    @State private var showingAddApp = false
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    Label("Integração de assinatura pendente", systemImage: "info.circle")
+                    Label("Acompanhamento disponível · assinatura automática em desenvolvimento", systemImage: "info.circle")
                         .font(.headline)
-                    Text("A assinatura real ainda não está disponível. O AutoRenew não renova nem reinstala aplicativos até a integração com SideSign e Minimuxer ser concluída.")
+                    Text("Você pode cadastrar seus apps e receber alertas antes da expiração. A renovação e reinstalação automáticas ainda não estão disponíveis; nenhuma data será estendida sem uma assinatura real.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                ForEach(store.apps) { AppRow(app: $0) }
-                    .onDelete { store.apps.remove(atOffsets: $0) }
-            }
-            .overlay {
-                if store.apps.isEmpty {
-                    ContentUnavailableView("Nenhum app", systemImage: "app.dashed",
-                                           description: Text("Toque em + para adicionar um app de teste."))
+                Section("Seus aplicativos") {
+                    if store.apps.isEmpty {
+                        ContentUnavailableView("Nenhum app cadastrado", systemImage: "app.dashed",
+                                               description: Text("Adicione nome, Bundle ID e data de expiração para começar a acompanhar."))
+                    } else {
+                        ForEach(store.apps) { AppRow(app: $0) }
+                            .onDelete { offsets in
+                                store.apps.remove(atOffsets: offsets)
+                                Notifier.reschedule(store.apps)
+                            }
+                        .listRowSeparator(.visible)
+                    }
                 }
             }
             .navigationTitle("AutoRenew")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Testar fluxo") {
+                    Button("Verificar agora") {
                         busy = true
                         Task {
-                            await RefreshCoordinator.shared.runIfNeeded(trigger: "manual-test", budget: .seconds(120), force: true)
+                            await RefreshCoordinator.shared.runIfNeeded(trigger: "manual", budget: .seconds(30))
                             busy = false
                         }
                     }.disabled(busy || store.apps.isEmpty)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { store.addDemoApp() } label: { Image(systemName: "plus") }
+                    Button { showingAddApp = true } label: { Image(systemName: "plus") }
+                        .accessibilityLabel("Adicionar aplicativo")
+                }
+            }
+            .sheet(isPresented: $showingAddApp) {
+                AddAppView()
+            }
+        }
+    }
+}
+
+struct AddAppView: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var bundleID = ""
+    @State private var expiry = Calendar.current.date(byAdding: .day, value: 7, to: .now) ?? .now
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Dados do aplicativo") {
+                    TextField("Nome (ex.: Meu App)", text: $name)
+                        .textInputAutocapitalization(.words)
+                    TextField("Bundle ID (ex.: com.empresa.app)", text: $bundleID)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    DatePicker("Data de expiração", selection: $expiry, in: Date.distantPast..., displayedComponents: [.date, .hourAndMinute])
+                }
+                Section {
+                    Text("O cadastro é manual: confira a data de expiração no SideStore/AltStore. O AutoRenew ainda não lê a lista de apps instalados.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if let errorMessage {
+                    Section { Text(errorMessage).foregroundStyle(.red) }
+                }
+            }
+            .navigationTitle("Adicionar app")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancelar") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Salvar") {
+                        guard store.addApp(name: name, bundleID: bundleID, expiresAt: expiry) else {
+                            errorMessage = "Preencha os campos e use um Bundle ID que ainda não esteja cadastrado."
+                            return
+                        }
+                        dismiss()
+                    }
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                              bundleID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
@@ -91,6 +152,7 @@ struct LogsView: View {
 struct SettingsView: View {
     @EnvironmentObject var store: AppStore
     @State private var password = ""
+    @State private var credentialStatus = "Senha armazenada no Keychain do iPhone."
 
     var body: some View {
         NavigationStack {
@@ -98,25 +160,31 @@ struct SettingsView: View {
                 Section("Apple ID") {
                     TextField("E-mail", text: $store.settings.appleID)
                         .textInputAutocapitalization(.never).keyboardType(.emailAddress)
-                    SecureField("Senha (Keychain)", text: $password)
-                    Button("Salvar credenciais") {
-                        Keychain.set(password, for: "applePassword"); password = ""
+                    SecureField("Senha", text: $password)
+                    Button("Salvar senha com segurança") {
+                        guard !password.isEmpty else { return }
+                        Keychain.set(password, for: "applePassword")
+                        password = ""
+                        credentialStatus = "Senha salva no Keychain."
                     }
+                    Text(credentialStatus).font(.caption).foregroundStyle(.secondary)
+                    Text("As credenciais ainda não são usadas para login: a integração SideSign está pendente. Não compartilhe sua senha com ninguém.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
-                Section("Servidor Anisette (um por linha, em ordem de prioridade)") {
-                    TextField("URLs", text: Binding(
+                Section("Servidores Anisette") {
+                    TextField("URLs separadas por vírgula", text: Binding(
                         get: { store.settings.anisetteURLs.joined(separator: ", ") },
                         set: { store.settings.anisetteURLs = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } }
                     ))
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    Text("Ainda não conectados ao fluxo de autenticação SideSign.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
-                Section("Renovação") {
-                    Stepper("Renovar com menos de \(Int(store.settings.thresholdHours))h",
+                Section("Alertas") {
+                    Stepper("Avisar com menos de \(Int(store.settings.thresholdHours))h",
                             value: $store.settings.thresholdHours, in: 6...120, step: 6)
-                }
-                Section("Avançado") {
                     Toggle("Bloquear domínios OCSP/PPQ (VPN)", isOn: $store.settings.blockDomains)
-                    Text("Requer a extensão de túnel (entitlement Network Extension). Não estende os 7 dias de conta gratuita.")
+                    Text("O bloqueio por VPN exige uma extensão Network Extension e permissões específicas; não está ativo nesta build.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
