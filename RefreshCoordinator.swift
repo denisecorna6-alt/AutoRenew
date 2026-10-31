@@ -10,10 +10,10 @@ struct RefreshRunSummary: Sendable {
     /// task was cancelled/expired before they could be processed.
     var deferred: Int = 0
 
-    /// A background task succeeds only when every app in the due snapshot was
-    /// either renewed or explicitly failed; silently skipped work is not success.
+    /// A background refresh is successful only when every due app was renewed.
+    /// A fully processed run with one or more failures is still a failed refresh.
     var backgroundTaskSucceeded: Bool {
-        !skipped && deferred == 0 && renewed + failed == considered
+        !skipped && deferred == 0 && failed == 0 && renewed == considered
             && message != "Verificação interrompida pelo cancelamento ou pelo limite de tempo."
     }
 }
@@ -53,7 +53,7 @@ actor RefreshCoordinator {
         let deadline = clock.now + budget
         let selectedBackend = backend
         let (apps, settings) = await MainActor.run {
-            (AppStore.shared.apps.filter(\.isActive), AppStore.shared.settings)
+            (AppStore.shared.apps.filter(\\.isActive), AppStore.shared.settings)
         }
         let due = apps
             .filter { force || $0.expiresAt.timeIntervalSinceNow < settings.thresholdHours * 3600 }
@@ -189,7 +189,7 @@ actor RefreshCoordinator {
             } catch {
                 await fail(
                     app, trigger,
-                    "Falha inesperada: \(error.localizedDescription). A validade não foi alterada."
+                    "Falha inesperada: \\(error.localizedDescription). A validade não foi alterada."
                 )
                 failed += 1
             }
