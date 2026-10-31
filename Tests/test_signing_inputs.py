@@ -11,6 +11,7 @@ import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VALIDATOR = os.path.join(ROOT, "tools", "validate-signing-inputs.py")
+DEVICE_VALIDATOR = os.path.join(ROOT, "tools", "validate-device-profile.py")
 INSTALLER = os.path.join(ROOT, "tools", "install-to-iphone.sh")
 INSTALLER_VIEW = os.path.join(ROOT, "InstallerView.swift")
 CATALOG_VIEW = os.path.join(ROOT, "AppCatalogView.swift")
@@ -63,6 +64,12 @@ class SigningInputValidationTests(unittest.TestCase):
             "--ipa", self.ipa,
         ], capture_output=True, text=True)
 
+    def run_device_validator(self, device_id):
+        return subprocess.run([
+            sys.executable, DEVICE_VALIDATOR, "--profile", self.profile,
+            "--info", self.info, "--device-id", device_id,
+        ], capture_output=True, text=True)
+
     def test_accepts_profile_matching_identity_and_reduced_entitlements(self):
         result = self.run_validator()
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -109,20 +116,44 @@ class SigningInputValidationTests(unittest.TestCase):
         extraction = script.index('ditto -x -k "$IPA_PATH"')
         cms_verify = script.index('security cms -V -i "$PROFILE"')
         cms_decode = script.index('security cms -D -i "$PROFILE"')
+        device_check = script.index('tools/validate-device-profile.py')
+        devicectl = script.index('xcrun devicectl device install')
+        helper = Path(DEVICE_VALIDATOR).read_text(encoding="utf-8")
         self.assertLess(preflight, extraction)
         self.assertLess(cms_verify, cms_decode)
-        self.assertIn("CFBundleIdentifier", script)
-        self.assertIn("DeveloperCertificates", script)
+        self.assertLess(cms_decode, device_check)
+        self.assertLess(device_check, devicectl)
+        self.assertIn('--device-id "$DEVICE_ID"', script)
+        self.assertIn("CFBundleIdentifier", helper)
+        self.assertIn("DeveloperCertificates", helper)
+        self.assertIn("ProvisionedDevices", helper)
         self.assertIn("-name '*.appex'", script)
 
-    def test_signing_vault_source_exists(self):
-        self.assertTrue(Path(VAULT).is_file(), VAULT)
+    def test_install_preflight_accepts_selected_udid_case_insensitively(self):
+        result = self.run_device_validator("test-device")
+        self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_signing_vault_uses_explicit_certificate_status_guards(self):
-        source = Path(VAULT).read_text(encoding="utf-8")
-        self.assertIn("let certificateStatus = SecIdentityCopyCertificate(identity, &certificate)", source)
-        self.assertIn("guard certificateStatus == errSecSuccess else", source)
-        self.assertIn("guard let certificate else", source)
+    def test_install_preflight_rejects_device_not_in_profile(self):
+        result = self.run_device_validator("OTHER-DEVICE")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("UDID", result.stderr)
+
+    def test_enterprise_profile_allows_all_devices(self):
+        with open(self.profile, "rb") as stream:
+            values = plistlib.load(stream)
+        values["ProvisionsAllDevices"] = True
+        values.pop("ProvisionedDevices", None)
+        with open(self.profile, "wb") as stream:
+            plistlib.dump(values, stream)
+        result = self.run_device_validator("UNLISTED-DEVICE")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_installer_ui_does_not_request_private_key_or_p12_password(self):
+        source = Path(INSTALLER_VIEW).read_text(encoding="utf-8")
+        self.assertNotIn("SigningIdentityVault", source)
+        self.assertNotIn("SecureField", source)
+        self.assertNotIn("showingP12Importer", source)
+        self.assertFalse(Path(VAULT).exists())
 
     def test_rejects_unsafe_zip_path(self):
         with zipfile.ZipFile(self.ipa, "w") as z: z.writestr("../outside.txt", b"x")
