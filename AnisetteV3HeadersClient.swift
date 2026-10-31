@@ -48,15 +48,22 @@ struct AnisetteV3HeadersClient: Sendable {
     static func decodeResponse(_ data: Data) throws -> AnisetteData {
         do {
             let payload = try JSONDecoder().decode(Response.self, from: data)
-            guard case let .headers(machineID, oneTimePassword, routingInfo) = payload,
-                  !machineID.isEmpty, !oneTimePassword.isEmpty, !routingInfo.isEmpty else {
+            switch payload {
+            case let .headers(machineID, oneTimePassword, routingInfo):
+                guard !machineID.isEmpty, !oneTimePassword.isEmpty, !routingInfo.isEmpty else {
+                    throw RefreshError.anisetteUnavailable
+                }
+                return AnisetteData(headers: [
+                    "X-Apple-I-MD-M": machineID,
+                    "X-Apple-I-MD": oneTimePassword,
+                    "X-Apple-I-MD-RINFO": routingInfo
+                ])
+            case .error(let message):
+                if message.contains("-45061") {
+                    throw RefreshError.anisetteNeedsProvisioning
+                }
                 throw RefreshError.anisetteUnavailable
             }
-            return AnisetteData(headers: [
-                "X-Apple-I-MD-M": machineID,
-                "X-Apple-I-MD": oneTimePassword,
-                "X-Apple-I-MD-RINFO": routingInfo
-            ])
         } catch let error as RefreshError {
             throw error
         } catch {
@@ -106,10 +113,11 @@ struct AnisetteV3HeadersClient: Sendable {
 
     private enum Response: Decodable {
         case headers(machineID: String, oneTimePassword: String, routingInfo: String)
-        case error
+        case error(String)
 
         private enum CodingKeys: String, CodingKey {
             case result
+            case message
             case machineID = "X-Apple-I-MD-M"
             case oneTimePassword = "X-Apple-I-MD"
             case routingInfo = "X-Apple-I-MD-RINFO"
@@ -119,7 +127,7 @@ struct AnisetteV3HeadersClient: Sendable {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             let result = try container.decode(String.self, forKey: .result)
             guard result == "Headers" else {
-                self = .error
+                self = .error(try container.decodeIfPresent(String.self, forKey: .message) ?? "")
                 return
             }
             self = .headers(
