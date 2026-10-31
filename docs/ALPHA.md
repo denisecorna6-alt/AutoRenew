@@ -21,7 +21,10 @@ O backend atual é `StubSigningBackend`: ele simula uma nova expiração de sete
 
 ## Segurança e limites
 
-- Não envie senha Apple ID, códigos 2FA, cookies, tokens ou chaves privadas em issues, logs ou mensagens.
+- Esta Alpha não solicita nem persiste senha Apple ID, códigos 2FA, cookies, tokens de sessão ou chaves privadas.
+- A tela de Ajustes não oferece campos para credenciais Apple enquanto a integração real não existir.
+- Na primeira inicialização desta versão, o app remove do Keychain o item legado `applePassword` que versões anteriores da Alpha podiam ter gravado.
+- Não envie credenciais em issues, logs ou mensagens.
 - Não use certificados compartilhados ou de terceiros.
 - Uma falha de rede deve ser classificada como estado desconhecido, nunca como certificado revogado.
 - Qualquer futura ação de revogação deve ser explícita, limitada a credenciais próprias e precedida por verificação de dependências.
