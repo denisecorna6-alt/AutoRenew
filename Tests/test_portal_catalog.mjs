@@ -27,8 +27,14 @@ assert.equal(isUnsignedRelease({ body: "Os dois IPAs são unsigned" }), true);
 assert.equal(isUnsignedRelease({ body: "Sem assinatura Apple" }), true);
 assert.equal(isUnsignedRelease({ body: "Assinatura ainda não verificada" }), false);
 
-const pagesWorkflow = readFileSync(new URL("../.github/workflows/deploy-pages.yml", import.meta.url), "utf8");
-assert.match(pagesWorkflow, /actions\/checkout@v7\.0\.1/);
+const workflow = (name) => readFileSync(new URL("../.github/workflows/" + name, import.meta.url), "utf8");
+for (const name of ["beta-ci.yml", "beta-ipa.yml", "build.yml", "official-ci.yml", "official-ipa.yml", "deploy-pages.yml"]) {
+  assert.match(workflow(name), /actions\/checkout@v7\.0\.1/, name + " must use the current Node 24 checkout action");
+}
+for (const name of ["beta-ipa.yml", "build.yml", "official-ipa.yml"]) {
+  assert.match(workflow(name), /actions\/upload-artifact@v7\.0\.2/, name + " must use the current Node 24 artifact action");
+}
+const pagesWorkflow = workflow("deploy-pages.yml");
 assert.match(pagesWorkflow, /actions\/configure-pages@v6\.0\.0/);
 assert.match(pagesWorkflow, /actions\/upload-pages-artifact@v5\.0\.0/);
 assert.match(pagesWorkflow, /actions\/deploy-pages@v5\.0\.1/);
