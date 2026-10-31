@@ -43,6 +43,7 @@ class CredentialSafetyTests(unittest.TestCase):
         self.assertIn("SecItemDelete(query as CFDictionary)", cleanup)
         self.assertIn("LegacyCredentialCleanup.removePreviouslyStoredApplePassword()", app)
         self.assertNotIn("applePassword", store)
+        self.assertIn("if restoredSnapshot { save() }", store)
 
     def test_notifications_do_not_claim_renewal(self):
         notifier = read("Notifier.swift").lower()
