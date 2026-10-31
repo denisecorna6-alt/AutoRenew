@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - run: brew install xcodegen && xcodegen generate
       - run: |
           xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew -configuration Release \
@@ -22,7 +22,7 @@ jobs:
           cp -R build/Build/Products/Release-iphoneos/AutoRenew.app Payload/
           zip -qr AutoRenew-unsigned.ipa Payload
       - name: Upload explicitly unsigned IPA artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: AutoRenew-ipa-unsigned
           path: AutoRenew-unsigned.ipa
