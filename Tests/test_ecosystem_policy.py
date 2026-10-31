@@ -36,12 +36,16 @@ class EcosystemSafetyPolicy(unittest.TestCase):
         self.assertNotIn("security list-keychains", script)
         self.assertNotIn("security create-keychain", script)
 
-    def test_device_install_verifies_cms_and_profile_identity(self):
+    def test_device_install_verifies_cms_profile_identity_and_device_allowlist(self):
         script = read("tools/install-to-iphone.sh")
+        validator = read("tools/validate-install-target.py")
         self.assertIn("security cms -V -i", script)
-        self.assertIn("application-identifier", script)
-        self.assertIn("Bundle ID do app não corresponde", script)
+        self.assertIn("validate-install-target.py", script)
         self.assertIn("codesign --verify --deep --strict", script)
+        self.assertIn("application-identifier", validator)
+        self.assertIn("Bundle ID do app não corresponde", validator)
+        self.assertIn("ProvisionedDevices", validator)
+        self.assertIn("UDID deste iPhone", validator)
 
     def test_signing_backend_stays_fail_closed(self):
         backend = read("SigningBackend.swift")
