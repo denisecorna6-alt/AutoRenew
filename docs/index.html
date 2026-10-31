@@ -2,44 +2,42 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#101827">
+<meta name="theme-color" content="#101827"><meta name="color-scheme" content="dark">
 <meta name="description" content="Central oficial de downloads, builds e atualizações do AutoRenew para iPhone e iPad.">
 <title>AutoRenew — Installer e Downloads</title>
 <style>
 :root{color-scheme:dark;--bg:#0b1220;--panel:#121d30;--line:#263650;--muted:#9aabc3;--accent:#73e0b2;--blue:#8bb8ff}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0%,#1a3650 0,transparent 42%),var(--bg);color:#f4f7fb;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 main{max-width:960px;margin:auto;padding:34px 20px 72px}.top{display:flex;align-items:center;gap:12px;color:var(--accent);font-weight:750;letter-spacing:.04em}.mark{display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:#183b3a;font-size:22px}
-h1{font-size:clamp(2.4rem,8vw,4.5rem);line-height:1.02;letter-spacing:-.055em;margin:48px 0 16px}.lead{color:var(--muted);font-size:1.1rem;max-width:680px}.panel{background:linear-gradient(145deg,#16243a,#101a2b);border:1px solid var(--line);border-radius:22px;padding:24px;margin-top:22px;box-shadow:0 18px 55px #0003}.panel h2{margin:0 0 8px;font-size:1.35rem}.muted{color:var(--muted)}.small{font-size:.9rem}.row{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 15px;border-radius:12px;text-decoration:none;font-weight:700;background:var(--accent);color:#082019}.btn.secondary{background:#1d2c43;color:#eaf2ff;border:1px solid #3a4d68}.channel{border-top:1px solid var(--line);padding:15px 0}.channel:first-child{border-top:0}.tag{font-size:.76rem;color:var(--accent);border:1px solid #326b5a;border-radius:99px;padding:3px 8px;margin-left:8px}.notice{border-left:3px solid #e6bd6b;padding:10px 14px;background:#332b1c66;color:#e9d9b5;border-radius:0 10px 10px 0}.steps{counter-reset:s;display:grid;gap:14px;padding:0;list-style:none}.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start}.steps li:before{content:counter(s);flex:0 0 28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#203b4b;color:var(--accent);font-weight:800}footer{margin-top:36px;color:var(--muted);font-size:.88rem}a{color:var(--blue)}.loading{color:var(--muted)}
+h1{font-size:clamp(2.4rem,8vw,4.5rem);line-height:1.02;letter-spacing:-.055em;margin:48px 0 16px}.lead{color:var(--muted);font-size:1.1rem;max-width:680px}.panel{background:linear-gradient(145deg,#16243a,#101a2b);border:1px solid var(--line);border-radius:22px;padding:24px;margin-top:22px;box-shadow:0 18px 55px #0003}.panel h2{margin:0 0 8px;font-size:1.35rem}.muted{color:var(--muted)}.small{font-size:.9rem}.row{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}.btn{display:inline-flex;align-items:center;justify-content:center;padding:10px 15px;border-radius:12px;text-decoration:none;font-weight:700;background:var(--accent);color:#082019}.btn.secondary{background:#1d2c43;color:#eaf2ff;border:1px solid #3a4d68}.channel{border-top:1px solid var(--line);padding:15px 0}.channel:first-child{border-top:0}.tag{font-size:.76rem;color:var(--accent);border:1px solid #326b5a;border-radius:99px;padding:3px 8px;margin-left:8px}.notice{border-left:3px solid #e6bd6b;padding:10px 14px;background:#332b1c66;color:#e9d9b5;border-radius:0 10px 10px 0}.steps{counter-reset:s;display:grid;gap:14px;padding:0;list-style:none}.steps li{counter-increment:s;display:flex;gap:12px;align-items:flex-start}.steps li:before{content:counter(s);flex:0 0 28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#203b4b;color:var(--accent);font-weight:800}footer{margin-top:36px;color:var(--muted);font-size:.88rem}a{color:var(--blue)}a:focus-visible{outline:3px solid var(--accent);outline-offset:3px}.loading{color:var(--muted)}.skip-link{position:absolute;left:-9999px;top:8px;padding:10px 14px;background:var(--accent);color:#082019;border-radius:8px;z-index:10}.skip-link:focus{left:12px}
 </style>
 </head>
-<body><main>
+<body><a class="skip-link" href="#main-content">Pular para o conteúdo</a><main id="main-content">
 <div class="top"><span class="mark">↻</span><span>AUTORENEW</span></div>
 <h1>Installer<br>AutoRenew.</h1>
 <p class="lead">Central oficial do projeto: versões publicadas, builds de teste e instruções de instalação para iPhone e iPad. O catálogo é atualizado automaticamente ao abrir esta página.</p>
-<section class="panel"><h2>Catálogo de versões</h2><p class="muted small">O catálogo é obtido diretamente das Releases públicas do GitHub e separado por canal. Uma versão só aparece como download quando há um arquivo IPA anexado.</p><div class="channel"><h3>Stable <span class="tag">OFICIAL</span></h3><div id="stable-releases" class="loading">Consultando versões estáveis…</div></div><div class="channel"><h3>Beta <span class="tag">PRÉ-LANÇAMENTO</span></h3><div id="beta-releases" class="loading">Consultando versões Beta…</div></div><div class="channel"><h3>Alpha <span class="tag">TESTE</span></h3><div id="alpha-releases" class="loading">Consultando versões Alpha…</div></div><p class="notice small">Builds de CI não são Releases oficiais. Artefatos unsigned não são instaláveis diretamente e podem exigir autenticação no GitHub.</p></section>
-<section class="panel"><h2>Builds recentes por canal</h2><p class="muted small">Acompanhe os workflows Alpha, Beta e Oficial. Abra a execução no GitHub para consultar e baixar os artefatos disponíveis.</p><div id="builds" class="loading">Consultando builds…</div><div class="row"><a class="btn secondary" href="https://github.com/xlightxt/AutoRenew/actions">Todas as execuções</a></div></section>
-<section class="panel"><h2>Como instalar</h2><ol class="steps"><li>Configure o <a href="https://sidestore.io/">SideStore</a> ou <a href="https://altstore.io/">AltStore</a> no iPhone.</li><li>Baixe um IPA publicado ou um artefato de teste do GitHub Actions.</li><li>Abra/compartilhe o arquivo IPA com SideStore ou AltStore.</li><li>Conclua a assinatura com seu próprio Apple ID no fluxo oficial do instalador.</li></ol><p class="notice small">A versão atual ainda não implementa renovação real de certificados. Os IPAs produzidos pelo CI são unsigned (sem assinatura) e não podem ser instalados diretamente. A instalação exige assinatura válida e um método compatível. Não use Alpha/Beta como versão de produção.</p></section>
+<section class="panel"><h2>Catálogo de versões</h2><p class="muted small">O catálogo é obtido diretamente das Releases públicas do GitHub e separado por canal. Uma versão só aparece como download quando há um arquivo IPA anexado.</p><div class="channel"><h3>Stable <span class="tag">OFICIAL</span></h3><div id="stable-releases" class="loading" aria-live="polite" role="status">Consultando versões estáveis…</div></div><div class="channel"><h3>Beta <span class="tag">PRÉ-LANÇAMENTO</span></h3><div id="beta-releases" class="loading" aria-live="polite">Consultando versões Beta…</div></div><div class="channel"><h3>Alpha <span class="tag">TESTE</span></h3><div id="alpha-releases" class="loading" aria-live="polite">Consultando versões Alpha…</div></div><p class="notice small">Builds do GitHub Actions são artefatos de CI, não Releases. Os IPAs Alpha atualmente publicados são unsigned (sem assinatura); o portal não confirma assinatura, instalação ou primeiro lançamento em iPhone.</p></section>
+<section class="panel"><h2>Builds recentes por canal</h2><p class="muted small">Alpha considera somente branches codex/alpha-*, Beta somente beta e Oficial somente main. Abra a execução no GitHub para consultar os artefatos; sucesso de CI não comprova instalação.</p><div id="builds" class="loading" aria-live="polite">Consultando builds…</div><div class="row"><a class="btn secondary" href="https://github.com/xlightxt/AutoRenew/actions">Todas as execuções</a></div></section>
+<section class="panel"><h2>Como instalar</h2><ol class="steps"><li>Configure o <a href="https://sidestore.io/">SideStore</a> ou <a href="https://altstore.io/">AltStore</a> no iPhone por um fluxo compatível.</li><li>Baixe o IPA publicado ou um artefato do GitHub Actions; artefatos de CI podem expirar e não são Releases.</li><li>Abra/compartilhe o arquivo IPA com SideStore ou AltStore.</li><li>Conclua assinatura e instalação dentro da ferramenta escolhida. O AutoRenew Installer apenas baixa, inspeciona preliminarmente e encaminha o arquivo; não assina nem instala por conta própria.</li><li>Abra o app manualmente no iPhone e valide o funcionamento. O portal não recebe confirmação do primeiro lançamento.</li></ol><p class="notice small">A Release Alpha atual contém IPAs unsigned e não é instalável diretamente. Não há IPA assinado nem instalação/primeiro lançamento validados. O AutoRenew não implementa renovação real. Nunca informe senha Apple ID ou códigos 2FA ao AutoRenew.</p></section>
 <section class="panel"><h2>Transparência e segurança</h2><p class="muted">O AutoRenew é independente e não é afiliado à Apple. Não solicitamos nem armazenamos senhas Apple ID, códigos de autenticação ou chaves privadas. Não existe certificado gratuito universal ou permanente.</p><div class="row"><a class="btn secondary" href="https://github.com/xlightxt/AutoRenew">Código-fonte</a><a class="btn secondary" href="https://github.com/xlightxt/AutoRenew/blob/main/docs/ROADMAP.md">Roadmap</a><a class="btn secondary" href="https://github.com/xlightxt/AutoRenew/blob/main/docs/ALPHA.md">Notas Alpha</a></div></section>
 <footer>AutoRenew · Projeto independente, sem afiliação com Apple. <span id="updated"></span></footer>
 </main>
-<script>
+<script type="module">
+import { channelFor, isUnsignedRelease, latestRunForChannel } from "./catalog.mjs";
 const api="https://api.github.com/repos/xlightxt/AutoRenew";
 const $=id=>document.getElementById(id);
 function node(tag,cls,txt){const n=document.createElement(tag);if(cls)n.className=cls;if(txt)n.textContent=txt;return n}
 function link(href,label){const a=node("a","btn secondary",label);a.href=href;a.rel="noopener";return a}
-function channelFor(rel){
- const label=((rel.tag_name||"")+" "+(rel.name||"")).toLowerCase();
- if(/(^|[^a-z])alpha([^a-z]|$)/.test(label)) return "alpha";
- if(/(^|[^a-z])beta([^a-z]|$)/.test(label)) return "beta";
- return rel.prerelease ? "beta" : "stable";
-}
 function renderRelease(rel){
  const d=node("div","channel");
+ const unsigned=isUnsignedRelease(rel);
  const title=node("strong","",rel.name||rel.tag_name||"Versão sem nome");
- title.append(node("span","tag",rel.tag_name||"release"));d.append(title);
+ title.append(node("span","tag",rel.tag_name||"release"));
+ title.append(node("span","tag",unsigned?"IPA UNSIGNED":"ASSINATURA NÃO VERIFICADA"));
+ d.append(title);
  d.append(node("p","muted small",(rel.published_at?"Publicada em "+new Date(rel.published_at).toLocaleDateString("pt-BR")+" · ":"")+(rel.body||"Sem notas de versão.")));
  const assets=(rel.assets||[]).filter(a=>a.name.toLowerCase().endsWith(".ipa"));
- if(assets.length){for(const asset of assets)d.append(link(asset.browser_download_url,"Baixar "+asset.name))}
+ if(assets.length){for(const asset of assets){const label=unsigned?"Baixar IPA unsigned (não instalável diretamente): "+asset.name:"Baixar IPA (assinatura não verificada): "+asset.name;d.append(link(asset.browser_download_url,label));}}
  else d.append(node("p","muted small","Nenhum IPA anexado a esta versão."));
  d.append(link(rel.html_url,"Notas e detalhes"));return d;
 }
@@ -60,22 +58,21 @@ async function loadBuilds(){
  const box=$("builds");const specs=[["build.yml","Alpha"],["beta-ipa.yml","Beta"],["official-ipa.yml","Oficial"]];
  try{
   const results=await Promise.all(specs.map(async ([file,label])=>{
-   const r=await fetch(api+"/actions/workflows/"+file+"/runs?per_page=1",{headers:{Accept:"application/vnd.github+json"}});
+   const r=await fetch(api+"/actions/workflows/"+file+"/runs?per_page=100",{headers:{Accept:"application/vnd.github+json"}});
    if(!r.ok)throw Error("Falha ao consultar workflow "+label+".");
-   const j=await r.json();return {label,run:j.workflow_runs?.[0]};
+   const j=await r.json();return {label,run:latestRunForChannel(j.workflow_runs||[],label)};
   }));
   box.replaceChildren();
   for(const item of results){
    const d=node("div","channel");d.append(node("strong","","Canal "+item.label));
-   if(!item.run)d.append(node("p","muted small","Nenhuma execução encontrada."));
+   if(!item.run)d.append(node("p","muted small","Nenhuma execução encontrada na branch esperada."));
    else{const run=item.run;const status=run.status==="completed"?(run.conclusion==="success"?"Concluído com sucesso":"Concluído: "+(run.conclusion||"sem conclusão")):"Em andamento";
-    d.append(node("p","muted small",status+" · "+new Date(run.created_at).toLocaleString("pt-BR")));
+    d.append(node("p","muted small",status+" · "+new Date(run.created_at).toLocaleString("pt-BR")+" · "+run.head_branch));
     d.append(link(run.html_url,"Abrir build no GitHub"));}
    box.append(d);
   }
  }catch(e){box.replaceChildren(node("p","muted",e.message+" Acesse a página de Actions."))}
 }
-
 $("updated").textContent=" · Dados consultados ao abrir a página.";
 loadReleases();loadBuilds();
 </script></body></html>
