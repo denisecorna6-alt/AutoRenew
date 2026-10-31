@@ -44,8 +44,8 @@ struct AppSettings: Codable, Sendable {
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        anisetteURLs = try values.decodeIfPresent([String].self, forKey: .anisetteURLs)
-            ?? [Self.sideStoreAnisetteURL]
+        let savedURLs = try values.decodeIfPresent([String].self, forKey: .anisetteURLs) ?? []
+        anisetteURLs = savedURLs.isEmpty ? [Self.sideStoreAnisetteURL] : savedURLs
         thresholdHours = try values.decodeIfPresent(Double.self, forKey: .thresholdHours) ?? 48.0
         allowRemoteAnisette = try values.decodeIfPresent(Bool.self, forKey: .allowRemoteAnisette) ?? false
     }
