@@ -1,4 +1,5 @@
 import Foundation
+import CoreFoundation
 
 /// Reads public SideStore/AltSource JSON metadata only.
 /// This component does not authenticate with Apple, sign, install, or refresh apps.
