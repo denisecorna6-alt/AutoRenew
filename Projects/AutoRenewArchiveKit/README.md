@@ -2,23 +2,23 @@
 
 **Inspiração:** etapas de empacotamento e reconstrução de IPA usadas em ferramentas de sideload como SideSign/SideStore. Implementação independente.
 
-## Objetivo
+## Estado implementado no Alpha
 
-Inspecionar, extrair e reconstruir arquivos IPA de forma determinística, preservando estrutura, permissões e metadados necessários ao pacote iOS.
+- O inspector do app verifica extensão, tamanho, cabeçalho ZIP e SHA-256.
+- `tools/validate-signing-inputs.py` inspeciona o diretório central do ZIP e bloqueia path traversal, links simbólicos, entradas duplicadas, entradas excessivas, arquivos individuais grandes e taxa de compressão suspeita.
+- `tools/sign-ipa-macos.sh` extrai em diretório temporário, assina os bundles e reconstrói o IPA com `ditto`, preservando a pasta Payload e metadados suportados pelo macOS.
+- Depois de reconstruir, o helper reabre o IPA e executa novamente a verificação de assinatura dos bundles.
 
-## Estado atual
+## Limites técnicos
 
-O Alpha possui um inspector preliminar que verifica extensão, tamanho, cabeçalho ZIP e SHA-256. Isso não valida assinatura Apple, conteúdo seguro, compatibilidade ou malware.
+- A reconstrução só é considerada bem-sucedida quando o helper termina sem erro; não prova instalação ou primeiro lançamento.
+- O helper usa ferramentas macOS (`ditto`, `codesign`, `security`) e ainda precisa de teste com pacotes reais de desenvolvimento.
+- Ainda faltam fixtures ZIP/Mach-O reais, comparação de hashes por arquivo, validação de permissões em diferentes tipos de bundle e auditoria independente do resource envelope.
+- Este diretório ainda é uma especificação de subprojeto, não um Swift Package autônomo.
 
-## Evolução
+## Próximas etapas
 
-1. Inspecionar central directory e entradas ZIP, rejeitando path traversal, symlinks perigosos, duplicatas ambíguas e arquivos excessivos.
-2. Extrair em diretório temporário isolado com limites de tamanho descompactado e quantidade de arquivos.
-3. Identificar exatamente o app em Payload e inventariar frameworks, dylibs, appex e recursos.
-4. Reconstruir preservando permissões e estrutura esperadas, sem confiar em caminhos do arquivo de entrada.
-5. Verificar o pacote final e produzir relatório de hashes e arquivos alterados.
-6. Testar round-trip com fixtures sintéticas e pacotes de teste não sensíveis.
-
-## Critério de conclusão
-
-Um IPA reconstruído só será aceito se passar inspeção estrutural, limites de segurança e verificação de assinatura pós-processamento.
+1. Extrair a lógica ZIP para biblioteca testável.
+2. Criar inventário de Mach-O, frameworks, dylibs, appex e recursos.
+3. Adicionar testes round-trip com fixtures não sensíveis.
+4. Produzir relatório de hashes e arquivos alterados, sem incluir segredos.
