@@ -29,8 +29,17 @@ class CentralSafety(unittest.TestCase):
         self.assertNotIn("schedule:", FLOW)
 
     def test_every_privileged_or_secret_job_checks_out_trusted_main(self):
-        self.assertGreaterEqual(FLOW.count("ref: main"), 4)
+        self.assertGreaterEqual(FLOW.count("ref: main"), 3)
+        self.assertIn("ref: " + "$" + "{{ github.sha }}", FLOW)
         self.assertNotIn("ref: " + "$" + "{{ inputs.base_branch }}", FLOW)
+
+    def test_validate_job_has_no_secrets_or_write_permissions(self):
+        validation = FLOW.split("  validate:", 1)[1].split("  project-validation:", 1)[0]
+        self.assertIn("contents: read", validation)
+        self.assertNotIn("contents: write", validation)
+        self.assertNotIn("OPENAI_API_KEY", validation)
+        self.assertNotIn("ANTHROPIC_API_KEY", validation)
+        self.assertNotIn("GEMINI_API_KEY", validation)
 
     def test_provider_secret_job_is_read_only(self):
         proposal = FLOW.split("  propose:", 1)[1].split("  publish:", 1)[0]
