@@ -151,6 +151,7 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertEqual(profile.name, "Alpha Development")
         XCTAssertEqual(profile.uuid, "PROFILE-UUID")
         XCTAssertEqual(profile.teamIdentifiers, ["ABCDE12345"])
+        XCTAssertEqual(profile.developerCertificates, [Data([0x30, 0x01, 0x00])])
         XCTAssertTrue(profile.matches(bundleIdentifier: "com.example.reader"))
         XCTAssertFalse(profile.matches(bundleIdentifier: "com.example.other"))
 
@@ -207,6 +208,7 @@ final class AlphaSafetyTests: XCTestCase {
             "TeamIdentifier": ["ABCDE12345"],
             "ApplicationIdentifierPrefix": ["ABCDE12345"],
             "ProvisionedDevices": ["00008030-TEST-DEVICE"],
+            "DeveloperCertificates": [Data([0x30, 0x01, 0x00])],
             "Entitlements": [
                 "application-identifier": applicationIdentifier,
                 "get-task-allow": true,
