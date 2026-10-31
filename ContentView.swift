@@ -134,6 +134,7 @@ struct SettingsView: View {
                     Text("O iOS controla quando os avisos são entregues. Eles não executam assinatura ou reinstalação.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                SideStoreAutomationGuide()
                 Section("Privacidade") {
                     Text("Esta Alpha não solicita nem armazena Apple ID, senha, códigos 2FA, cookies, tokens ou chaves privadas. Nenhum servidor Anisette é consultado enquanto não existir um backend revisado.")
                         .font(.caption).foregroundStyle(.secondary)
