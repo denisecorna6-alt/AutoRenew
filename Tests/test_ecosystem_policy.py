@@ -43,6 +43,12 @@ class EcosystemSafetyPolicy(unittest.TestCase):
         self.assertIn("guard selectedBackend.isAvailable", coordinator)
         self.assertIn("Nenhuma alteração foi feita", coordinator)
 
+    def test_manual_refresh_forces_all_apps_and_reports_result(self):
+        dashboard = read("ContentView.swift")
+        self.assertIn('trigger: "manual", budget: .seconds(30), force: true', dashboard)
+        self.assertIn("summary.renewed", dashboard)
+        self.assertIn("summary.failed", dashboard)
+
     def test_ci_runs_tests_and_builds_both_targets_for_main_prs(self):
         workflow = read(".github/workflows/official-ci.yml")
         self.assertIn("pull_request:", workflow)
