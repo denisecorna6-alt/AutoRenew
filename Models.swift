@@ -26,6 +26,16 @@ struct AppSettings: Codable, Sendable {
     /// Explicit opt-in: provisioning and header requests send device Anisette data remotely.
     var allowRemoteAnisette = false
 
+    init(
+        anisetteURLs: [String] = [Self.sideStoreAnisetteURL],
+        thresholdHours: Double = 48.0,
+        allowRemoteAnisette: Bool = false
+    ) {
+        self.anisetteURLs = anisetteURLs
+        self.thresholdHours = thresholdHours
+        self.allowRemoteAnisette = allowRemoteAnisette
+    }
+
     private enum CodingKeys: String, CodingKey {
         case anisetteURLs
         case thresholdHours
