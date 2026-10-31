@@ -21,15 +21,27 @@ protocol AnisetteProvider: Sendable {
 struct RemoteAnisetteProvider: AnisetteProvider {
     let url: URL
 
+    static func isSafeHTTPSURL(_ candidate: URL?) -> Bool {
+        guard let candidate,
+              candidate.scheme?.lowercased() == "https",
+              let host = candidate.host, !host.isEmpty,
+              candidate.user == nil, candidate.password == nil,
+              candidate.fragment == nil else {
+            return false
+        }
+        return true
+    }
+
     func fetch() async throws -> AnisetteData {
-        guard url.scheme?.lowercased() == "https",
-              url.user == nil, url.password == nil,
-              url.fragment == nil else {
+        guard Self.isSafeHTTPSURL(url) else {
             throw RefreshError.anisetteUnavailable
         }
         var request = URLRequest(url: url, timeoutInterval: 8)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, response) = try await URLSession.shared.data(for: request)
+        guard Self.isSafeHTTPSURL(response.url) else {
+            throw RefreshError.anisetteUnavailable
+        }
         guard let http = response as? HTTPURLResponse,
               (200...299).contains(http.statusCode) else {
             throw RefreshError.network
@@ -51,10 +63,7 @@ actor AnisetteRouter: AnisetteProvider {
     init(urls: [String]) {
         providers = urls.compactMap { raw in
             guard let url = URL(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)),
-                  url.scheme?.lowercased() == "https",
-                  url.host != nil,
-                  url.user == nil, url.password == nil,
-                  url.fragment == nil else { return nil }
+                  RemoteAnisetteProvider.isSafeHTTPSURL(url) else { return nil }
             return RemoteAnisetteProvider(url: url)
         }
     }
