@@ -42,6 +42,16 @@ class CredentialSafetyTests(unittest.TestCase):
         self.assertNotIn("renovar agora", notifier)
         self.assertIn("renovação automática não está disponível", notifier)
 
+    def test_demo_apps_never_schedule_real_expiry_reminders(self):
+        model = read("Models.swift")
+        store = read("AppStore.swift")
+        notifier = read("Notifier.swift")
+        ui = read("ContentView.swift")
+        self.assertIn("var isDemo: Bool? = nil", model)
+        self.assertIn("isDemo: true", store)
+        self.assertIn("$0.isDemo != true", notifier)
+        self.assertIn("store.apps.contains(where: { $0.isActive && $0.isDemo != true })", ui)
+
     def test_notification_consent_is_user_initiated_and_bounded(self):
         app = read("AutoRenewApp.swift")
         ui = read("ContentView.swift")
