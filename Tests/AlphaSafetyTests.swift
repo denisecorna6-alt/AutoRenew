@@ -564,4 +564,53 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertThrowsError(try AnisetteV3AppleProvisioningClient.makeProvisioningPlist(cpim: ""))
     }
 
+
+    func testAnisetteV3ClientInfoParsesRequiredFields() throws {
+        let payload = Data(#"{"client_info":"<MacBookPro18,3> <macOS;14.0;23A344>","user_agent":"Xcode"}"#.utf8)
+        let info = try AnisetteV3ServerClientInfoClient.parse(payload)
+        XCTAssertTrue(info.isValid)
+        XCTAssertEqual(info.clientInfo, "<MacBookPro18,3> <macOS;14.0;23A344>")
+        XCTAssertEqual(info.userAgent, "Xcode")
+    }
+
+    func testAnisetteV3ClientInfoRejectsMissingOrOversizedFields() {
+        for payload in [
+            Data(#"{"client_info":"client"}"#.utf8),
+            Data(#"{"client_info":"","user_agent":"Xcode"}"#.utf8),
+            Data("not-json".utf8)
+        ] {
+            XCTAssertThrowsError(try AnisetteV3ServerClientInfoClient.parse(payload))
+        }
+        let oversized = String(repeating: "x", count: 2_049)
+        let json = try! JSONSerialization.data(withJSONObject: ["client_info": oversized, "user_agent": "Xcode"])
+        XCTAssertThrowsError(try AnisetteV3ServerClientInfoClient.parse(json))
+    }
+
+    func testAnisetteV3ProvisionerBuildsSecureWebSocketURL() throws {
+        XCTAssertEqual(
+            try AnisetteV3Provisioner.makeWebSocketURL(
+                serverURL: URL(string: "https://anisette.example/base/")!
+            ).absoluteString,
+            "wss://anisette.example/base/v3/provisioning_session"
+        )
+        XCTAssertThrowsError(try AnisetteV3Provisioner.makeWebSocketURL(
+            serverURL: URL(string: "http://anisette.example")!
+        ))
+        XCTAssertThrowsError(try AnisetteV3Provisioner.makeWebSocketURL(
+            serverURL: URL(string: "https://user:pass@anisette.example")!
+        ))
+        XCTAssertThrowsError(try AnisetteV3Provisioner.makeWebSocketURL(
+            serverURL: URL(string: "https://anisette.example/?token=secret")!
+        ))
+    }
+
+    func testAnisetteV3ClientInfoRequestUsesConfiguredHTTPSHost() throws {
+        let request = try AnisetteV3ServerClientInfoClient.makeRequest(
+            serverURL: URL(string: "https://anisette.example/custom/")!
+        )
+        XCTAssertEqual(request.httpMethod, "GET")
+        XCTAssertEqual(request.url?.absoluteString, "https://anisette.example/custom/v3/client_info")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Accept"), "application/json")
+    }
+
 }
