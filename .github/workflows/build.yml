@@ -6,16 +6,19 @@ on:
     branches:
       - main
       - 'codex/alpha-*'
+  pull_request:
+    branches:
+      - 'codex/alpha-ai-orchestrator-20261031'
 concurrency:
   group: autorenew-build-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build-and-test:
     permissions:
-      contents: write
+      contents: read
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - name: Generate Xcode project
         run: brew install xcodegen && xcodegen generate
       - name: Validate macOS helper syntax and signing validator tests
@@ -65,43 +68,14 @@ jobs:
           (cd AutoRenewPayload && zip -qr ../AutoRenew.ipa Payload)
           (cd InstallerPayload && zip -qr ../AutoRenew-Installer.ipa Payload)
       - name: Upload AutoRenew unsigned IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: AutoRenew-ipa-unsigned
           path: AutoRenew.ipa
           retention-days: 30
       - name: Upload Installer unsigned IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: AutoRenew-Installer-ipa-unsigned
           path: AutoRenew-Installer.ipa
           retention-days: 30
-
-      - name: Publish public Alpha prerelease
-        if: startsWith(github.ref, 'refs/heads/codex/alpha-release-')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          shasum -a 256 AutoRenew.ipa AutoRenew-Installer.ipa > SHA256SUMS
-          cat > RELEASE_NOTES.md <<'EOF'
-          # AutoRenew Alpha — teste público
-
-          Esta versão Alpha é experimental e pode conter falhas.
-
-          Downloads:
-          - AutoRenew.ipa — aplicativo principal.
-          - AutoRenew-Installer.ipa — Installer independente.
-          - SHA256SUMS — hashes SHA-256 dos pacotes.
-
-          IMPORTANTE: os dois IPAs são unsigned e não são instaláveis diretamente. Para testar, importe o IPA no AltStore ou SideStore e deixe essa ferramenta assinar o pacote com seu próprio método e perfil compatível. O Installer também precisa ser instalado por uma ferramenta de sideload já funcional.
-
-          O AutoRenew ainda não implementa renovação/refresh real. O Installer oferece catálogo, download, pré-verificação estrutural e handoff; não faz assinatura ou instalação on-device por conta própria.
-
-          Informe versão do iOS, modelo do dispositivo, versão do app e etapa do erro ao relatar problemas. Não use esta Alpha como versão de produção.
-          EOF
-          TAG="alpha-$(date -u +%Y.%m.%d)-${GITHUB_SHA:0:7}"
-          gh release create "$TAG" AutoRenew.ipa AutoRenew-Installer.ipa SHA256SUMS \
-            --target "$GITHUB_SHA" \
-            --prerelease \
-            --title "AutoRenew Alpha $TAG" \
-            --notes-file RELEASE_NOTES.md
