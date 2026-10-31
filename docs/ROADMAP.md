@@ -12,8 +12,9 @@ Construir um app iOS que acompanhe a validade de aplicativos sideloaded e, quand
 - Estrutura inicial de interface, configurações e logs.
 - Backend demonstrativo (`StubSigningBackend`) que simula uma nova expiração; não autentica, não assina e não reinstala apps.
 - Workflows de CI que geram artefatos IPA sem assinatura. O sucesso de um build ou a integridade de um ZIP não comprovam instalação ou funcionamento.
-- Portal de downloads em `docs/index.html` e workflow de deploy em `.github/workflows/deploy-pages.yml`; a publicação está bloqueada porque GitHub Pages ainda não está habilitado/configurado no repositório. Consulte [DEPLOYMENT.md](DEPLOYMENT.md).
-- Nenhuma Release pública publicada até esta atualização.
+- Portal de downloads publicado em [GitHub Pages](https://xlightxt.github.io/AutoRenew/); o catálogo consulta Releases e os workflows por canal/branch.
+- Uma pré-release Alpha pública, `alpha-2026.10.31-c1feeb6`, com dois IPAs unsigned (`AutoRenew.ipa` e `AutoRenew-Installer.ipa`). Não há Release Beta ou Stable.
+- Os artefatos Actions são distintos das Releases e expiram conforme a retenção do workflow. Nenhum IPA assinado, instalação em iPhone ou primeiro lançamento foi validado. Consulte [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## O que ainda não está pronto
 
@@ -24,7 +25,7 @@ Construir um app iOS que acompanhe a validade de aplicativos sideloaded e, quand
 - Verificação diária de estado com fonte suportada e distinção confiável entre válido, expirado, revogado e desconhecido.
 - Revogação automatizada. Para Apple IDs gratuitos, a automação pode não estar disponível; nesse caso, oferecer instruções manuais, sem contornar APIs privadas.
 - Testes de ponta a ponta em iPhone físico, incluindo assinatura, instalação, renovação comprovada e recuperação de falhas.
-- Portal publicado e validado por HTTP após habilitação do GitHub Pages.
+- Validação contínua do portal e dos filtros de branch do catálogo.
 
 ## Sequência recomendada
 
@@ -36,6 +37,14 @@ Construir um app iOS que acompanhe a validade de aplicativos sideloaded e, quand
 6. **Revogação segura:** somente certificados próprios, operação suportada oficialmente, opt-in, verificação de dependências e log de auditoria.
 7. **Beta pública:** publicar somente após testes completos, assinatura/instalação verificadas e revisão da documentação.
 8. **Stable:** somente depois de builds reproduzíveis, testes automatizados, validação de pacote/assinatura, notas de versão, regressões e teste físico.
+
+## Estado de assinatura e instalação
+
+- **Actions artifact:** saída de CI vinculada a uma execução; não é Release.
+- **IPA unsigned:** os dois arquivos da Alpha pública; não podem ser instalados diretamente.
+- **IPA assinado:** nenhum artefato verificado.
+- **Instalação validada:** nenhuma.
+- **Primeiro lançamento em iPhone:** nenhum.
 
 ## Pull requests em avaliação
 
