@@ -8,6 +8,8 @@ on:
       - 'codex/alpha-*'
   pull_request:
     branches:
+      - main
+      - beta
       - 'codex/alpha-ai-orchestrator-20261031'
 concurrency:
   group: autorenew-build-${{ github.ref }}
