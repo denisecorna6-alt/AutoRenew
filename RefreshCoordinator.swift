@@ -16,6 +16,11 @@ struct RefreshRunSummary {
         considered: 0, renewed: 0, deferred: 0, failed: 0,
         skipped: true, cancelled: false
     )
+
+    static let deferredWork = RefreshRunSummary(
+        considered: 0, renewed: 0, deferred: 1, failed: 0,
+        skipped: true, cancelled: false
+    )
 }
 
 actor RefreshCoordinator {
@@ -27,7 +32,7 @@ actor RefreshCoordinator {
 
     @discardableResult
     func runIfNeeded(trigger: String, budget: Duration, force: Bool = false) async -> RefreshRunSummary {
-        guard !running else { return .noWork }
+        guard !running else { return .deferredWork }
         running = true
         defer { running = false }
 
@@ -71,6 +76,11 @@ actor RefreshCoordinator {
             }
             do {
                 let newExpiry = try await backend.refresh(app: app)
+                if Task.isCancelled {
+                    cancelled = true
+                    deferred += due.count - index
+                    break
+                }
                 guard newExpiry > app.expiresAt else {
                     await fail(app, trigger,
                                "O backend não confirmou uma validade posterior. Nenhuma alteração foi feita.")
@@ -82,6 +92,11 @@ actor RefreshCoordinator {
                 }
                 renewed += 1
             } catch let error as RefreshError {
+                if Task.isCancelled {
+                    cancelled = true
+                    deferred += due.count - index
+                    break
+                }
                 let message: String
                 switch error {
                 case .notImplemented:
@@ -94,6 +109,11 @@ actor RefreshCoordinator {
                 await fail(app, trigger, message)
                 failed += 1
             } catch {
+                if Task.isCancelled {
+                    cancelled = true
+                    deferred += due.count - index
+                    break
+                }
                 await fail(app, trigger,
                            "Falha inesperada. O estado da assinatura permanece desconhecido.")
                 failed += 1
