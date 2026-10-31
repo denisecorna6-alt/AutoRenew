@@ -29,6 +29,19 @@
 - Busca por nome, Bundle ID e fonte; lista versões e baixa IPAs HTTPS para o armazenamento privado do app.
 - Compartilhamento dos IPAs baixados pelo iOS.
 
+## Instalação assistida por Mac
+
+Para IPAs já assinados para desenvolvimento, há um helper local para macOS que usa as ferramentas do Xcode (não envia certificado ou senha a servidores):
+
+```sh
+xcrun devicectl list devices
+./tools/install-to-iphone.sh <identificador-do-iphone> /caminho/para/app-assinado.ipa
+```
+
+Requisitos: Mac com Xcode instalado, iPhone pareado/confiado pelo computador, Developer Mode quando exigido e IPA assinado com certificado/perfil compatíveis com esse dispositivo. O helper extrai o IPA, exige um único app principal, verifica a assinatura com `codesign`, valida que o perfil CMS pode ser lido e solicita a instalação pelo `devicectl`.
+
+O helper não cria certificados, não registra dispositivos, não assina IPAs e não contorna o provisionamento. O sucesso do comando também não comprova que o app abriu corretamente no iPhone.
+
 ## Compatibilidade de fontes
 
 O catálogo do AutoRenew lê o formato de fontes AltStore (AltSources), que também é compatível com SideStore. Adicione o URL HTTPS de um arquivo JSON de fonte dentro da aba **Catálogo**. Use apenas fontes confiáveis.
