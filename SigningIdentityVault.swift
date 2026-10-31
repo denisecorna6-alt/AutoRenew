@@ -68,8 +68,9 @@ final class SigningIdentityVault: ObservableObject {
         let identity = identityValue as! SecIdentity
 
         var certificate: SecCertificate?
-        guard SecIdentityCopyCertificate(identity, &certificate) == errSecSuccess,
-              let certificate else { throw VaultError.invalidIdentity }
+        let certificateStatus = SecIdentityCopyCertificate(identity, &certificate)
+        guard certificateStatus == errSecSuccess else { throw VaultError.invalidIdentity }
+        guard let certificate else { throw VaultError.invalidIdentity }
 
         let displayName = SecCertificateCopySubjectSummary(certificate) as String? ?? "Certificado Apple"
         let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
