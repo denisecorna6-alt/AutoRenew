@@ -2,6 +2,10 @@
 
 Esta é uma compilação inicial de avaliação. O objetivo é validar a navegação, o painel de apps, o histórico e o fluxo de teste antes de conectar qualquer mecanismo real de assinatura.
 
+## Pacotes Alpha publicados em 31/10/2026
+
+A pré-release `alpha-2026.10.31-c1feeb6` contém `AutoRenew.ipa` e `AutoRenew-Installer.ipa`. Ambos são **unsigned**. São arquivos de build, não instaladores prontos. Não há IPA assinado, instalação validada em iPhone nem primeiro lançamento confirmado.
+
 ## O que já pode ser avaliado
 
 - Interface SwiftUI do painel, lista de apps e histórico.
