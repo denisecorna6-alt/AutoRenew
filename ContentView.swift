@@ -36,6 +36,13 @@ struct DashboardView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    Label("Integração de assinatura pendente", systemImage: "info.circle")
+                        .font(.headline)
+                    Text("Esta versão ainda usa um backend simulado. O botão de teste não assina nem reinstala aplicativos. A integração com SideSign e Minimuxer ainda precisa ser concluída.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 ForEach(store.apps) { AppRow(app: $0) }
                     .onDelete { store.apps.remove(atOffsets: $0) }
             }
@@ -45,13 +52,13 @@ struct DashboardView: View {
                                            description: Text("Toque em + para adicionar um app de teste."))
                 }
             }
-            .navigationTitle("Apps")
+            .navigationTitle("AutoRenew")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Renovar tudo") {
+                    Button("Testar fluxo") {
                         busy = true
                         Task {
-                            await RefreshCoordinator.shared.runIfNeeded(trigger: "manual", budget: .seconds(120), force: true)
+                            await RefreshCoordinator.shared.runIfNeeded(trigger: "manual-test", budget: .seconds(120), force: true)
                             busy = false
                         }
                     }.disabled(busy || store.apps.isEmpty)
@@ -76,7 +83,7 @@ struct LogsView: View {
                     Text("\(a.date.formatted()) · \(a.trigger)").font(.caption2).foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("Logs")
+            .navigationTitle("Atividade")
         }
     }
 }
