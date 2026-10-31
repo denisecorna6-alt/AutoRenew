@@ -29,7 +29,7 @@ O backend `StubSigningBackend` informa que a integração não está implementad
 
 - Esta Alpha não solicita nem persiste senha Apple ID, códigos 2FA, cookies, tokens de sessão ou chaves privadas.
 - Na primeira inicialização desta versão, o app remove do Keychain o item legado `applePassword` que versões anteriores podiam ter gravado.
-- Provedores Anisette configurados precisam usar HTTPS e retornar HTTP 2xx com metadados esperados.
+- O fluxo remoto Anisette V3 ainda não está implementado. A versão atual não contata servidores Anisette por padrão; um GET simples à raiz do servidor não substitui a sessão de provisionamento WebSocket e a requisição autenticada de headers.
 - O cache Anisette é isolado por actor para evitar acessos concorrentes.
 - Não envie credenciais em issues, logs ou mensagens.
 - Não use certificados compartilhados, endpoints privados/não documentados ou automação que burle controles da Apple.
