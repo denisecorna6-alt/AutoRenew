@@ -56,7 +56,7 @@ A revisão do código Alpha identificou dois problemas concretos no catálogo do
 1. Download de assets de Releases verificava HTTP 2xx, mas não conferia a URL final após redirects, limite de tamanho nem nome de arquivo IPA.
 2. Download/importação com nome já existente removia o arquivo anterior, podendo destruir uma cópia válida do usuário.
 
-A correção Alpha adiciona política de validação HTTPS e tamanho, inspeciona o arquivo baixado com IPAInspector, e cria nome único sem apagar arquivos existentes. Testes de regressão cobrem redirect inseguro, tamanho/nome inválido e preservação do arquivo anterior.
+A correção Alpha verifica HTTPS na URL final, nome do asset, tamanho depois que o download termina, cabeçalho ZIP/SHA-256 e cria nome único sem apagar arquivos existentes. Testes cobrem redirect HTTP, tamanho/nome inválido e preservação do arquivo anterior. **Limitação ainda aberta:** o limite de tamanho é aplicado depois da transferência completa (não é um limite de streaming), o host final HTTPS não tem allowlist e o IPAInspector só reconhece o cabeçalho ZIP; não valida central directory, CRC, caminhos ou symlinks. Antes de tratar downloads de URLs arbitrárias como seguros, implementar download limitado em streaming, allowlist/consentimento do host final e validação ZIP estrutural.
 
 ## Próximas etapas priorizadas
 
