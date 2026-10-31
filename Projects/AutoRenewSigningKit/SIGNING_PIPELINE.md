@@ -43,12 +43,10 @@ O manifesto deve listar exatamente cada `.app` e `.appex` contido no IPA. Os cam
 Em um Mac com Xcode e ferramentas de linha de comando:
 
 ```sh
-export P12_PASSWORD='senha-do-arquivo-p12'
 tools/sign-ipa-macos.sh AutoRenew-unsigned.ipa Developer.p12 signing-manifest.json AutoRenew-signed.ipa
-unset P12_PASSWORD
 ```
 
-A senha não deve ser colocada no histórico do shell, issue, log ou CI. Prefira entrada segura por prompt/gerenciador de segredos local. O helper não envia o P12, perfil ou senha à rede.
+A ferramenta Security do macOS solicita a senha em prompt seguro. Não a exporte em variável, argumento, histórico do shell, issue, log ou CI. O helper não envia o arquivo, perfil ou senha à rede.
 
 ## Limites deliberados desta versão
 
