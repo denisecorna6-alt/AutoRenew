@@ -21,6 +21,15 @@ actor RefreshCoordinator {
                       .sorted { $0.expiresAt < $1.expiresAt }
         guard !due.isEmpty else { return }
 
+        // Fail closed before contacting any service while no real signer is configured.
+        guard !(backend is StubSigningBackend) else {
+            for app in due {
+                await fail(app, trigger,
+                           "Renovação real indisponível: integração de assinatura ainda não implementada. Nenhuma alteração foi feita.")
+            }
+            return
+        }
+
         let router = AnisetteRouter(urls: settings.anisetteURLs)
         for app in due {
             if Task.isCancelled || clock.now >= deadline { break }
