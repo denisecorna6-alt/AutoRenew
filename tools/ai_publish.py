@@ -28,8 +28,13 @@ def main():
     artifact = Path("ai-proposal-output")
     patch_source = artifact / "ai-change.patch"
     report_source = artifact / "ai-coding-report.md"
-    if not patch_source.is_file() or not report_source.is_file():
-        raise RuntimeError("Artefato de proposta incompleto.")
+    if artifact.is_symlink() or not artifact.is_dir():
+        raise RuntimeError("Diretório de artefato inválido.")
+    if (patch_source.is_symlink() or report_source.is_symlink()
+            or not patch_source.is_file() or not report_source.is_file()):
+        raise RuntimeError("Artefato de proposta incompleto ou com symlink.")
+    if {item.name for item in artifact.iterdir()} != {"ai-change.patch", "ai-coding-report.md"}:
+        raise RuntimeError("Artefato contém arquivos inesperados.")
     patch = patch_source.read_text(encoding="utf-8")
     files = validate_patch(patch)
     shutil.rmtree(artifact)
