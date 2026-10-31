@@ -6,6 +6,10 @@ struct IPAInspection: Equatable {
     let fileName: String
     let byteCount: Int
     let sha256: String
+
+    var validationScope: String {
+        "Cabeçalho ZIP reconhecido e SHA-256 calculado. Estrutura ZIP completa, assinatura Apple, perfil, malware e compatibilidade não foram verificados."
+    }
 }
 
 enum IPAInspectionError: LocalizedError, Equatable {
@@ -34,8 +38,8 @@ enum IPAInspectionError: LocalizedError, Equatable {
     }
 }
 
-/// Performs a bounded, streaming preflight before handing an IPA to a signing/install tool.
-/// This is deliberately not a code-signature or provisioning-profile validator.
+/// Checks the .ipa extension, file-size limit, local ZIP header and streaming SHA-256.
+/// It does not parse the ZIP central directory or validate code signatures/profiles.
 enum IPAInspector {
     static let maximumFileSize = 1_500_000_000
     private static let chunkSize = 1_048_576

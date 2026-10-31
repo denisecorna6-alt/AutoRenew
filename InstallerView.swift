@@ -91,20 +91,30 @@ private final class InstallerCatalog: ObservableObject {
             var request = URLRequest(url: asset.browserDownloadURL)
             request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
             let (temporaryURL, response) = try await URLSession.shared.download(for: request)
-            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-                throw URLError(.badServerResponse)
-            }
+            // URLSession gives its temporary file an arbitrary extension. Move it
+            // to a private .ipa staging name so IPAInspector can enforce its contract.
+            let stagingURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension("ipa")
+            try FileManager.default.moveItem(at: temporaryURL, to: stagingURL)
+            defer { try? FileManager.default.removeItem(at: stagingURL) }
+
+            let values = try stagingURL.resourceValues(forKeys: [.fileSizeKey])
+            let safeName = try InstallerDownloadPolicy.validatedReleaseFilename(
+                sourceURL: asset.browserDownloadURL,
+                response: response,
+                assetName: asset.name,
+                fileSize: values.fileSize ?? 0
+            )
+            // Check the actual downloaded archive before it enters the library.
+            _ = try IPAInspector.inspect(fileURL: stagingURL)
 
             let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("DownloadedIPAs", isDirectory: true)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            let safeName = URL(fileURLWithPath: asset.name).lastPathComponent
-            let destination = directory.appendingPathComponent(safeName)
-            if FileManager.default.fileExists(atPath: destination.path) {
-                try FileManager.default.removeItem(at: destination)
-            }
-            try FileManager.default.moveItem(at: temporaryURL, to: destination)
-            statusMessage = "Download concluído: \(safeName). O arquivo foi salvo no AutoRenew."
+            let destination = InstallerDownloadPolicy.uniqueDestination(in: directory, filename: safeName)
+            try FileManager.default.moveItem(at: stagingURL, to: destination)
+            statusMessage = "Download concluído: \(destination.lastPathComponent). O arquivo foi salvo; ainda precisa de assinatura válida para instalação."
             refreshDownloadedFiles()
         } catch {
             errorMessage = "Falha ao baixar \(asset.name): \(error.localizedDescription)"
@@ -136,29 +146,26 @@ private final class InstallerCatalog: ObservableObject {
                   (200..<300).contains(http.statusCode),
                   let finalURL = response.url,
                   finalURL.scheme?.lowercased() == "https",
+                  finalURL.host != nil,
                   finalURL.user == nil, finalURL.password == nil else {
-                throw URLError(.badServerResponse)
+                throw InstallerDownloadError.insecureURL
             }
-            let values = try temporaryURL.resourceValues(forKeys: [.fileSizeKey])
-            guard let size = values.fileSize, size > 0, size <= 1_500_000_000 else {
-                throw NSError(domain: "AutoRenew.Installer", code: 3,
-                              userInfo: [NSLocalizedDescriptionKey: "O IPA está vazio ou excede 1,5 GB."])
+            let suggestedName = URL(fileURLWithPath: finalURL.lastPathComponent).lastPathComponent
+            guard suggestedName.lowercased().hasSuffix(".ipa"), suggestedName != ".ipa" else {
+                throw InstallerDownloadError.invalidFilename
             }
+            let stagingURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension("ipa")
+            try FileManager.default.moveItem(at: temporaryURL, to: stagingURL)
+            defer { try? FileManager.default.removeItem(at: stagingURL) }
+            _ = try IPAInspector.inspect(fileURL: stagingURL)
 
             let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("DownloadedIPAs", isDirectory: true)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            let suggestedName = finalURL.lastPathComponent
-            let safeName = URL(fileURLWithPath: suggestedName).lastPathComponent
-            guard safeName.lowercased().hasSuffix(".ipa"), safeName != ".ipa" else {
-                throw NSError(domain: "AutoRenew.Installer", code: 4,
-                              userInfo: [NSLocalizedDescriptionKey: "O servidor não forneceu um nome de arquivo .ipa válido."])
-            }
-            let destination = directory.appendingPathComponent(safeName)
-            let uniqueDestination = FileManager.default.fileExists(atPath: destination.path)
-                ? directory.appendingPathComponent("\(UUID().uuidString)-\(safeName)")
-                : destination
-            try FileManager.default.moveItem(at: temporaryURL, to: uniqueDestination)
+            let uniqueDestination = InstallerDownloadPolicy.uniqueDestination(in: directory, filename: suggestedName)
+            try FileManager.default.moveItem(at: stagingURL, to: uniqueDestination)
             statusMessage = "IPA baixado por HTTPS: \(uniqueDestination.lastPathComponent). Ainda precisa ser validado e assinado."
             refreshDownloadedFiles()
         } catch {
@@ -181,12 +188,16 @@ private final class InstallerCatalog: ObservableObject {
         let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("DownloadedIPAs", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let destination = directory.appendingPathComponent(source.lastPathComponent)
-        if FileManager.default.fileExists(atPath: destination.path) {
-            try FileManager.default.removeItem(at: destination)
+        // Reject invalid ZIP headers before copying an imported package into the library.
+        _ = try IPAInspector.inspect(fileURL: source)
+        let filename = URL(fileURLWithPath: source.lastPathComponent).lastPathComponent
+        guard filename.lowercased().hasSuffix(".ipa"), filename != ".ipa" else {
+            throw NSError(domain: "AutoRenew.Installer", code: 5,
+                          userInfo: [NSLocalizedDescriptionKey: "O nome do arquivo IPA é inválido."])
         }
+        let destination = InstallerDownloadPolicy.uniqueDestination(in: directory, filename: filename)
         try FileManager.default.copyItem(at: source, to: destination)
-        statusMessage = "IPA importado: \(destination.lastPathComponent)."
+        statusMessage = "IPA importado sem sobrescrever arquivos existentes: \(destination.lastPathComponent)."
         refreshDownloadedFiles()
     }
 
@@ -340,7 +351,7 @@ struct InstallerView: View {
                                         preparationMessage = error.localizedDescription
                                     }
                                 } label: {
-                                    Label("Verificar e preparar instalação", systemImage: "checkmark.shield")
+                                    Label("Inspecionar IPA e preparar encaminhamento", systemImage: "doc.text.magnifyingglass")
                                         .font(.caption)
                                 }
                                 ShareLink(item: file) {
@@ -371,7 +382,7 @@ struct InstallerView: View {
                         Text(preparationMessage)
                             .font(.caption).foregroundStyle(.red)
                     }
-                    Text("A verificação confere extensão, tamanho e assinatura inicial do contêiner ZIP, além de calcular SHA-256. Ela não valida assinatura Apple, perfil, malware ou compatibilidade.")
+                    Text(preparedIPA.validationScope)
                         .font(.caption).foregroundStyle(.secondary)
                 }
 
