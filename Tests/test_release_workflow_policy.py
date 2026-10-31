@@ -4,6 +4,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BETA = (ROOT / ".github/workflows/beta-ipa.yml").read_text(encoding="utf-8")
 OFFICIAL = (ROOT / ".github/workflows/official-ipa.yml").read_text(encoding="utf-8")
+BUILD = (ROOT / ".github/workflows/build.yml").read_text(encoding="utf-8")
 
 class ReleaseSafetyPolicy(unittest.TestCase):
     def test_beta_and_official_ipa_jobs_are_read_only(self):
@@ -12,6 +13,13 @@ class ReleaseSafetyPolicy(unittest.TestCase):
             self.assertNotIn("contents: write", workflow)
             self.assertNotIn("gh release create", workflow)
             self.assertIn("actions/upload-artifact", workflow)
+
+    def test_main_build_artifact_is_explicitly_unsigned(self):
+        self.assertIn("CODE_SIGNING_ALLOWED=NO", BUILD)
+        self.assertIn("AutoRenew-unsigned.ipa", BUILD)
+        self.assertIn("AutoRenew-ipa-unsigned", BUILD)
+        self.assertIn("retention-days: 30", BUILD)
+        self.assertNotIn("name: AutoRenew-ipa,", BUILD)
 
     def test_no_tag_trigger_can_publish_a_release(self):
         for workflow in (BETA, OFFICIAL):
