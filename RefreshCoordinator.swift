@@ -53,7 +53,7 @@ actor RefreshCoordinator {
         let deadline = clock.now + budget
         let selectedBackend = backend
         let (apps, settings) = await MainActor.run {
-            (AppStore.shared.apps.filter(\\.isActive), AppStore.shared.settings)
+            (AppStore.shared.apps.filter(\.isActive), AppStore.shared.settings)
         }
         let due = apps
             .filter { force || $0.expiresAt.timeIntervalSinceNow < settings.thresholdHours * 3600 }
