@@ -50,7 +50,7 @@ assert.doesNotMatch(html, /Baixar IPA unsigned/);
 assert.doesNotMatch(html, /Baixe o IPA publicado ou um artefato/);
 assert.match(html, /Download bloqueado no portal/);
 assert.match(html, /Não baixe nem instale a Release Alpha unsigned/);
-assert.match(html, /Ver logs no GitHub \\(não instalar artefatos\\)/);
+assert.match(html, /Ver logs no GitHub \(não instalar artefatos\)/);
 assert.match(html, /não assina nem instala por conta própria/);
 assert.match(html, /não confirma assinatura, instalação ou primeiro lançamento/);
 assert.match(html, /skip-link/);
