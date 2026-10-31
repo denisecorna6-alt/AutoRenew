@@ -59,7 +59,7 @@ struct DashboardView: View {
                 }
                 Section("Apps monitorados (dados de demonstração)") {
                     ForEach(store.apps) { AppRow(app: $0) }
-                        .onDelete { store.apps.remove(atOffsets: $0) }
+                        .onDelete { store.removeApps(at: $0) }
                 }
             }
             .overlay {
@@ -106,6 +106,7 @@ struct LogsView: View {
 
 struct SettingsView: View {
     @EnvironmentObject var store: AppStore
+    @State private var notificationMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -113,13 +114,28 @@ struct SettingsView: View {
                 Section("Lembretes") {
                     Stepper("Avisar com menos de \(Int(store.settings.thresholdHours))h",
                             value: $store.settings.thresholdHours, in: 6...120, step: 6)
-                    Text("Os lembretes não renovam nem reinstalam aplicativos. A renovação real ainda não está disponível.")
+                    Button("Ativar lembretes") {
+                        Task {
+                            let granted = await Notifier.requestAuthorization()
+                            await Notifier.reschedule(store.apps, thresholdHours: store.settings.thresholdHours)
+                            notificationMessage = granted
+                                ? "Permissão concedida. Os lembretes futuros foram programados quando possível."
+                                : "Permissão não concedida. Ative as notificações do AutoRenew nos Ajustes do iPhone."
+                        }
+                    }
+                    if let notificationMessage {
+                        Text(notificationMessage).font(.caption).foregroundStyle(.secondary)
+                    }
+                    Text("O iOS controla quando os avisos são entregues. Eles não executam assinatura ou reinstalação.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Privacidade") {
                     Text("Esta Alpha não solicita nem armazena Apple ID, senha, códigos 2FA, cookies, tokens ou chaves privadas. Nenhum servidor Anisette é consultado enquanto não existir um backend revisado.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+            }
+            .onChange(of: store.settings.thresholdHours) { _, _ in
+                Task { await Notifier.reschedule(store.apps, thresholdHours: store.settings.thresholdHours) }
             }
             .navigationTitle("Ajustes")
         }
