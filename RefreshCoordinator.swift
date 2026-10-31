@@ -6,6 +6,13 @@ struct RefreshRunSummary: Sendable {
     let failed: Int
     let skipped: Bool
     let message: String
+
+    /// A background task is successful only when it was not skipped, every due app
+    /// was processed without failure, and the time budget was not exhausted.
+    var backgroundTaskSucceeded: Bool {
+        !skipped && failed == 0
+            && message != "Verificação interrompida pelo cancelamento ou pelo limite de tempo."
+    }
 }
 
 /// Coordinates one refresh pass at a time. A backend must be explicitly configured;
