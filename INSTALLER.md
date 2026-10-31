@@ -3,7 +3,7 @@
 O Installer é um app iOS independente. Para obter o pacote de avaliação mais recente:
 
 1. Abra [a página de execuções do workflow](https://github.com/xlightxt/AutoRenew/actions/workflows/build.yml).
-2. Escolha a execução mais recente com resultado **Success** na branch codex/alpha-installer-hub-20261031.
+2. Escolha a execução mais recente com resultado **Success** na branch codex/alpha-ecosystem-rebuild-20261031.
 3. Baixe o artefato **AutoRenew-Installer-ipa-unsigned**.
 4. O artefato **AutoRenew-ipa-unsigned** é o aplicativo principal AutoRenew.
 
@@ -26,6 +26,21 @@ xcrun devicectl list devices
 ```
 
 O iPhone precisa estar pareado/confiado pelo Mac e o IPA precisa ter assinatura de desenvolvimento válida e perfil que inclua o dispositivo. Esta ferramenta não assina o IPA. A confirmação do comando não substitui o teste de abertura no aparelho.
+
+## Assinatura local assistida por Mac (experimental)
+
+O repositório também inclui `tools/sign-ipa-macos.sh` para assinar localmente um IPA com certificado de desenvolvimento e perfis fornecidos pelo próprio usuário. Esse fluxo ainda não está conectado ao aplicativo iOS e requer um manifesto com perfil e entitlements para cada `.app` e `.appex`.
+
+1. Importe o `.p12` pelo app **Acesso às Chaves (Keychain Access)**; digite a senha somente no diálogo do macOS.
+2. Execute `security find-identity -v -p codesigning` e copie o SHA-1 de 40 caracteres da identidade correta.
+3. Prepare o manifesto conforme `Projects/AutoRenewSigningKit/SIGNING_PIPELINE.md`.
+4. Execute:
+
+   ```sh
+   tools/sign-ipa-macos.sh unsigned.ipa SHA1_DA_IDENTIDADE signing-manifest.json signed.ipa
+   ```
+
+O helper valida a estrutura ZIP, a assinatura CMS dos perfis, Bundle ID, Team ID, validade, certificado e entitlements antes de assinar e verificar o pacote. Ele não recebe senha PKCS#12, não cria keychains nem envia certificados à rede. A assinatura concluída ainda precisa ser testada em iPhone físico; isso não comprova primeiro lançamento nem renovação automática.
 
 ## O que há no Installer
 
