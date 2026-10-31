@@ -10,6 +10,11 @@ on:
       - 'Tests/test_portal_catalog.mjs'
       - '.github/workflows/portal-check.yml'
       - '.github/workflows/deploy-pages.yml'
+      - '.github/workflows/beta-ci.yml'
+      - '.github/workflows/beta-ipa.yml'
+      - '.github/workflows/build.yml'
+      - '.github/workflows/official-ci.yml'
+      - '.github/workflows/official-ipa.yml'
   pull_request:
     branches: [main]
     paths:
