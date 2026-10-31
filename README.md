@@ -18,9 +18,9 @@
 
 | Área | Situação |
 |---|---|
-| Interface SwiftUI e painel | Protótipo inicial com dados de demonstração |
+| Interface SwiftUI e painel | Protótipo inicial com dados de demonstração; Installer consulta catálogos SideStore/AltSource via HTTPS |
 | Lembretes e acompanhamento de validade | Lembretes locais; não lê automaticamente apps instalados |
-| Assinatura de IPA | Não implementada |
+| Catálogos SideStore/AltSource | Leitura de metadados JSON; abrir link de IPA no navegador; sem instalação |\n| Assinatura de IPA | Não implementada |
 | Renovação e reinstalação automáticas | Não implementadas |
 | Monitoramento de certificados Apple | Não implementado |
 | Revogação automática | Não implementada |
