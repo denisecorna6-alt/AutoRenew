@@ -222,11 +222,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           AI_BASE_BRANCH: ${{ inputs.base_branch }}
+          AI_PUBLISH_REPORT_PATH: ${{ runner.temp }}/ai-publish-report.md
         run: python tools/ai_publish.py
       - name: Upload publication report
-        if: always() && hashFiles('ai-publish-report.md') != ''
+        if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
           name: ai-publish-report
-          path: ai-publish-report.md
+          path: ${{ runner.temp }}/ai-publish-report.md
+          if-no-files-found: warn
           retention-days: 14
