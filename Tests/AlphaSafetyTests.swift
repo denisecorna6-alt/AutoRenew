@@ -367,6 +367,13 @@ final class AlphaSafetyTests: XCTestCase {
         }
     }
 
+    func testAnisetteV3HeadersRecognizesExpiredProvisioningError() {
+        let payload = Data(#"{"result":"GetHeadersError","message":"AnisetteNotProvisioned -45061"}"#.utf8)
+        XCTAssertThrowsError(try AnisetteV3HeadersClient.decodeResponse(payload)) { error in
+            XCTAssertEqual(error as? RefreshError, .anisetteNeedsProvisioning)
+        }
+    }
+
     func testAnisetteV3ProvisioningStateRejectsEmptyAndOversizedData() {
         XCTAssertFalse(AnisetteV3ProvisioningState(identifier: Data(), adiPB: Data([1])).isUsable)
         XCTAssertFalse(AnisetteV3ProvisioningState(identifier: Data([1]), adiPB: Data()).isUsable)
