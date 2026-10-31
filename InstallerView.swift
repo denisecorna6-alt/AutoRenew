@@ -234,309 +234,362 @@ struct InstallerView: View {
         selectedChannel == "Todas" ? catalog.releases : catalog.releases.filter { $0.channel == selectedChannel }
     }
 
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label("AutoRenew Installer", systemImage: "arrow.down.app.fill")
-                            .font(.title2.bold())
-                        Text("Aplicativo independente para baixar versões Stable, Beta e Alpha do AutoRenew, importar IPAs e encaminhar arquivos para ferramentas compatíveis.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Label("O download não instala nem assina o aplicativo.", systemImage: "info.circle")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.orange)
-                    }
-                    .padding(.vertical, 6)
-                    .listRowBackground(Color.clear)
-                }
-
-                Section("Versões do AutoRenew") {
-                    Picker("Canal", selection: $selectedChannel) {
-                        ForEach(channels, id: \.self) { Text($0).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
-
-                    if catalog.isLoading && catalog.releases.isEmpty {
-                        HStack { Spacer(); ProgressView("Carregando versões…"); Spacer() }
-                    } else if visibleReleases.isEmpty {
-                        ContentUnavailableView(
-                            "Nenhum IPA publicado",
-                            systemImage: "shippingbox",
-                            description: Text(catalog.releases.isEmpty
-                                ? "Ainda não há Releases públicas com arquivos IPA. Builds de CI e artefatos Alpha privados não aparecem neste catálogo."
-                                : "Não há arquivos IPA publicados neste canal.")
-                        )
-                    } else {
-                        ForEach(visibleReleases) { release in
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text(release.displayName).font(.headline)
-                                        Text("\(release.channel) · \(release.tagName)")
-                                            .font(.caption).foregroundStyle(.secondary)
-                                    }
-                                    Spacer()
-                                    Text(release.publishedAt?.formatted(date: .abbreviated, time: .omitted) ?? "Data indisponível")
-                                        .font(.caption2).foregroundStyle(.secondary)
-                                }
-                                ForEach(release.ipaAssets) { asset in
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(asset.name).font(.subheadline)
-                                            Text(ByteCountFormatter.string(fromByteCount: Int64(asset.size), countStyle: .file))
-                                                .font(.caption2).foregroundStyle(.secondary)
-                                        }
-                                        Spacer()
-                                        Button {
-                                            Task { await catalog.download(asset) }
-                                        } label: {
-                                            if catalog.downloadingAssetID == asset.id {
-                                                ProgressView()
-                                            } else {
-                                                Label("Baixar", systemImage: "arrow.down.circle")
-                                            }
-                                        }
-                                        .disabled(catalog.downloadingAssetID != nil)
-                                    }
-                                }
-                                if let url = URL(string: release.htmlURL.absoluteString) {
-                                    Link("Notas e detalhes da versão", destination: url)
-                                        .font(.caption)
-                                }
-                            }
-                            .padding(.vertical, 5)
-                        }
-                    }
-                }
-
-                Section("Baixar IPA por link") {
-                    TextField("https://exemplo.com/app.ipa", text: $directIPALink)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button {
-                        Task {
-                            await catalog.downloadIPA(from: directIPALink)
-                        }
-                    } label: {
-                        Label(catalog.isDownloadingDirectURL ? "Baixando…" : "Baixar IPA pelo link", systemImage: "link")
-                    }
-                    .disabled(catalog.isDownloadingDirectURL || directIPALink.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    Text("Aceita somente links HTTPS diretos terminados em .ipa. O app verifica o endereço final e limita o arquivo a 1,5 GB.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-
-                Section("Seus arquivos IPA") {
-                    Button {
-                        showingIPAImporter = true
-                    } label: {
-                        Label("Importar IPA do app Arquivos", systemImage: "folder.badge.plus")
-                    }
-                    if catalog.downloadedFiles.isEmpty {
-                        Text("Nenhum IPA salvo neste dispositivo.")
-                            .font(.caption).foregroundStyle(.secondary)
-                    } else {
-                        ForEach(catalog.downloadedFiles, id: \.absoluteString) { file in
-                            VStack(alignment: .leading, spacing: 5) {
-                                Label(file.lastPathComponent, systemImage: "doc.zipper")
-                                    .font(.subheadline)
-                                Button {
-                                    do {
-                                        preparedIPA = try IPAInspector.inspect(fileURL: file)
-                                        preparationMessage = nil
-                                    } catch {
-                                        preparedIPA = nil
-                                        preparationMessage = error.localizedDescription
-                                    }
-                                } label: {
-                                    Label("Inspecionar IPA e preparar encaminhamento", systemImage: "doc.text.magnifyingglass")
-                                        .font(.caption)
-                                }
-                                ShareLink(item: file) {
-                                    Label("Compartilhar IPA", systemImage: "square.and.arrow.up")
-                                        .font(.caption)
-                                }
-                            }
-                            .padding(.vertical, 3)
-                        }
-                    }
-                    if let preparedIPA {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Label("IPA preparado para encaminhamento", systemImage: "checkmark.seal.fill")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.green)
-                            Text(preparedIPA.fileName).font(.caption)
-                            Text("\(ByteCountFormatter.string(fromByteCount: Int64(preparedIPA.byteCount), countStyle: .file)) · SHA-256 \(preparedIPA.sha256.prefix(16))…")
-                                .font(.caption2).foregroundStyle(.secondary)
-                            ShareLink(item: preparedIPA.fileURL) {
-                                Label("Enviar para AltStore / SideStore", systemImage: "arrow.up.forward.app")
-                            }
-                            Text("Na folha de compartilhamento, escolha AltStore ou SideStore se aparecerem. A assinatura e a instalação serão realizadas pelo aplicativo escolhido; o AutoRenew não consegue confirmar o resultado.")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 4)
-                    }
-                    if let preparationMessage {
-                        Text(preparationMessage)
-                            .font(.caption).foregroundStyle(.red)
-                    }
-                    Text(preparedIPA.validationScope)
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-
-                Section("Conta Apple e certificados") {
-                    Label("Apple ID não conectado", systemImage: "person.crop.circle.badge.questionmark")
-                        .font(.headline)
-                    Text("Por segurança, esta versão não coleta senha Apple ID nem códigos 2FA. A Apple não oferece um login genérico de Apple ID que autorize assinar IPAs. Sign in with Apple identifica o usuário no app, mas não concede permissões de Developer Program.")
-                        .font(.caption).foregroundStyle(.secondary)
-                    Text("Você pode importar sua identidade de assinatura .p12. O arquivo permanece criptografado pela própria senha e protegido pelo iOS; a senha é usada apenas para validar a importação e não é salva.")
-                        .font(.caption).foregroundStyle(.secondary)
-                    Button {
-                        showingP12Importer = true
-                    } label: {
-                        Label("Importar certificado e chave (.p12)", systemImage: "key.horizontal")
-                    }
-                    if let pendingP12URL {
-                        Text("Selecionado: \(pendingP12URL.lastPathComponent)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        SecureField("Senha do arquivo .p12", text: $p12Password)
-                            .textContentType(.password)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                        Button("Validar e guardar com proteção do iOS") {
-                            do {
-                                try signingVault.importIdentity(from: pendingP12URL, password: p12Password)
-                                certificateMessage = "Identidade validada e guardada localmente. A senha não foi armazenada."
-                                self.pendingP12URL = nil
-                                p12Password = ""
-                            } catch {
-                                certificateMessage = error.localizedDescription
-                                p12Password = ""
-                            }
-                        }
-                        .disabled(p12Password.isEmpty)
-                        Button("Cancelar importação", role: .cancel) {
-                            self.pendingP12URL = nil
-                            p12Password = ""
-                        }
-                    }
-                    if signingVault.records.isEmpty {
-                        Text("Nenhuma identidade de assinatura importada.")
-                            .font(.caption).foregroundStyle(.secondary)
-                    } else {
-                        ForEach(signingVault.records) { record in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Label(record.displayName, systemImage: "checkmark.seal")
-                                    .font(.subheadline.weight(.medium))
-                                Text("Importado em \(record.importedAt.formatted(date: .abbreviated, time: .shortened)) · SHA-256 \(record.sha256.prefix(12))…")
-                                    .font(.caption2).foregroundStyle(.secondary)
-                                Button("Remover identidade", role: .destructive) {
-                                    signingVault.remove(record)
-                                }
-                                .font(.caption)
-                            }
-                        }
-                    }
-                    Text("Importar o certificado ainda não assina nem instala IPA. A assinatura requer compatibilidade do perfil, Bundle ID e dispositivo, além de um mecanismo de assinatura suportado. O arquivo .p12 é guardado localmente; a senha não é persistida.")
-                        .font(.caption).foregroundStyle(.orange)
-                }
-
-                Section("Perfis de provisionamento") {
-                    Text("Importe o .mobileprovision correspondente ao certificado e ao app. Nesta versão o arquivo é guardado localmente e seu SHA-256 é registrado; o conteúdo CMS ainda não é interpretado nem validado.")
-                        .font(.caption).foregroundStyle(.secondary)
-                    Button {
-                        showingProfileImporter = true
-                    } label: {
-                        Label("Importar perfil (.mobileprovision)", systemImage: "doc.badge.plus")
-                    }
-                    if appStore.profiles.isEmpty {
-                        Text("Nenhum perfil importado.")
-                            .font(.caption).foregroundStyle(.secondary)
-                    } else {
-                        ForEach(appStore.profiles) { profile in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(profile.originalFileName).font(.subheadline.weight(.medium))
-                                Text("\(profile.formattedSize) · SHA-256 \(profile.sha256.prefix(12))…")
-                                    .font(.caption2).foregroundStyle(.secondary)
-                                Button("Remover perfil", role: .destructive) {
-                                    appStore.removeProfile(profile)
-                                }
-                                .font(.caption)
-                            }
-                        }
-                    }
-                }
-
-                if let message = catalog.statusMessage {
-                    Section { Label(message, systemImage: "checkmark.circle").foregroundStyle(.green) }
-                }
-                if let error = catalog.errorMessage {
-                    Section { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red) }
-                }
+    private var introSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 8) {
+                Label("AutoRenew Installer", systemImage: "arrow.down.app.fill")
+                    .font(.title2.bold())
+                Text("Aplicativo independente para baixar versões Stable, Beta e Alpha do AutoRenew, importar IPAs e encaminhar arquivos para ferramentas compatíveis.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Label("O download não instala nem assina o aplicativo.", systemImage: "info.circle")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.orange)
             }
-            .navigationTitle("Installer")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { Task { await catalog.load() } } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .disabled(catalog.isLoading)
-                    .accessibilityLabel("Atualizar catálogo")
+            .padding(.vertical, 6)
+            .listRowBackground(Color.clear)
+        }
+    }
+
+    private var versionsSection: some View {
+        Section("Versões do AutoRenew") {
+            Picker("Canal", selection: $selectedChannel) {
+                ForEach(channels, id: \.self) { Text($0).tag($0) }
+            }
+            .pickerStyle(.segmented)
+
+            if catalog.isLoading && catalog.releases.isEmpty {
+                HStack { Spacer(); ProgressView("Carregando versões…"); Spacer() }
+            } else if visibleReleases.isEmpty {
+                ContentUnavailableView(
+                    "Nenhum IPA publicado",
+                    systemImage: "shippingbox",
+                    description: Text(catalog.releases.isEmpty
+                        ? "Ainda não há Releases públicas com arquivos IPA. Builds de CI e artefatos Alpha privados não aparecem neste catálogo."
+                        : "Não há arquivos IPA publicados neste canal.")
+                )
+            } else {
+                ForEach(visibleReleases) { release in
+                    releaseRow(release)
                 }
-            }
-            .task { await catalog.load() }
-            .refreshable { await catalog.load() }
-            .fileImporter(isPresented: $showingIPAImporter, allowedContentTypes: [UTType(filenameExtension: "ipa") ?? .data]) { result in
-                do {
-                    if case .success(let url) = result {
-                        try catalog.importIPA(from: url)
-                    }
-                } catch {
-                    catalog.errorMessage = "Não foi possível importar o IPA: \(error.localizedDescription)"
-                }
-            }
-            .fileImporter(isPresented: $showingP12Importer, allowedContentTypes: [UTType(filenameExtension: "p12", conformingTo: .data) ?? .data]) { result in
-                switch result {
-                case .success(let url):
-                    pendingP12URL = url
-                    p12Password = ""
-                    certificateMessage = nil
-                case .failure(let error):
-                    certificateMessage = "Não foi possível selecionar o certificado: \(error.localizedDescription)"
-                }
-            }
-            .fileImporter(isPresented: $showingProfileImporter, allowedContentTypes: [UTType(filenameExtension: "mobileprovision", conformingTo: .data) ?? .data]) { result in
-                switch result {
-                case .success(let url):
-                    do {
-                        let profile = try appStore.importProfile(from: url)
-                        profileMessage = "Perfil importado localmente. SHA-256: \(profile.sha256). O conteúdo ainda não foi validado."
-                    } catch {
-                        profileMessage = error.localizedDescription
-                    }
-                case .failure(let error):
-                    profileMessage = "Não foi possível selecionar o perfil: \(error.localizedDescription)"
-                }
-            }
-            .alert("Perfil de provisionamento", isPresented: Binding(
-                get: { profileMessage != nil },
-                set: { if !$0 { profileMessage = nil } }
-            )) {
-                Button("OK") { profileMessage = nil }
-            } message: {
-                Text(profileMessage ?? "")
-            }
-            .alert("Certificado de assinatura", isPresented: Binding(
-                get: { certificateMessage != nil },
-                set: { if !$0 { certificateMessage = nil } }
-            )) {
-                Button("OK") { certificateMessage = nil }
-            } message: {
-                Text(certificateMessage ?? "")
             }
         }
     }
+
+    private func releaseRow(_ release: GitHubRelease) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(release.displayName).font(.headline)
+                    Text("\(release.channel) · \(release.tagName)")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text(release.publishedAt?.formatted(date: .abbreviated, time: .omitted) ?? "Data indisponível")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+            ForEach(release.ipaAssets) { asset in
+                assetRow(asset)
+            }
+            Link("Notas e detalhes da versão", destination: release.htmlURL)
+                .font(.caption)
+        }
+        .padding(.vertical, 5)
+    }
+
+    private func assetRow(_ asset: GitHubRelease.Asset) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(asset.name).font(.subheadline)
+                Text(ByteCountFormatter.string(fromByteCount: Int64(asset.size), countStyle: .file))
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button {
+                Task { await catalog.download(asset) }
+            } label: {
+                if catalog.downloadingAssetID == asset.id {
+                    ProgressView()
+                } else {
+                    Label("Baixar", systemImage: "arrow.down.circle")
+                }
+            }
+            .disabled(catalog.downloadingAssetID != nil)
+        }
+    }
+
+    private var directLinkSection: some View {
+        Section("Baixar IPA por link") {
+            TextField("https://exemplo.com/app.ipa", text: $directIPALink)
+                .keyboardType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            Button {
+                Task { await catalog.downloadIPA(from: directIPALink) }
+            } label: {
+                Label(catalog.isDownloadingDirectURL ? "Baixando…" : "Baixar IPA pelo link", systemImage: "link")
+            }
+            .disabled(catalog.isDownloadingDirectURL || directIPALink.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            Text("Aceita somente links HTTPS diretos terminados em .ipa. O app verifica o endereço final e limita o arquivo a 1,5 GB.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private var filesSection: some View {
+        Section("Seus arquivos IPA") {
+            Button {
+                showingIPAImporter = true
+            } label: {
+                Label("Importar IPA do app Arquivos", systemImage: "folder.badge.plus")
+            }
+            if catalog.downloadedFiles.isEmpty {
+                Text("Nenhum IPA salvo neste dispositivo.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                ForEach(catalog.downloadedFiles, id: \.absoluteString) { file in
+                    downloadedFileRow(file)
+                }
+            }
+            if let inspection = preparedIPA {
+                preparedIPACard(inspection)
+            }
+            if let preparationMessage {
+                Text(preparationMessage)
+                    .font(.caption).foregroundStyle(.red)
+            }
+        }
+    }
+
+    private func downloadedFileRow(_ file: URL) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Label(file.lastPathComponent, systemImage: "doc.zipper")
+                .font(.subheadline)
+            Button {
+                do {
+                    preparedIPA = try IPAInspector.inspect(fileURL: file)
+                    preparationMessage = nil
+                } catch {
+                    preparedIPA = nil
+                    preparationMessage = error.localizedDescription
+                }
+            } label: {
+                Label("Inspecionar IPA e preparar encaminhamento", systemImage: "doc.text.magnifyingglass")
+                    .font(.caption)
+            }
+            ShareLink(item: file) {
+                Label("Compartilhar IPA", systemImage: "square.and.arrow.up")
+                    .font(.caption)
+            }
+        }
+        .padding(.vertical, 3)
+    }
+
+    private func preparedIPACard(_ inspection: IPAInspection) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("IPA preparado para encaminhamento", systemImage: "checkmark.seal.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.green)
+            Text(inspection.fileName).font(.caption)
+            Text("\(ByteCountFormatter.string(fromByteCount: Int64(inspection.byteCount), countStyle: .file)) · SHA-256 \(inspection.sha256.prefix(16))…")
+                .font(.caption2).foregroundStyle(.secondary)
+            ShareLink(item: inspection.fileURL) {
+                Label("Enviar para AltStore / SideStore", systemImage: "arrow.up.forward.app")
+            }
+            Text("Na folha de compartilhamento, escolha AltStore ou SideStore se aparecerem. A assinatura e a instalação serão realizadas pelo aplicativo escolhido; o AutoRenew não consegue confirmar o resultado.")
+                .font(.caption).foregroundStyle(.secondary)
+            Text(inspection.validationScope)
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var accountSection: some View {
+        Section("Conta Apple e certificados") {
+            Label("Apple ID não conectado", systemImage: "person.crop.circle.badge.questionmark")
+                .font(.headline)
+            Text("Por segurança, esta versão não coleta senha Apple ID nem códigos 2FA. A Apple não oferece um login genérico de Apple ID que autorize assinar IPAs. Sign in with Apple identifica o usuário no app, mas não concede permissões de Developer Program.")
+                .font(.caption).foregroundStyle(.secondary)
+            Text("Você pode importar sua identidade de assinatura .p12. O arquivo permanece criptografado pela própria senha e protegido pelo iOS; a senha é usada apenas para validar a importação e não é salva.")
+                .font(.caption).foregroundStyle(.secondary)
+            Button {
+                showingP12Importer = true
+            } label: {
+                Label("Importar certificado e chave (.p12)", systemImage: "key.horizontal")
+            }
+            if let pendingP12URL {
+                Text("Selecionado: \(pendingP12URL.lastPathComponent)")
+                    .font(.caption).foregroundStyle(.secondary)
+                SecureField("Senha do arquivo .p12", text: $p12Password)
+                    .textContentType(.password)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                Button("Validar e guardar com proteção do iOS") {
+                    do {
+                        try signingVault.importIdentity(from: pendingP12URL, password: p12Password)
+                        certificateMessage = "Identidade validada e guardada localmente. A senha não foi armazenada."
+                        self.pendingP12URL = nil
+                        p12Password = ""
+                    } catch {
+                        certificateMessage = error.localizedDescription
+                        p12Password = ""
+                    }
+                }
+                .disabled(p12Password.isEmpty)
+                Button("Cancelar importação", role: .cancel) {
+                    self.pendingP12URL = nil
+                    p12Password = ""
+                }
+            }
+            if signingVault.records.isEmpty {
+                Text("Nenhuma identidade de assinatura importada.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                ForEach(signingVault.records) { record in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label(record.displayName, systemImage: "checkmark.seal")
+                            .font(.subheadline.weight(.medium))
+                        Text("Importado em \(record.importedAt.formatted(date: .abbreviated, time: .shortened)) · SHA-256 \(record.sha256.prefix(12))…")
+                            .font(.caption2).foregroundStyle(.secondary)
+                        Button("Remover identidade", role: .destructive) {
+                            signingVault.remove(record)
+                        }
+                        .font(.caption)
+                    }
+                }
+            }
+            Text("Importar o certificado ainda não assina nem instala IPA. A assinatura requer compatibilidade do perfil, Bundle ID e dispositivo, além de um mecanismo de assinatura suportado. O arquivo .p12 é guardado localmente; a senha não é persistida.")
+                .font(.caption).foregroundStyle(.orange)
+        }
+    }
+
+    private var profilesSection: some View {
+        Section("Perfis de provisionamento") {
+            Text("Importe o .mobileprovision correspondente ao certificado e ao app. Nesta versão o arquivo é guardado localmente e seu SHA-256 é registrado; o conteúdo CMS ainda não é interpretado nem validado.")
+                .font(.caption).foregroundStyle(.secondary)
+            Button {
+                showingProfileImporter = true
+            } label: {
+                Label("Importar perfil (.mobileprovision)", systemImage: "doc.badge.plus")
+            }
+            if appStore.profiles.isEmpty {
+                Text("Nenhum perfil importado.")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                ForEach(appStore.profiles) { profile in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(profile.originalFileName).font(.subheadline.weight(.medium))
+                        Text("\(profile.formattedSize) · SHA-256 \(profile.sha256.prefix(12))…")
+                            .font(.caption2).foregroundStyle(.secondary)
+                        Button("Remover perfil", role: .destructive) {
+                            appStore.removeProfile(profile)
+                        }
+                        .font(.caption)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var statusSections: some View {
+        if let message = catalog.statusMessage {
+            Section { Label(message, systemImage: "checkmark.circle").foregroundStyle(.green) }
+        }
+        if let error = catalog.errorMessage {
+            Section { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red) }
+        }
+    }
+
+    private func handleIPAImport(_ result: Result<URL, Error>) {
+        do {
+            if case .success(let url) = result {
+                try catalog.importIPA(from: url)
+            }
+        } catch {
+            catalog.errorMessage = "Não foi possível importar o IPA: \(error.localizedDescription)"
+        }
+    }
+
+    private func handleP12Import(_ result: Result<URL, Error>) {
+        switch result {
+        case .success(let url):
+            pendingP12URL = url
+            p12Password = ""
+            certificateMessage = nil
+        case .failure(let error):
+            certificateMessage = "Não foi possível selecionar o certificado: \(error.localizedDescription)"
+        }
+    }
+
+    private func handleProfileImport(_ result: Result<URL, Error>) {
+        switch result {
+        case .success(let url):
+            do {
+                let profile = try appStore.importProfile(from: url)
+                profileMessage = "Perfil importado localmente. SHA-256: \(profile.sha256). O conteúdo ainda não foi validado."
+            } catch {
+                profileMessage = error.localizedDescription
+            }
+        case .failure(let error):
+            profileMessage = "Não foi possível selecionar o perfil: \(error.localizedDescription)"
+        }
+    }
+
+    private var profileAlertPresented: Binding<Bool> {
+        Binding(get: { profileMessage != nil }, set: { if !$0 { profileMessage = nil } })
+    }
+
+    private var certificateAlertPresented: Binding<Bool> {
+        Binding(get: { certificateMessage != nil }, set: { if !$0 { certificateMessage = nil } })
+    }
+
+    private var installerList: some View {
+        List {
+            introSection
+            versionsSection
+            directLinkSection
+            filesSection
+            accountSection
+            profilesSection
+            statusSections
+        }
+        .navigationTitle("Installer")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { Task { await catalog.load() } } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .disabled(catalog.isLoading)
+                .accessibilityLabel("Atualizar catálogo")
+            }
+        }
+        .task { await catalog.load() }
+        .refreshable { await catalog.load() }
+        .fileImporter(isPresented: $showingIPAImporter, allowedContentTypes: [UTType(filenameExtension: "ipa") ?? .data]) {
+            handleIPAImport($0)
+        }
+        .fileImporter(isPresented: $showingP12Importer, allowedContentTypes: [UTType(filenameExtension: "p12", conformingTo: .data) ?? .data]) {
+            handleP12Import($0)
+        }
+        .fileImporter(isPresented: $showingProfileImporter, allowedContentTypes: [UTType(filenameExtension: "mobileprovision", conformingTo: .data) ?? .data]) {
+            handleProfileImport($0)
+        }
+        .alert("Perfil de provisionamento", isPresented: profileAlertPresented) {
+            Button("OK") { profileMessage = nil }
+        } message: {
+            Text(profileMessage ?? "")
+        }
+        .alert("Certificado de assinatura", isPresented: certificateAlertPresented) {
+            Button("OK") { certificateMessage = nil }
+        } message: {
+            Text(certificateMessage ?? "")
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            installerList
+        }
+    }
+}
 }
