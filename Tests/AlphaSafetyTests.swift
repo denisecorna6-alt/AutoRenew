@@ -26,6 +26,13 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertTrue(AnisetteData(headers: ["X-Apple-I-MD": "test"]).isValid)
     }
 
+    func testAnisetteDataRejectsFutureAndExpiredTimestamps() {
+        let headers = ["X-Apple-I-MD": "test"]
+        XCTAssertFalse(AnisetteData(headers: headers, fetched: Date().addingTimeInterval(60)).isValid)
+        XCTAssertFalse(AnisetteData(headers: headers, fetched: Date().addingTimeInterval(-301)).isValid)
+        XCTAssertTrue(AnisetteData(headers: headers, fetched: Date().addingTimeInterval(-30)).isValid)
+    }
+
     func testRouterRejectsNonHTTPSProviders() async {
         let router = AnisetteRouter(urls: ["http://example.invalid/anisette"])
         do {
@@ -37,6 +44,7 @@ final class AlphaSafetyTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
+
     func testProfileImportCopiesFileAndCalculatesSHA256() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -71,5 +79,4 @@ final class AlphaSafetyTests: XCTestCase {
             XCTAssertEqual(error as? ProfileImportError, .unsupportedFile)
         }
     }
-
 }
