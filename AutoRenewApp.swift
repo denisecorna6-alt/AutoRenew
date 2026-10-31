@@ -14,15 +14,14 @@ struct AutoRenewApp: App {
         WindowGroup {
             ContentView().environmentObject(store)
                 .task {
-                    Notifier.requestAuth()
-                    Notifier.reschedule(store.apps)
+                    await Notifier.reschedule(store.apps, thresholdHours: store.settings.thresholdHours)
                 }
         }
         .onChange(of: phase) { _, new in
             switch new {
             case .active:
-                Notifier.reschedule(store.apps)
                 Task {
+                    await Notifier.reschedule(store.apps, thresholdHours: store.settings.thresholdHours)
                     await RefreshCoordinator.shared.runIfNeeded(
                         trigger: "foreground", budget: .seconds(60)
                     )
