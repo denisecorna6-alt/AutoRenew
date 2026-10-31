@@ -63,6 +63,7 @@ struct DashboardView: View {
     @EnvironmentObject var store: AppStore
     @State private var busy = false
     @State private var showingAddApp = false
+    @State private var refreshMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -94,9 +95,10 @@ struct DashboardView: View {
                     Button("Verificar agora") {
                         busy = true
                         Task {
-                            await RefreshCoordinator.shared.runIfNeeded(
-                                trigger: "manual", budget: .seconds(30)
+                            let summary = await RefreshCoordinator.shared.runIfNeeded(
+                                trigger: "manual", budget: .seconds(30), force: true
                             )
+                            refreshMessage = "\(summary.message)\nRenovados: \(summary.renewed) · Falhas: \(summary.failed)"
                             busy = false
                         }
                     }
@@ -109,6 +111,14 @@ struct DashboardView: View {
             }
             .sheet(isPresented: $showingAddApp) {
                 AddAppView()
+            }
+            .alert("Resultado da verificação", isPresented: Binding(
+                get: { refreshMessage != nil },
+                set: { if !$0 { refreshMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { refreshMessage = nil }
+            } message: {
+                Text(refreshMessage ?? "")
             }
         }
     }
