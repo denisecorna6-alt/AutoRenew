@@ -79,4 +79,19 @@ final class AlphaSafetyTests: XCTestCase {
             XCTAssertEqual(error as? ProfileImportError, .unsupportedFile)
         }
     }
+
+    func testProfileImportRejectsFilesLargerThan25MB() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let source = root.appendingPathComponent("oversized.mobileprovision")
+        let bytes = Data(repeating: 0x41, count: ProfileImporter.maximumFileSize + 1)
+        try bytes.write(to: source)
+
+        XCTAssertThrowsError(try ProfileImporter.importProfile(from: source, into: root)) { error in
+            XCTAssertEqual(error as? ProfileImportError, .fileTooLarge)
+        }
+    }
 }
