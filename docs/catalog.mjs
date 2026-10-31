@@ -7,7 +7,9 @@ export function channelFor(release) {
 
 export function isUnsignedRelease(release) {
   const body = (release.body || "").toLowerCase();
-  return /\bunsigned\b/.test(body) || /sem\s+assinatura/.test(body);
+  const assets = (release.assets || []).map(asset => asset.name || "").join(" ").toLowerCase();
+  return /\bunsigned\b/.test(body) || /sem\s+assinatura/.test(body) ||
+    /\bunsigned\b/.test(assets) || /sem\s+assinatura/.test(assets);
 }
 
 export function matchesBuildBranch(run, channel) {
