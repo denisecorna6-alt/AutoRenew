@@ -37,4 +37,39 @@ final class AlphaSafetyTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
+    func testProfileImportCopiesFileAndCalculatesSHA256() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let sourceDirectory = root.appendingPathComponent("source", isDirectory: true)
+        let destinationDirectory = root.appendingPathComponent("profiles", isDirectory: true)
+        try FileManager.default.createDirectory(at: sourceDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let source = sourceDirectory.appendingPathComponent("sample.mobileprovision")
+        let bytes = Data("profile-test-content".utf8)
+        try bytes.write(to: source)
+
+        let profile = try ProfileImporter.importProfile(from: source, into: destinationDirectory)
+        let stored = destinationDirectory.appendingPathComponent(profile.storedFileName)
+
+        XCTAssertEqual(profile.sha256, ProfileImporter.sha256(bytes))
+        XCTAssertEqual(profile.byteCount, bytes.count)
+        XCTAssertEqual(try Data(contentsOf: stored), bytes)
+        XCTAssertEqual(profile.originalFileName, "sample.mobileprovision")
+    }
+
+    func testProfileImportRejectsOtherFileExtensions() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let source = root.appendingPathComponent("not-a-profile.txt")
+        try Data("not a profile".utf8).write(to: source)
+
+        XCTAssertThrowsError(try ProfileImporter.importProfile(from: source, into: root)) { error in
+            XCTAssertEqual(error as? ProfileImportError, .unsupportedFile)
+        }
+    }
+
 }
