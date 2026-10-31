@@ -23,6 +23,18 @@ class CentralSafety(unittest.TestCase):
         self.assertIn(".github/", CODER)
         self.assertIn("SigningBackend.swift", CODER)
         self.assertIn('run(["git","diff","--check"])', CODER)
+    def test_project_validation_runs_on_alpha_push_and_pr(self):
+        self.assertIn("project-validation:", FLOW)
+        self.assertIn("runs-on: macos-15", FLOW)
+        self.assertIn("pull_request:", FLOW)
+        self.assertIn("AutoRenewInstaller", FLOW)
+        self.assertIn("build-for-testing", FLOW)
+        self.assertIn("actions/checkout@v7.0.1", FLOW)
+        self.assertIn("actions/setup-python@v7.1.0", FLOW)
+        self.assertIn("actions/upload-artifact@v7.0.2", FLOW)
+    def test_coder_preserves_failure_logs(self):
+        self.assertIn("stderr=subprocess.STDOUT", CODER)
+        self.assertIn("print(result.stdout", CODER)
     def test_redacts_secrets(self):
         self.assertIn('replace(secret,"[REDACTED]")', SCRIPT)
         self.assertIn('replace(key,"[REDACTED]")', CODER)
