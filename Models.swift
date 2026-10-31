@@ -61,6 +61,7 @@ struct AppSettings: Codable, Sendable {
 enum RefreshError: Error, Equatable, Sendable {
     case authentication
     case anisetteUnavailable
+    case anisetteNeedsProvisioning
     case network
     case notImplemented
     case other
