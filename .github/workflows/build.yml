@@ -28,12 +28,29 @@ jobs:
           xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenewInstaller -configuration Release \
             -sdk iphoneos -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
-      - name: Run AutoRenew unit tests on iOS Simulator
+      - name: Run AutoRenew unit tests when a simulator runtime is available
         run: |
-          xcodebuild test -project AutoRenew.xcodeproj -scheme AutoRenew \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
-            -derivedDataPath test-build \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          if xcrun simctl list devices available | grep -q 'iPhone'; then
+            DEVICE_ID="$(xcrun simctl list devices available | sed -nE 's/.*iPhone[^()]* \(([0-9A-F-]+)\).*/\1/p' | head -n 1)"
+            if [[ -n "$DEVICE_ID" ]]; then
+              xcodebuild test -project AutoRenew.xcodeproj -scheme AutoRenew \
+                -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+                -derivedDataPath test-build \
+                CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+            else
+              echo "Nenhum iPhone Simulator concreto; compilando os testes sem executá-los."
+              xcodebuild build-for-testing -project AutoRenew.xcodeproj -scheme AutoRenew \
+                -destination 'generic/platform=iOS Simulator' \
+                -derivedDataPath test-build \
+                CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+            fi
+          else
+            echo "Runtime de simulador indisponível; compilando os testes sem executá-los."
+            xcodebuild build-for-testing -project AutoRenew.xcodeproj -scheme AutoRenew \
+              -destination 'generic/platform=iOS Simulator' \
+              -derivedDataPath test-build \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          fi
       - name: Package both unsigned IPAs
         run: |
           mkdir -p AutoRenewPayload/Payload InstallerPayload/Payload
