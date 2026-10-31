@@ -51,8 +51,10 @@ fi
 awk -v wanted="$IDENTITY_SHA1" 'toupper($2) == wanted { print }' "$WORK/all-identities.txt" > "$WORK/identities.txt"
 IDENTITY="$IDENTITY_SHA1"
 
-ditto -x -k "$IPA_PATH" "$WORK"
-PAYLOAD="$WORK/Payload"
+EXTRACTED="$WORK/extracted"
+mkdir -p "$EXTRACTED"
+ditto -x -k "$IPA_PATH" "$EXTRACTED"
+PAYLOAD="$EXTRACTED/Payload"
 [[ -d "$PAYLOAD" ]] || { echo "IPA não contém Payload/." >&2; exit 65; }
 
 # Manifest JSON: bundles[{bundle_path,profile_path,entitlements_path}].
@@ -96,7 +98,7 @@ diff -u "$WORK/discovered-bundles.txt" "$WORK/manifest-bundles.txt" || {
 }
 
 while IFS=$'\t' read -r REL_BUNDLE PROFILE ENTITLEMENTS; do
-  BUNDLE="$WORK/$REL_BUNDLE"
+  BUNDLE="$EXTRACTED/$REL_BUNDLE"
   [[ -d "$BUNDLE" && -f "$BUNDLE/Info.plist" && -f "$PROFILE" && -f "$ENTITLEMENTS" ]] || {
     echo "Bundle, perfil ou entitlements ausente para $REL_BUNDLE" >&2
     exit 66
@@ -126,14 +128,16 @@ done < <(find "$PAYLOAD" \( -type d -name '*.framework' -o -type f -name '*.dyli
 
 # Sign extension bundles first, then containing apps; each bundle gets its own entitlements.
 while IFS=$'\t' read -r REL_BUNDLE PROFILE ENTITLEMENTS; do
-  codesign --force --sign "$IDENTITY" --entitlements "$ENTITLEMENTS" --generate-entitlement-der --timestamp=none "$WORK/$REL_BUNDLE"
+  codesign --force --sign "$IDENTITY" --entitlements "$ENTITLEMENTS" --generate-entitlement-der --timestamp=none "$EXTRACTED/$REL_BUNDLE"
 done < <(awk -F '\t' '{ print length($1), $0 }' "$WORK/bundles.tsv" | sort -rn | cut -d' ' -f2-)
 
 while IFS=$'\t' read -r REL_BUNDLE PROFILE ENTITLEMENTS; do
   codesign --verify --deep --strict --verbose=2 "$WORK/$REL_BUNDLE"
 done < "$WORK/bundles.tsv"
 
-(cd "$WORK" && ditto -c -k --sequesterRsrc --keepParent Payload "$WORK/signed.ipa")
+# Repackage the entire extracted IPA root, not only Payload: preserve SwiftSupport,
+# WatchKitSupport and any other root-level resources required by the original package.
+ditto -c -k --sequesterRsrc "$EXTRACTED" "$WORK/signed.ipa"
 python3 "$ROOT/tools/validate-signing-inputs.py" --inspect-ipa "$WORK/signed.ipa"
 ditto -x -k "$WORK/signed.ipa" "$WORK/repacked"
 while IFS=$'\t' read -r REL_BUNDLE PROFILE ENTITLEMENTS; do
