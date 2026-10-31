@@ -1,0 +1,29 @@
+name: Portal catalog regression tests
+
+on:
+  push:
+    branches:
+      - codex/alpha-social-deployment-20261031
+    paths:
+      - 'docs/index.html'
+      - 'docs/catalog.mjs'
+      - 'Tests/test_portal_catalog.mjs'
+      - '.github/workflows/portal-check.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/index.html'
+      - 'docs/catalog.mjs'
+      - 'Tests/test_portal_catalog.mjs'
+      - '.github/workflows/portal-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  portal-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Test channel and branch selection
+        run: node Tests/test_portal_catalog.mjs
