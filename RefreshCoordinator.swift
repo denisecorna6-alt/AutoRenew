@@ -187,7 +187,7 @@ actor RefreshCoordinator {
         )
     }
 
-    static func isValidRenewalDate(
+    nonisolated static func isValidRenewalDate(
         _ proposed: Date,
         previous: Date,
         now: Date = Date()
