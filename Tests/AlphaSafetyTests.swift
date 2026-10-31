@@ -33,6 +33,19 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertTrue(AnisetteData(headers: headers, fetched: Date().addingTimeInterval(-30)).isValid)
     }
 
+    func testRemoteAnisetteV3ProviderFailsClosedUntilProvisioningExists() async {
+        let provider = RemoteAnisetteProvider(url: URL(string: "https://ani.sidestore.io")!)
+        do {
+            _ = try await provider.fetch()
+            XCTFail("A root GET must not be treated as an Anisette V3 implementation")
+        } catch let error as RefreshError {
+            XCTAssertEqual(error, .anisetteUnavailable)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+        XCTAssertTrue(AppSettings().anisetteURLs.isEmpty)
+    }
+
     func testRouterRejectsNonHTTPSProviders() async {
         let router = AnisetteRouter(urls: ["http://example.invalid/anisette"])
         do {
