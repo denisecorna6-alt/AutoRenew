@@ -12,6 +12,7 @@ struct ProvisioningProfileMetadata {
     let expirationDate: Date
     let provisionedDevices: [String]
     let provisionsAllDevices: Bool
+    let developerCertificates: [Data]
     let entitlements: [String: Any]
 
     var allowsDevelopment: Bool {
@@ -142,6 +143,7 @@ enum ProvisioningProfileParser {
         let prefixes = dictionary["ApplicationIdentifierPrefix"] as? [String] ?? []
         let devices = dictionary["ProvisionedDevices"] as? [String] ?? []
         let allDevices = dictionary["ProvisionsAllDevices"] as? Bool ?? false
+        let developerCertificates = dictionary["DeveloperCertificates"] as? [Data] ?? []
 
         return ProvisioningProfileMetadata(
             name: name,
@@ -153,6 +155,7 @@ enum ProvisioningProfileParser {
             expirationDate: expirationDate,
             provisionedDevices: devices,
             provisionsAllDevices: allDevices,
+            developerCertificates: developerCertificates,
             entitlements: entitlements
         )
     }
