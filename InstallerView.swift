@@ -38,6 +38,11 @@ private struct GitHubRelease: Decodable, Identifiable {
         if value.contains("beta") || prerelease { return "Beta" }
         return "Stable"
     }
+
+    var isUnsigned: Bool {
+        let releaseNotes = (body ?? "").lowercased()
+        return releaseNotes.contains("unsigned") || releaseNotes.contains("sem assinatura")
+    }
 }
 
 @MainActor
@@ -178,8 +183,9 @@ private final class InstallerCatalog: ObservableObject {
     func importIPA(from source: URL) throws {
         let didAccess = source.startAccessingSecurityScopedResource()
         defer { if didAccess { source.stopAccessingSecurityScopedResource() } }
-        let values = try source.resourceValues(forKeys: [.fileSizeKey])
-        guard (values.fileSize ?? 0) <= 1_500_000_000 else {
+        let sourceValues = try source.resourceValues(forKeys: [.fileSizeKey])
+        let sourceSize = sourceValues.fileSize ?? 0
+        guard sourceSize <= 1_500_000_000 else {
             throw NSError(domain: "AutoRenew.Installer", code: 1,
                           userInfo: [NSLocalizedDescriptionKey: "O arquivo excede o limite de 1,5 GB."])
         }
@@ -187,19 +193,37 @@ private final class InstallerCatalog: ObservableObject {
             throw NSError(domain: "AutoRenew.Installer", code: 2,
                           userInfo: [NSLocalizedDescriptionKey: "Selecione um arquivo .ipa."])
         }
-        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("DownloadedIPAs", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        // Reject invalid ZIP headers before copying an imported package into the library.
-        _ = try IPAInspector.inspect(fileURL: source)
         let filename = URL(fileURLWithPath: source.lastPathComponent).lastPathComponent
         guard filename.lowercased().hasSuffix(".ipa"), filename != ".ipa" else {
             throw NSError(domain: "AutoRenew.Installer", code: 5,
                           userInfo: [NSLocalizedDescriptionKey: "O nome do arquivo IPA é inválido."])
         }
+
+        // Inspect the exact staged bytes that will be stored, avoiding a source-file TOCTOU gap.
+        let stagingURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("ipa")
+        try FileManager.default.copyItem(at: source, to: stagingURL)
+        defer { try? FileManager.default.removeItem(at: stagingURL) }
+        let stagedValues = try stagingURL.resourceValues(forKeys: [.fileSizeKey])
+        let stagedSize = stagedValues.fileSize ?? 0
+        guard stagedSize > 0, stagedSize <= 1_500_000_000,
+              sourceSize == 0 || sourceSize == stagedSize else {
+            throw NSError(domain: "AutoRenew.Installer", code: 6,
+                          userInfo: [NSLocalizedDescriptionKey: "O tamanho do arquivo mudou durante a importação ou excede o limite."])
+        }
+        let inspection = try IPAInspector.inspect(fileURL: stagingURL)
+        guard inspection.byteCount == stagedSize else {
+            throw NSError(domain: "AutoRenew.Installer", code: 7,
+                          userInfo: [NSLocalizedDescriptionKey: "O arquivo mudou durante a inspeção."])
+        }
+
+        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("DownloadedIPAs", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let destination = InstallerDownloadPolicy.uniqueDestination(in: directory, filename: filename)
-        try FileManager.default.copyItem(at: source, to: destination)
-        statusMessage = "IPA importado sem sobrescrever arquivos existentes: \(destination.lastPathComponent)."
+        try FileManager.default.moveItem(at: stagingURL, to: destination)
+        statusMessage = "IPA importado após inspeção do arquivo copiado: \(destination.lastPathComponent). A assinatura não foi validada."
         refreshDownloadedFiles()
     }
 
@@ -285,8 +309,11 @@ struct InstallerView: View {
                 Text(release.publishedAt?.formatted(date: .abbreviated, time: .omitted) ?? "Data indisponível")
                     .font(.caption2).foregroundStyle(.secondary)
             }
+            Text(release.isUnsigned ? "IPA UNSIGNED · não instalável diretamente" : "Assinatura não verificada")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.orange)
             ForEach(release.ipaAssets) { asset in
-                assetRow(asset)
+                assetRow(asset, isUnsigned: release.isUnsigned)
             }
             Link("Notas e detalhes da versão", destination: release.htmlURL)
                 .font(.caption)
@@ -294,7 +321,7 @@ struct InstallerView: View {
         .padding(.vertical, 5)
     }
 
-    private func assetRow(_ asset: GitHubRelease.Asset) -> some View {
+    private func assetRow(_ asset: GitHubRelease.Asset, isUnsigned: Bool) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(asset.name).font(.subheadline)
@@ -308,7 +335,7 @@ struct InstallerView: View {
                 if catalog.downloadingAssetID == asset.id {
                     ProgressView()
                 } else {
-                    Label("Baixar", systemImage: "arrow.down.circle")
+                    Label(isUnsigned ? "Baixar unsigned" : "Baixar (assinatura não verificada)", systemImage: "arrow.down.circle")
                 }
             }
             .disabled(catalog.downloadingAssetID != nil)
