@@ -9,7 +9,8 @@ Verificação em **31/10/2026**.
 - Deploy inicial: [run #41185536948](https://github.com/xlightxt/AutoRenew/actions/runs/41185536948) falhou em Configure Pages com `Get Pages site failed: Not Found`.
 - Deploy seguinte: [run #41185796609](https://github.com/xlightxt/AutoRenew/actions/runs/41185796609) concluído com sucesso.
 - Deploy mais recente verificado: [run #41208603252](https://github.com/xlightxt/AutoRenew/actions/runs/41208603252), branch `main`, conclusão `success`.
-- A página pública abriu e renderizou o catálogo de Releases e os cards de builds.
+- Inspeção com navegador em 31/10/2026: página e catálogo dinâmico carregaram sem erros JavaScript/rede observados. Stable sem Release, Beta sem Release e Alpha com `alpha-2026.10.31-c1feeb6`.
+- O card Beta do portal live exibiu o run #41182023247 (branch `codex/ipa-packaging-validation`, 07:48:09Z), que não é a branch `beta`; o run real da branch `beta` é #41181299910 (07:36:47Z). Isso confirma o bug de classificação no `docs/index.html` de `main`.
 
 ## Catálogo e builds observados
 
