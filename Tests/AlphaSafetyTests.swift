@@ -7,10 +7,9 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertFalse(backend.isAvailable)
         let expiry = Date(timeIntervalSinceNow: 24 * 3600)
         let app = ManagedApp(bundleID: "test.example", name: "Test", expiresAt: expiry)
-        let anisette = AnisetteData(headers: ["X-Apple-I-MD": "test"])
 
         do {
-            _ = try await backend.refresh(app: app, anisette: anisette)
+            _ = try await backend.refresh(app: app)
             XCTFail("The stub backend must never report a successful renewal")
         } catch let error as RefreshError {
             XCTAssertEqual(error, .notImplemented)
