@@ -1,4 +1,5 @@
 import Combine
+import CoreFoundation
 import CryptoKit
 import Foundation
 import Security
@@ -55,10 +56,16 @@ final class SigningIdentityVault: ObservableObject {
         )
         guard status == errSecSuccess,
               let first = (importedItems as? [[String: Any]])?.first,
-              let identity = first[kSecImportItemIdentity as String] as? SecIdentity else {
+              let identityValue = first[kSecImportItemIdentity as String] else {
             if status == errSecAuthFailed { throw VaultError.wrongPassword }
             throw VaultError.invalidIdentity
         }
+        // Security.framework returns this dictionary value as a CF object. Check its
+        // runtime type before bridging it to SecIdentity (a CF type).
+        guard CFGetTypeID(identityValue as CFTypeRef) == SecIdentityGetTypeID() else {
+            throw VaultError.invalidIdentity
+        }
+        let identity = identityValue as! SecIdentity
 
         var certificate: SecCertificate?
         guard SecIdentityCopyCertificate(identity, &certificate) == errSecSuccess,
