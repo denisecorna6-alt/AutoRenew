@@ -31,7 +31,7 @@ jobs:
         run: |
           bash -n tools/install-to-iphone.sh
           bash -n tools/sign-ipa-macos.sh
-          python3 -m py_compile tools/validate-signing-inputs.py tools/ai_central.py tools/ai_coder.py
+          python3 -m py_compile tools/validate-signing-inputs.py tools/validate-install-target.py tools/ai_central.py tools/ai_coder.py
           python3 -m unittest discover -s Tests -p 'test_*.py' -v
 
       - name: Smoke-test IPA archive round-trip preserves root resources
