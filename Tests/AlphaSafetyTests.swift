@@ -265,4 +265,22 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: existing), Data("keep me".utf8))
     }
 
+
+    func testRenewalDateMustBeFutureAndLaterThanCurrentExpiry() {
+        let now = Date(timeIntervalSince1970: 1_900_000_000)
+        let currentExpiry = now.addingTimeInterval(24 * 3600)
+
+        XCTAssertTrue(RefreshCoordinator.isValidRenewalDate(
+            currentExpiry.addingTimeInterval(7 * 24 * 3600),
+            previous: currentExpiry,
+            now: now
+        ))
+        XCTAssertFalse(RefreshCoordinator.isValidRenewalDate(
+            currentExpiry, previous: currentExpiry, now: now
+        ))
+        XCTAssertFalse(RefreshCoordinator.isValidRenewalDate(
+            now.addingTimeInterval(-60), previous: currentExpiry, now: now
+        ))
+    }
+
 }
