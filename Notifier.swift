@@ -16,7 +16,7 @@ enum Notifier {
                     guard fire > Date() else { continue }
                     let content = UNMutableNotificationContent()
                     content.title = "\(app.name) expira em \(Int(h))h"
-                    content.body = "Abra o AutoRenew para renovar agora."
+                    content.body = "Abra o AutoRenew para conferir o prazo. A renovação automática ainda está em desenvolvimento."
                     content.sound = .default
                     let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: fire)
                     let trig = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
