@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
         TabView {
+            CatalogView().tabItem { Label("Installer", systemImage: "square.grid.2x2") }
             DashboardView().tabItem { Label("Apps", systemImage: "app.badge.clock") }
             LogsView().tabItem { Label("Logs", systemImage: "list.bullet.rectangle") }
             SettingsView().tabItem { Label("Ajustes", systemImage: "gearshape") }
