@@ -7,6 +7,15 @@ O Installer é um app iOS independente. Para obter o pacote de avaliação mais 
 3. Baixe o artefato **AutoRenew-Installer-ipa-unsigned**.
 4. O artefato **AutoRenew-ipa-unsigned** é o aplicativo principal AutoRenew.
 
+## Preparar e encaminhar um IPA
+
+1. Baixe uma versão ou importe um arquivo `.ipa`.
+2. Toque em **Verificar e preparar instalação**. O app confere extensão, tamanho, assinatura inicial ZIP e calcula SHA-256 em streaming.
+3. Toque em **Enviar para AltStore / SideStore** e escolha o instalador na folha de compartilhamento do iOS, se ele aparecer.
+4. Conclua a assinatura e instalação no aplicativo escolhido e siga as instruções dele.
+
+A pré-verificação não confirma que o IPA é válido, seguro, compatível ou assinado corretamente. O AutoRenew não recebe confirmação do resultado da instalação.
+
 ## O que há no Installer
 
 - Navegação de Releases públicas Stable/Beta/Alpha do AutoRenew.
@@ -17,4 +26,4 @@ O Installer é um app iOS independente. Para obter o pacote de avaliação mais 
 
 ## Importante
 
-Os pacotes de Actions são unsigned. Eles não podem ser instalados diretamente no iPhone. O Installer ainda não assina nem instala IPAs. A autenticação Apple ID/2FA e o motor de assinatura não estão implementados. Não coloque senha Apple ID ou códigos 2FA nesta Alpha.
+Os pacotes de Actions são unsigned. Eles não podem ser instalados diretamente no iPhone. O Installer ainda não assina nem instala IPAs por conta própria; nesta Alpha, ele prepara e encaminha o arquivo para um instalador compatível. A autenticação Apple ID/2FA e o motor de assinatura não estão implementados. Não coloque senha Apple ID ou códigos 2FA nesta Alpha.
