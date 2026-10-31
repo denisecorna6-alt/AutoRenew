@@ -1,41 +1,42 @@
 # AutoRenew Alpha
 
-Esta é uma compilação inicial de avaliação. O objetivo é validar a navegação, o painel de apps, o histórico e o fluxo de teste antes de conectar qualquer mecanismo real de assinatura.
+Esta compilação de avaliação valida a navegação, o painel, o histórico e os fluxos locais. Ela ainda não renova aplicativos.
 
-## O que já pode ser avaliado
+## O que pode ser avaliado
 
-- Interface SwiftUI do painel, lista de apps e histórico.
-- Cadastro de apps de demonstração.
-- Agendamento, notificações e execução em primeiro plano/background, sujeitos às regras do iOS.
-- Mensagens de estado que deixam explícito que a renovação ainda é simulada.
+- Interface SwiftUI do painel, lista de itens de demonstração e histórico.
+- Preferências locais e persistência.
+- Agendamento e notificações, sujeitos às regras e decisões do iOS.
+- Registro transparente de tentativas não executadas.
 
 ## O que NÃO está implementado
 
-- Login Apple funcional, autenticação de dois fatores ou integração real com AltSign/minimuxer.
+- Login Apple, autenticação de dois fatores ou integração real com AltSign/minimuxer.
 - Reassinatura, reinstalação ou renovação real de IPA.
-- Leitura/monitoramento real de certificados e perfis.
+- Inventário real de certificados/perfis e leitura confiável da validade.
 - Revogação de certificados.
 - Instalação silenciosa ou bypass dos limites do iOS.
 
-O backend atual é `StubSigningBackend`: ele simula uma nova expiração de sete dias. O sucesso nos logs não significa que um app foi assinado ou instalado novamente.
+O backend `StubSigningBackend` falha com `notImplemented`. Ele não simula uma nova data de expiração, não altera a validade e não registra sucesso. Os itens e datas atuais são dados de demonstração.
 
 ## Segurança e limites
 
 - Esta Alpha não solicita nem persiste senha Apple ID, códigos 2FA, cookies, tokens de sessão ou chaves privadas.
-- A tela de Ajustes não oferece campos para credenciais Apple enquanto a integração real não existir.
-- Na primeira inicialização desta versão, o app remove do Keychain o item legado `applePassword` que versões anteriores da Alpha podiam ter gravado.
+- A tela de Ajustes não oferece campos para credenciais Apple.
+- Na primeira inicialização desta versão, o app remove do Keychain o item legado `applePassword` que versões anteriores podiam ter gravado.
+- Provedores Anisette configurados precisam usar HTTPS e retornar HTTP 2xx com metadados esperados.
 - Não envie credenciais em issues, logs ou mensagens.
-- Não use certificados compartilhados ou de terceiros.
-- Uma falha de rede deve ser classificada como estado desconhecido, nunca como certificado revogado.
-- Qualquer futura ação de revogação deve ser explícita, limitada a credenciais próprias e precedida por verificação de dependências.
+- Não use certificados compartilhados, endpoints privados/não documentados ou automação que burle controles da Apple.
+- Falhas de rede devem permanecer como estado desconhecido; nunca devem ser interpretadas como revogação.
+- Qualquer futura ação de revogação deve ser explícita e precedida de verificação de dependências.
 - Contas Apple gratuitas têm limites e prazos impostos pela Apple; a Alpha não os contorna.
 
-## Próxima sequência de trabalho
+## Próximas etapas
 
-1. Validar a experiência e corrigir bugs da interface.
-2. Implementar inventário local de perfis/certificados sem guardar segredos em servidor.
-3. Adicionar monitoramento não destrutivo com estados válido, próximo do vencimento, expirado, revogado e desconhecido.
-4. Integrar um fluxo de renovação suportado e documentado, condicionado a dispositivo, pareamento e autenticação do usuário.
-5. Só depois avaliar revogação assistida e automações.
+1. Inventário local e não destrutivo de perfis/certificados reais.
+2. Estados verificáveis: válido, próximo do vencimento, expirado, revogado e desconhecido.
+3. Integração com fluxo de assinatura documentado e suportado, condicionado a pareamento, dispositivo e autenticação explícita.
+4. Testes automatizados, depois testes em iPhone físico com logs sem dados sensíveis.
+5. Avaliação de automações adicionais somente após comprovação técnica.
 
 A Alpha não deve ser divulgada como versão de renovação automática funcional.
