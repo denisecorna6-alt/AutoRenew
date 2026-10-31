@@ -21,12 +21,13 @@ def main():
     context=os.getenv("AI_CONTEXT","").strip()[:18000]
     if not task: raise RuntimeError("Informe a tarefa.")
     keys={"OpenAI":need("OPENAI_API_KEY"),"Claude":need("ANTHROPIC_API_KEY"),"Gemini":need("GEMINI_API_KEY")}
-    models={"OpenAI":os.getenv("OPENAI_MODEL","gpt-5.5"),"Claude":os.getenv("ANTHROPIC_MODEL","claude-sonnet-5-5"),"Gemini":os.getenv("GEMINI_MODEL","gemini-3.8-flash")}
+    models={"OpenAI":os.getenv("OPENAI_MODEL","gpt-6.1-sol"),"Claude":os.getenv("ANTHROPIC_MODEL","claude-sonnet-5-5"),"Gemini":os.getenv("GEMINI_MODEL","gemini-3.8-flash")}
     system="Você é revisor independente do AutoRenew. Priorize segurança, privacidade, estabilidade iOS e testes. Não invente evidências, não recomende senha Apple ID ou endpoints privados Apple. Não altere código nem aprove publicação. Responda em português do Brasil."
     prompt=f"TAREFA:\n{task}\n\nCONTEXTO:\n{context or '(não fornecido)'}\n\nListe entendimento, riscos, recomendações priorizadas, testes verificáveis e decisões humanas. Separe fatos, hipóteses e dúvidas."
     def oa():
-        d=call("https://api.openai.com/v1/chat/completions",{"Authorization":"Bearer "+keys["OpenAI"]},{"model":models["OpenAI"],"messages":[{"role":"system","content":system},{"role":"user","content":prompt}],"max_completion_tokens":1600},keys["OpenAI"])
-        return d["choices"][0]["message"]["content"]
+        d=call("https://api.openai.com/v1/responses",{"Authorization":"Bearer "+keys["OpenAI"]},{"model":models["OpenAI"],"instructions":system,"input":prompt,"max_output_tokens":1600},keys["OpenAI"])
+        if d.get("output_text"): return d["output_text"]
+        return "\\n".join(x.get("text","") for o in d.get("output",[]) for x in o.get("content",[]) if x.get("type")=="output_text")
     def cl():
         d=call("https://api.anthropic.com/v1/messages",{"x-api-key":keys["Claude"],"anthropic-version":"2023-06-01"},{"model":models["Claude"],"max_tokens":1600,"system":system,"messages":[{"role":"user","content":prompt}]},keys["Claude"])
         return "\n".join(x.get("text","") for x in d.get("content",[]) if x.get("type")=="text")
@@ -48,8 +49,8 @@ def main():
         combined="Tarefa: "+task+"\n\n"+"\n\n".join("REVISÃO "+n+":\n"+v for n,v in reviews.items())
         combined+="\n\nSintetize consensos, divergências, riscos, plano e testes. Não invente fatos nem aprove mudanças."
         try:
-            d=call("https://api.openai.com/v1/chat/completions",{"Authorization":"Bearer "+keys["OpenAI"]},{"model":models["OpenAI"],"messages":[{"role":"system","content":"Você coordena revisões técnicas. Compare criticamente, destaque divergências e decisões humanas. PT-BR."},{"role":"user","content":combined[:30000]}],"max_completion_tokens":1600},keys["OpenAI"])
-            synthesis=d["choices"][0]["message"]["content"]
+            d=call("https://api.openai.com/v1/responses",{"Authorization":"Bearer "+keys["OpenAI"]},{"model":models["OpenAI"],"instructions":"Você coordena revisões técnicas. Compare criticamente, destaque divergências e decisões humanas. PT-BR.","input":combined[:30000],"max_output_tokens":1600},keys["OpenAI"])
+            synthesis=d.get("output_text") or "\\n".join(x.get("text","") for o in d.get("output",[]) for x in o.get("content",[]) if x.get("type")=="output_text")
         except Exception as e: errors["Síntese OpenAI"]=str(e)[:1200]
     lines=["# Central de IAs — AutoRenew","", "Data UTC: "+datetime.now(timezone.utc).isoformat(),"Tarefa: "+task,"Modo: revisão somente; nenhuma alteração de código/publicação executada.","","## Síntese",synthesis,""]
     for n in ("OpenAI","Claude","Gemini"):
