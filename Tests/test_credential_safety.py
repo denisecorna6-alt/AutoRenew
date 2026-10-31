@@ -84,6 +84,8 @@ class CredentialSafetyTests(unittest.TestCase):
         self.assertIn("struct RefreshRunSummary", coordinator)
         self.assertIn("!cancelled && failed == 0 && deferred == 0", coordinator)
         self.assertIn("failed: due.count", coordinator)
+        self.assertIn("static let deferredWork", coordinator)
+        self.assertIn("if Task.isCancelled", coordinator)
         self.assertIn("summary.backgroundTaskSucceeded", scheduler)
         self.assertNotIn("success: !work.isCancelled", scheduler)
 
