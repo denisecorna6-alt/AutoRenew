@@ -38,6 +38,7 @@ PAYLOAD="$WORK/unpacked/Payload"
 MANIFEST_DIR="$(cd "$(dirname "$MANIFEST")" && pwd)"
 python3 - "$MANIFEST" > "$WORK/bundles.tsv" <<'PY'
 import json, os, sys
+from pathlib import PurePosixPath
 manifest_path = os.path.abspath(sys.argv[1])
 root = os.path.dirname(manifest_path)
 with open(manifest_path, encoding="utf-8") as f: doc = json.load(f)
@@ -49,8 +50,8 @@ for item in bundles:
     vals = [item.get(k) for k in ("bundle_path", "profile_path", "entitlements_path")]
     if not all(isinstance(v, str) and v and "\t" not in v and "\n" not in v for v in vals):
         raise SystemExit("Cada bundle precisa de bundle_path, profile_path e entitlements_path")
-    bundle = os.path.normpath(os.path.join(os.getcwd(), vals[0]))
-    if os.path.isabs(vals[0]) or bundle.startswith("..") or vals[0].startswith("../"):
+    bundle_path = PurePosixPath(vals[0])
+    if bundle_path.is_absolute() or ".." in bundle_path.parts or "\\" in vals[0] or ":" in vals[0]:
         raise SystemExit("bundle_path precisa ser relativo e seguro")
     resolved = [os.path.realpath(os.path.join(root, v)) for v in vals[1:]]
     if any(os.path.commonpath([root, p]) != root for p in resolved):
