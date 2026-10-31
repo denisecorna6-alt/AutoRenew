@@ -156,7 +156,7 @@ actor RefreshCoordinator {
                         "Falha de rede durante a assinatura. O resultado pode ser indeterminado; a operação não foi repetida e a validade não foi alterada."
                     )
                     failed += 1
-                case .anisetteUnavailable:
+                case .anisetteUnavailable, .anisetteNeedsProvisioning:
                     await fail(
                         app, trigger,
                         "Nenhum serviço Anisette configurado respondeu com dados válidos. A assinatura não foi iniciada."
