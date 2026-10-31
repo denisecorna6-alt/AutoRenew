@@ -220,6 +220,23 @@ final class AlphaSafetyTests: XCTestCase {
         }
     }
 
+    func testAnisetteRouterPreservesTaskCancellation() async {
+        let router = AnisetteRouter(providers: [], remoteRequestsEnabled: true)
+        let task = Task {
+            try await router.fetch()
+        }
+        task.cancel()
+
+        do {
+            _ = try await task.value
+            XCTFail("Anisette routing must propagate task cancellation")
+        } catch is CancellationError {
+            // Expected: cancellation must not be converted to an ordinary provider failure.
+        } catch {
+            XCTFail("Expected CancellationError, got: \\(error)")
+        }
+    }
+
     private func makeProvisioningProfilePayload(
         applicationIdentifier: String,
         expirationDate: Date
