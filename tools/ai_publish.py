@@ -76,7 +76,8 @@ def main():
                 "Files: " + ", ".join(files) + "\n\n"
                 "See the originating Actions run for the full reviewer report.")
         run(["gh", "pr", "create", "--base", base, "--head", branch, "--title", title, "--body", body])
-        Path("ai-publish-report.md").write_text(
+        report_path = Path(os.getenv("AI_PUBLISH_REPORT_PATH", str(Path(tempfile.gettempdir()) / "ai-publish-report.md")))
+        report_path.write_text(
             "Alpha PR created for " + base + ". Files: " + ", ".join(files) + "\n",
             encoding="utf-8"
         )
