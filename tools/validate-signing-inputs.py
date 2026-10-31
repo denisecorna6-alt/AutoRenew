@@ -28,7 +28,7 @@ def safe_archive(path):
                 name = info.filename
                 p = PurePosixPath(name)
                 mode = (info.external_attr >> 16) & 0xFFFF
-                if p.is_absolute() or ".." in p.parts or name.startswith("/") or "\\\\" in name or "\\x00" in name:
+                if p.is_absolute() or ".." in p.parts or name.startswith("/") or "\\" in name or "\x00" in name:
                     fail("IPA contém caminho inseguro.")
                 if stat.S_ISLNK(mode):
                     fail("IPA contém link simbólico; extração bloqueada.")
@@ -127,7 +127,7 @@ def main():
     certs = profile.get("DeveloperCertificates", [])
     profile_sha1 = {hashlib.sha1(c).hexdigest().upper() for c in certs if isinstance(c, bytes)}
     with open(args.identity_list, encoding="utf-8") as f:
-        identities = set(re.findall(r"\\b([0-9A-Fa-f]{40})\\b", f.read()))
+        identities = set(re.findall(r"\b([0-9A-Fa-f]{40})\b", f.read()))
     matches = profile_sha1.intersection(x.upper() for x in identities)
     if not matches:
         fail("Nenhuma identidade de assinatura disponível corresponde a DeveloperCertificates do perfil.")
