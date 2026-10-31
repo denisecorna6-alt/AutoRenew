@@ -10,6 +10,22 @@ struct ContentView: View {
     }
 }
 
+struct AlphaNotice: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("ALPHA · versão de testes", systemImage: "flask")
+                .font(.headline)
+            Text("A renovação real ainda não está conectada. Os testes atuais simulam a operação e não estendem a validade dos apps.")
+                .font(.caption)
+            Text("Não use esta versão como garantia para manter apps assinados.")
+                .font(.caption.weight(.semibold))
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
 struct AppRow: View {
     let app: ManagedApp
     private var tint: Color { app.daysLeft > 3 ? .green : app.daysLeft > 1 ? .yellow : .red }
@@ -36,22 +52,29 @@ struct DashboardView: View {
     var body: some View {
         NavigationStack {
             List {
-                ForEach(store.apps) { AppRow(app: $0) }
-                    .onDelete { store.apps.remove(atOffsets: $0) }
+                Section {
+                    AlphaNotice()
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .listRowBackground(Color.clear)
+                }
+                Section("Apps monitorados (dados de demonstração)") {
+                    ForEach(store.apps) { AppRow(app: $0) }
+                        .onDelete { store.apps.remove(atOffsets: $0) }
+                }
             }
             .overlay {
                 if store.apps.isEmpty {
                     ContentUnavailableView("Nenhum app", systemImage: "app.dashed",
-                                           description: Text("Toque em + para adicionar um app de teste."))
+                                           description: Text("Toque em + para adicionar um app de demonstração."))
                 }
             }
-            .navigationTitle("Apps")
+            .navigationTitle("AutoRenew Alpha")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Renovar tudo") {
+                    Button("Testar fluxo") {
                         busy = true
                         Task {
-                            await RefreshCoordinator.shared.runIfNeeded(trigger: "manual", budget: .seconds(120), force: true)
+                            await RefreshCoordinator.shared.runIfNeeded(trigger: "alpha-test", budget: .seconds(120), force: true)
                             busy = false
                         }
                     }.disabled(busy || store.apps.isEmpty)
@@ -106,6 +129,8 @@ struct SettingsView: View {
                 Section("Renovação") {
                     Stepper("Renovar com menos de \(Int(store.settings.thresholdHours))h",
                             value: $store.settings.thresholdHours, in: 6...120, step: 6)
+                    Text("Na Alpha, o backend é simulado. Nenhuma assinatura é renovada de verdade.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Avançado") {
                     Toggle("Bloquear domínios OCSP/PPQ (VPN)", isOn: $store.settings.blockDomains)
