@@ -7,7 +7,7 @@ Audit date: 2026-10-31.
 - URL: https://xlightxt.github.io/AutoRenew/
 - The portal is public and reads GitHub Releases and Actions metadata dynamically.
 - Last verified portal deployment before this artifact-policy change: Pages run [#41246887159](https://github.com/xlightxt/AutoRenew/actions/runs/41246887159), success, main commit `df85d28`.
-- The current portal filters Alpha/Beta/Official by exact branch, labels unsigned and unverified releases, restricts dynamic links to GitHub HTTPS, and includes keyboard skip/focus and screen-reader status support. It still exposes direct links to existing unsigned Alpha assets; this PR removes those links.
+- Before this policy change, the portal filtered Alpha/Beta/Official by exact branch, labeled unsigned and unverified releases, restricted dynamic links to GitHub HTTPS, and included keyboard skip/focus and screen-reader status support, but still exposed direct links to unsigned Alpha assets. The policy below removes those links.
 
 ## Release catalog observed
 
@@ -43,7 +43,7 @@ The `All interface orientations must be supported unless the app requires full s
 - The Alpha feature branch codex/alpha-installer-download-hardening-20261031 contains the separate AutoRenewInstaller app target and AutoRenewTests. Its latest successful run reports 23 Swift tests. Installer UI-specific end-to-end tests and physical device tests remain outstanding.
 - PacketTunnelProvider.swift is excluded from the project; no Network Extension target or entitlement is configured.
 - The Projects/ folders in the Alpha feature branch are architecture/readme placeholders, not independently buildable Swift packages. No Package.swift dependency graph is present in AutoRenew.
-- Main's current build.yml still creates an unsigned app archive on main pushes; this PR restricts automatic artifacts to Alpha branches and names the file `AutoRenew-unsigned.ipa` / artifact `AutoRenew-ipa-unsigned`. Beta/Official IPA workflows become manual-only and branch-guarded.
+- The artifact policy restricts automatic `build.yml` runs to Alpha branches and names the file `AutoRenew-unsigned.ipa` / artifact `AutoRenew-ipa-unsigned`. Beta/Official IPA workflows are manual-only and branch-guarded.
 
 ## External architecture and policy research
 
