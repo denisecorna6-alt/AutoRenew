@@ -25,6 +25,7 @@ class SigningInputValidationTests(unittest.TestCase):
         profile = {
             "ExpirationDate": datetime.datetime.utcnow() + datetime.timedelta(days=5),
             "TeamIdentifier": ["ABCDE12345"],
+            "ApplicationIdentifierPrefix": ["ABCDE12345"],
             "ProvisionedDevices": ["TEST-DEVICE"],
             "DeveloperCertificates": [self.cert],
             "Entitlements": {
