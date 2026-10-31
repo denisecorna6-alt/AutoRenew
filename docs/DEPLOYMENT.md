@@ -8,7 +8,7 @@ Audit date: 2026-10-31.
 - The portal is public and reads GitHub Releases and Actions metadata dynamically.
 - Latest verified deployment: Pages run [#41246286267](https://github.com/xlightxt/AutoRenew/actions/runs/41246286267), success, main commit `c8ff72d`.
 - The live portal was checked after that deployment. It filters Alpha/Beta/Official by the correct workflow/branch, labels unsigned and unverified releases, restricts dynamic links to GitHub HTTPS, and includes keyboard skip/focus and screen-reader status support.
-- The live portal still exposes direct links to the existing unsigned Alpha assets. PR #38 removes those links and replaces them with a validation warning; that portal change is not live until PR #38 merges and Pages deploys.
+- Before PR #38, the live portal exposed direct links to the existing unsigned Alpha assets. This PR removes those links and replaces them with a validation warning; the new behavior becomes public only after merge and a successful Pages deployment.
 
 ## Release catalog observed
 
@@ -41,7 +41,7 @@ The portal only reads release/build metadata. It does not inspect code signature
 - The Alpha build uses the stable macos-26 runner (Xcode 26.6), runs repository Python regression/safety tests, builds with code signing disabled, and uploads AutoRenew-ipa-unsigned only after every preceding step succeeds. The file is named AutoRenew-unsigned.ipa; it is an unsigned archive, not an installable IPA.
 - beta-ipa.yml and official-ipa.yml are manual-only and additionally require the exact beta or main ref. They do not run on pushes or pull requests. Historical unsigned Beta/Official artifacts listed above predate this gate; this review did not manually dispatch either workflow.
 - These workflows upload Actions artifacts only. They do not create GitHub Releases. No signed IPA, installation, or first launch is implied by an artifact.
-- The public portal no longer exposes direct IPA asset URLs. It shows release metadata and asset names, but blocks download links until signing, physical installation and first launch are validated. Existing GitHub Release assets are preserved; this change does not delete history.
+- This PR changes the public portal so it no longer exposes direct IPA asset URLs. It will show release metadata and asset names, but block download links until signing, physical installation and first launch are validated. Existing GitHub Release assets are preserved; this change does not delete history.
 
 The `All interface orientations must be supported unless the app requires full screen` warning is absent from the post-merge Xcode 26.6/26.5 archive and simulator logs after explicit iPhone/iPad orientation declarations. The app now asks for notification permission only after the user taps **Ativar lembretes**, respects the current authorization state, caps scheduled reminders at 60, and excludes demo records from real expiry notifications. Since main still has no manual app registration, no real-app reminder is scheduled yet. Remaining benign warnings: Xcode selects the first of multiple matching simulator destinations; AppIntents metadata extraction is skipped because the app does not link AppIntents; Node `punycode`/`url.parse` deprecation warnings originate in the GitHub Actions artifact action runtime, not AutoRenew source.
 
