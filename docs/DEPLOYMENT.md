@@ -59,7 +59,7 @@ The portal only reads release/build metadata. It does not inspect code signature
 
 ### Current toolchain gap
 
-Apple's current release notes identify Xcode 27.2 / iOS 27.2 SDK and Swift 6.4. The current main and Alpha build logs still report Xcode 16.4 / iOS Simulator SDK 18.5. The current CI therefore does not yet validate the latest iOS SDK. A separate latest-Xcode compatibility job should be added and tested before claiming iOS 27 compatibility.
+Apple released iOS 27.2 on 2026-10-26 and Xcode 27.2 (27B52) on 2026-10-29; Xcode 27.2 includes Swift 6.4 and the iOS 27.2 SDK. The current main and Alpha build logs still report Xcode 16.4 / iOS Simulator SDK 18.5. The GitHub macos-26 image currently defaults to Xcode 26.6, while the public-preview xcode-27 image documents Xcode 27.1 RC; no hosted Xcode 27.2 runner was verified in this audit. The current CI therefore does not validate the latest iOS SDK. Add a dedicated runner when the Xcode 27.2 image becomes available and test before claiming iOS 27.2 compatibility. [Apple iOS 27.2 release](https://developer.apple.com/news/releases/), [Xcode 27.2 release](https://developer.apple.com/news/releases/?id=10292026a), [Xcode 27.2 release notes](https://developer.apple.com/documentation/xcode-release-notes/xcode-27_2-release-notes), [GitHub macOS 26 image](https://github.com/actions/runner-images/blob/main/images/macos/macos-26-Readme.md), [GitHub Xcode 27 preview image](https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md).
 
 ## Safety gates still open
 
