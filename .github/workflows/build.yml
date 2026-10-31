@@ -1,27 +1,45 @@
-name: Build IPA
+name: Build Alpha IPA (unsigned)
+run-name: Alpha unsigned IPA build
+
 on:
   workflow_dispatch:
-  push: { branches: [main] }
+  push:
+    branches:
+      - 'codex/alpha-*'
 
 permissions:
   contents: read
 
+concurrency:
+  group: alpha-ipa-\${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    runs-on: macos-15
+    if: startsWith(github.ref, 'refs/heads/codex/alpha-')
+    runs-on: macos-26
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7.0.1
-      - run: brew install xcodegen && xcodegen generate
-      - run: |
+      - name: Record stable Xcode toolchain
+        run: xcodebuild -version
+      - name: Run repository regression and safety tests
+        run: python3 -m unittest discover -s Tests -p 'test_*.py' -v
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build unsigned iOS app
+        run: |
           xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew -configuration Release \
-            -sdk iphoneos -derivedDataPath build \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
       - name: Package explicitly unsigned IPA
         run: |
           mkdir -p Payload
           cp -R build/Build/Products/Release-iphoneos/AutoRenew.app Payload/
           zip -qr AutoRenew-unsigned.ipa Payload
-      - name: Upload explicitly unsigned IPA artifact
+      - name: Upload explicitly unsigned Alpha IPA artifact
         uses: actions/upload-artifact@v7.0.2
         with:
           name: AutoRenew-ipa-unsigned
