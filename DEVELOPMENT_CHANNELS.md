@@ -1,29 +1,28 @@
 # Canais de desenvolvimento e promoção
 
-## main — Oficial
-- É a linha de referência para builds estáveis.
-- Recebe apenas mudanças revisadas que passaram pelo CI da branch beta e pelo CI de promoção.
-- Não prometer renovação automática enquanto o SigningBackend real não estiver integrado e validado em dispositivo.
-- Releases oficiais exigem validação manual em iPhone, registro de versão/notas e aprovação explícita do mantenedor.
+## main — referência pública
+- Recebe melhorias por Pull Request depois de CI verde, revisão técnica/de segurança e conferência de escopo/diff.
+- Correções pequenas e reversíveis podem ser mescladas em main após PR e critérios verdes; não é obrigatório passar por Beta para documentação ou correções de baixo risco.
+- Não publicar Release nem anunciar renovação real sem validação completa em dispositivo físico.
 
-## beta — Testes
-- Recebe funcionalidades novas, refatorações e integrações experimentais.
-- Builds são pré-lançamento e podem conter bugs; não usar como única cópia de dados importantes.
-- Toda mudança deve vir por PR, com escopo, riscos, passos de teste e resultado esperado.
-- Falhas devem virar issue com logs sem dados pessoais, certificados, tokens ou segredos.
+## beta — testes de candidatos
+- Recebe funcionalidades que precisam de regressão adicional antes de Stable.
+- Um build Beta é apenas um artefato de CI até que assinatura, instalação e funcionamento sejam validados.
+- Não publicar Release Beta sem regressões aprovadas e teste em dispositivo físico.
 
-## Fluxo de promoção
-1. Desenvolver em branch curta baseada em beta.
-2. Abrir PR para beta; CI executa geração do projeto e compilação iOS Simulator.
-3. Corrigir falhas e revisar diff.
-4. Testar manualmente em dispositivo e registrar evidências para recursos que dependem de iOS real.
-5. Promover beta para main somente após aprovação e CI verde.
-6. Criar tag/release oficial somente após aprovação explícita.
+## Fluxo de trabalho
+1. Criar branch curta a partir da base apropriada (`main` para correções públicas; `beta` para candidatos de promoção).
+2. Implementar a menor mudança reversível e adicionar teste de regressão.
+3. Abrir PR para a base pretendida; conferir diff, escopo, dependências, licenças e permissões.
+4. Exigir CI/checks verdes e revisão de segurança antes do merge.
+5. Manter Draft quando faltar teste físico, credencial, autorização, confirmação humana ou validação legal/licença.
+6. Promover para Beta somente após regressões aprovadas e teste físico.
+7. Publicar Stable somente após validação completa, IPA assinado, instalação e primeiro lançamento em iPhone/iPad, mais aprovação explícita.
 
-## Critérios mínimos
-- Build sem erros.
-- Testes automatizados disponíveis aprovados.
-- Sem segredos no repositório.
-- README e changelog atualizados.
-- Funcionalidade documentada sem exagerar o que foi testado.
-- Recursos de assinatura, certificados, Anisette, SideSign e Minimuxer exigem testes reais; compilação não comprova funcionamento.
+## Critérios de segurança
+- Nunca solicitar ou armazenar Apple ID, senhas, códigos 2FA, cookies, tokens ou chaves privadas.
+- Nunca usar endpoints privados/não documentados da Apple.
+- Nunca revogar certificado compartilhado, de terceiros ou de outra conta.
+- Nunca tratar erro de rede como revogação.
+- Nunca apresentar IPA unsigned como instalável.
+- Artefato Actions, IPA unsigned, IPA assinado, instalação validada e primeiro lançamento são estados distintos.

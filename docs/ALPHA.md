@@ -6,10 +6,13 @@ Esta é uma compilação inicial de avaliação. O objetivo é validar a navega�
 
 - Interface SwiftUI do painel, lista de apps e histórico.
 - Cadastro de apps de demonstração.
-- Lembretes locais, sujeitos às regras do iOS.
+- Lembretes locais com permissão solicitada somente após tocar em **Ativar lembretes**; no máximo 60 notificações pendentes, sujeitas às regras de entrega do iOS.
+- Orientação de interface declarada para iPhone em retrato/paisagem e iPad em quatro orientações.
 - Mensagens explícitas de que a renovação real não está disponível.
 
 ## O que NÃO está implementado
+
+- Cadastro de apps reais na branch principal; a lista ainda usa dados de demonstração.
 
 - Login Apple, autenticação de dois fatores ou integração real com AltSign/SideSign/Minimuxer.
 - Reassinatura, reinstalação ou renovação real de IPA.
