@@ -42,6 +42,18 @@ class CredentialSafetyTests(unittest.TestCase):
         self.assertNotIn("renovar agora", notifier)
         self.assertIn("renovação automática não está disponível", notifier)
 
+    def test_sidestore_shortcut_guide_is_user_driven_and_credential_free(self):
+        guide = read("SideStoreAutomationGuide.swift")
+        ui = read("ContentView.swift")
+        self.assertIn("Refresh All Apps", guide)
+        self.assertIn("iOS 17", guide)
+        self.assertIn("LocalDevVPN", guide)
+        self.assertIn("27 segundos", guide)
+        self.assertIn("SideStoreAutomationGuide()", ui)
+        self.assertNotIn("PKCS12", guide)
+        self.assertNotIn("Apple ID", guide)
+        self.assertNotIn("URLSession", guide)
+
     def test_demo_apps_never_schedule_real_expiry_reminders(self):
         model = read("Models.swift")
         store = read("AppStore.swift")
