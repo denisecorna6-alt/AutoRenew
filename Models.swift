@@ -19,7 +19,7 @@ struct RefreshAttempt: Codable, Identifiable, Sendable {
 }
 
 struct AppSettings: Codable, Sendable {
-    var anisetteURLs = ["https://ani.sidestore.io"]
+    var anisetteURLs: [String] = []
     var thresholdHours = 48.0
 }
 
