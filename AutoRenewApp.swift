@@ -13,15 +13,24 @@ struct AutoRenewApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView().environmentObject(store)
-                .task { Notifier.requestAuth() }
+                .task {
+                    Notifier.requestAuth()
+                    Notifier.reschedule(store.apps)
+                }
         }
         .onChange(of: phase) { _, new in
             switch new {
             case .active:
-                Task { await RefreshCoordinator.shared.runIfNeeded(trigger: "foreground", budget: .seconds(60)) }
+                Notifier.reschedule(store.apps)
+                Task {
+                    await RefreshCoordinator.shared.runIfNeeded(
+                        trigger: "foreground", budget: .seconds(60)
+                    )
+                }
             case .background:
                 BackgroundScheduler.schedule()
-            default: break
+            default:
+                break
             }
         }
     }
