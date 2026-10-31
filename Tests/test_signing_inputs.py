@@ -106,6 +106,8 @@ class SigningInputValidationTests(unittest.TestCase):
         self.assertIn("IPAInspector.inspect(fileURL: temporaryURL)", catalog)
         self.assertIn("maximumSourceJSONBytes", catalog)
         self.assertIn("session.bytes(for: request)", catalog)
+        self.assertIn("inspection.validationScope", catalog)
+        self.assertNotIn("ZIP e SHA-256 verificados", catalog)
         self.assertNotIn("URLSession.shared.data(for: request)", catalog)
         self.assertNotIn("\\\\(", catalog)
         self.assertNotIn("\\\\n", catalog)
