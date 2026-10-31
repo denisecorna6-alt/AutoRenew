@@ -95,7 +95,7 @@ final class AlphaSafetyTests: XCTestCase {
         }
     }
 
-    func testIPAInspectorAcceptsZIPContainerAndComputesDigest() throws {
+    func testIPAInspectorRecognizesZIPHeaderAndComputesDigestWithoutClaimingFullValidation() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -109,6 +109,9 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertEqual(inspection.fileName, "sample.ipa")
         XCTAssertEqual(inspection.byteCount, bytes.count)
         XCTAssertEqual(inspection.sha256.count, 64)
+        XCTAssertTrue(inspection.validationScope.contains("Cabeçalho ZIP reconhecido"))
+        XCTAssertTrue(inspection.validationScope.contains("Estrutura ZIP completa"))
+        XCTAssertTrue(inspection.validationScope.contains("não foram verificados"))
     }
 
     func testIPAInspectorRejectsNonZIPFile() throws {
