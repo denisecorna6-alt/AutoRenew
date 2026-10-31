@@ -20,11 +20,11 @@ struct RefreshAttempt: Codable, Identifiable {
 
 struct AppSettings: Codable {
     var appleID = ""
-    var anisetteURLs = ["https://ani.sidestore.io"]   // ordem = prioridade/fallback
+    var anisetteURLs = ["https://ani.sidestore.io"]
     var thresholdHours = 48.0
     var blockDomains = false
 }
 
 enum RefreshError: Error, Equatable {
-    case authentication, anisetteUnavailable, network, other
+    case authentication, anisetteUnavailable, network, simulationOnly, other
 }
