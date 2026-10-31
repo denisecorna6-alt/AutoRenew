@@ -84,8 +84,14 @@ struct AnisetteV3AppleProvisioningClient: Sendable {
     private func perform(_ request: URLRequest) async throws -> Data {
         let data: Data
         let response: URLResponse
+        guard let requestHost = request.url?.host else {
+            throw RefreshError.anisetteUnavailable
+        }
+        let redirectDelegate = AnisetteV3SameHostRedirectDelegate(allowedHost: requestHost)
         do {
-            (data, response) = try await session.data(for: request)
+            // Apple provisioning requests can carry identity and provisioning tokens.
+            // Keep redirects HTTPS-only and on the exact original Apple host.
+            (data, response) = try await session.data(for: request, delegate: redirectDelegate)
         } catch is CancellationError {
             throw CancellationError()
         } catch {
@@ -97,6 +103,7 @@ struct AnisetteV3AppleProvisioningClient: Sendable {
               (200..<300).contains(http.statusCode),
               let finalURL = http.url,
               Self.isAppleHTTPSURL(finalURL),
+              finalURL.host?.lowercased() == requestHost.lowercased(),
               !data.isEmpty, data.count <= 2_000_000 else {
             throw RefreshError.anisetteUnavailable
         }
