@@ -68,6 +68,13 @@ actor AnisetteV3StateVault {
         try write(stored)
     }
 
+    /// Keeps the stable identifier but clears only the ADI blob after the server
+    /// explicitly reports that the existing provisioning is no longer valid.
+    func clearProvisionedState() throws {
+        guard let stored = try readStoredState(), stored.adiPB != nil else { return }
+        try write(AnisetteV3StoredState(identifier: stored.identifier))
+    }
+
     /// Removes the local provisioning identity. The next call creates a new identifier.
     func clear() throws {
         let query: [String: Any] = [
