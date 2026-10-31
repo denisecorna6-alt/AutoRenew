@@ -1,5 +1,35 @@
 import Foundation
 
+
+/// Prevents a sensitive ADI-bearing POST from following redirects to another host.
+final class AnisetteV3SameHostRedirectDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    private let allowedHost: String
+
+    init(allowedHost: String) {
+        self.allowedHost = allowedHost.lowercased()
+    }
+
+    static func allows(_ url: URL, host: String) -> Bool {
+        url.scheme?.lowercased() == "https" &&
+        url.host?.lowercased() == host.lowercased() &&
+        url.user == nil && url.password == nil
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        guard let url = request.url, Self.allows(url, host: allowedHost) else {
+            completionHandler(nil)
+            return
+        }
+        completionHandler(request)
+    }
+}
+
 /// A locally provisioned Anisette V3 identity. The ADI blob and identifier are
 /// sensitive device credentials and must only be supplied from protected storage.
 struct AnisetteV3ProvisioningState: Sendable {
@@ -29,8 +59,9 @@ struct AnisetteV3HeadersClient: Sendable {
         let request = try Self.makeRequest(serverURL: serverURL, state: state)
         let data: Data
         let response: URLResponse
+        let redirectGuard = AnisetteV3SameHostRedirectDelegate(allowedHost: serverURL.host ?? "")
         do {
-            (data, response) = try await session.data(for: request)
+            (data, response) = try await session.data(for: request, delegate: redirectGuard)
         } catch is CancellationError {
             throw CancellationError()
         } catch {
@@ -38,7 +69,9 @@ struct AnisetteV3HeadersClient: Sendable {
         }
 
         guard let http = response as? HTTPURLResponse,
-              (200..<300).contains(http.statusCode) else {
+              (200..<300).contains(http.statusCode),
+              let finalURL = http.url,
+              AnisetteV3SameHostRedirectDelegate.allows(finalURL, host: serverURL.host ?? "") else {
             throw RefreshError.anisetteUnavailable
         }
 
