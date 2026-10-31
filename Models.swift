@@ -1,6 +1,6 @@
 import Foundation
 
-struct ManagedApp: Codable, Identifiable, Hashable {
+struct ManagedApp: Codable, Identifiable, Hashable, Sendable {
     var id: String { bundleID }
     var bundleID: String
     var name: String
@@ -9,7 +9,7 @@ struct ManagedApp: Codable, Identifiable, Hashable {
     var daysLeft: Double { expiresAt.timeIntervalSinceNow / 86_400 }
 }
 
-struct RefreshAttempt: Codable, Identifiable {
+struct RefreshAttempt: Codable, Identifiable, Sendable {
     var id = UUID()
     var date = Date()
     var bundleID: String
@@ -18,12 +18,15 @@ struct RefreshAttempt: Codable, Identifiable {
     var message: String
 }
 
-struct AppSettings: Codable {
+struct AppSettings: Codable, Sendable {
+    var anisetteURLs: [String] = []
     var thresholdHours = 48.0
 }
 
-enum RefreshError: Error, Equatable {
-    case notImplemented
+enum RefreshError: Error, Equatable, Sendable {
+    case authentication
+    case anisetteUnavailable
     case network
+    case notImplemented
     case other
 }
