@@ -27,6 +27,12 @@ assert.equal(isUnsignedRelease({ body: "Os dois IPAs são unsigned" }), true);
 assert.equal(isUnsignedRelease({ body: "Sem assinatura Apple" }), true);
 assert.equal(isUnsignedRelease({ body: "Assinatura ainda não verificada" }), false);
 
+const pagesWorkflow = readFileSync(new URL("../.github/workflows/deploy-pages.yml", import.meta.url), "utf8");
+assert.match(pagesWorkflow, /actions\/checkout@v7\.0\.1/);
+assert.match(pagesWorkflow, /actions\/configure-pages@v6\.0\.0/);
+assert.match(pagesWorkflow, /actions\/upload-pages-artifact@v5\.0\.0/);
+assert.match(pagesWorkflow, /actions\/deploy-pages@v5\.0\.1/);
+
 const html = readFileSync(new URL("../docs/index.html", import.meta.url), "utf8");
 assert.match(html, /latestRunForChannel\(j\.workflow_runs/);
 assert.match(html, /runs\?per_page=100/);
