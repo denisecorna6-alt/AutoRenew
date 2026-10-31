@@ -42,6 +42,15 @@ class CredentialSafetyTests(unittest.TestCase):
         self.assertNotIn("renovar agora", notifier)
         self.assertIn("renovação automática não está disponível", notifier)
 
+    def test_supported_interface_orientations_are_explicit(self):
+        project = read("project.yml")
+        self.assertIn("UISupportedInterfaceOrientations:", project)
+        self.assertIn('"UISupportedInterfaceOrientations~ipad":', project)
+        self.assertIn("UIInterfaceOrientationPortrait", project)
+        self.assertIn("UIInterfaceOrientationLandscapeLeft", project)
+        self.assertIn("UIInterfaceOrientationLandscapeRight", project)
+        self.assertIn("UIInterfaceOrientationPortraitUpsideDown", project)
+
     def test_unused_network_permission_is_removed(self):
         project = read("project.yml")
         self.assertNotIn("NSLocalNetworkUsageDescription", project)
