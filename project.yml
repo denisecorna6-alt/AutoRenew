@@ -14,7 +14,7 @@ targets:
     sources:
       - path: .
         includes: ["*.swift"]
-        excludes: ["PacketTunnelProvider.swift", "Tests/**"]
+        excludes: ["PacketTunnelProvider.swift", "Tests/**", "InstallerView.swift", "InstallerApp.swift", "SigningIdentityVault.swift"]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.autorenew.AutoRenew
@@ -25,6 +25,22 @@ targets:
       properties:
         UIBackgroundModes: [fetch, processing]
         BGTaskSchedulerPermittedIdentifiers: [app.autorenew.refresh, app.autorenew.processing]
+        NSLocalNetworkUsageDescription: Necessário para comunicar com o próprio dispositivo.
+  AutoRenewInstaller:
+    type: application
+    platform: iOS
+    sources:
+      - path: .
+        includes: ["*.swift"]
+        excludes: ["PacketTunnelProvider.swift", "Tests/**", "AutoRenewApp.swift", "ContentView.swift"]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.autorenew.Installer
+        INFOPLIST_KEY_CFBundleDisplayName: AutoRenew Installer
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    info:
+      path: Installer-Info.plist
+      properties:
         NSLocalNetworkUsageDescription: Necessário para comunicar com o próprio dispositivo.
   AutoRenewTests:
     type: bundle.unit-test

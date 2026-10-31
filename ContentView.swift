@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     var body: some View {
         TabView {
+            AppCatalogView().tabItem { Label("Catálogo", systemImage: "square.grid.2x2.fill") }
             DashboardView().tabItem { Label("Apps", systemImage: "app.badge.clock") }
             LogsView().tabItem { Label("Atividade", systemImage: "list.bullet.rectangle") }
             SettingsView().tabItem { Label("Ajustes", systemImage: "gearshape") }

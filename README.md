@@ -1,51 +1,74 @@
 # AutoRenew
 
-Projeto SwiftUI para iOS 17+ que ajuda a acompanhar manualmente a validade de apps instalados por sideloading no iPhone.
+**AutoRenew e AutoRenew Installer são dois aplicativos iOS separados.** O Installer é o ponto principal para obter os IPAs oficiais do projeto; o AutoRenew também tem um catálogo para fontes de aplicativos compatíveis com AltStore/SideStore.
 
-## Estado real da Alpha
+## Baixar o AutoRenew Installer
 
-- Cadastro manual de nome, Bundle ID e data informada pelo usuário.
-- Painel com contagem estimada de dias e estados derivados exclusivamente da data cadastrada.
-- Histórico local e lembretes de expiração.
-- Importação local de `.mobileprovision`: cópia privada no app, SHA-256, detecção de duplicatas e limite de 25 MB.
-- Agendamento em segundo plano experimental, sujeito às decisões do iOS.
-- O backend de assinatura está **indisponível**. O placeholder falha de forma segura e nunca simula uma renovação bem-sucedida.
-- O app ainda não lê os aplicativos instalados nem decodifica o CMS dos perfis importados; validade, equipe, Bundle ID, UDID e revogação permanecem desconhecidos.
-- Não há login Apple funcional, renovação/reassinatura, reinstalação ou revogação implementados.
-- O artefato de CI é **unsigned**. Não é instalável diretamente como está; exige assinatura válida e método de instalação compatível.
+1. Abra [GitHub Actions — Build AutoRenew + Installer](https://github.com/xlightxt/AutoRenew/actions/workflows/build.yml).
+2. Entre na execução mais recente concluída com sucesso na branch Alpha.
+3. Em **Artifacts**, baixe **AutoRenew-Installer-ipa-unsigned**.
+4. O pacote AutoRenew está no artefato **AutoRenew-ipa-unsigned**.
 
-## Compilar e testar no GitHub Actions
+> Os artefatos do GitHub Actions exigem uma conta GitHub com acesso ao repositório. Os IPAs de CI são unsigned: são pacotes de inspeção, não instaladores prontos para abrir no iPhone. Para instalação, é necessária assinatura válida e um método compatível.
 
-1. Abra **Actions → Build IPA**.
-2. Execute manualmente ou envie commits para uma branch `codex/alpha-*`.
-3. O workflow gera o projeto com XcodeGen, compila o app e executa os testes unitários no Simulator.
-4. Se tudo passar, o workflow anexa um artefato unsigned para inspeção.
+## O que cada aplicativo faz
 
-O sucesso da compilação não comprova assinatura, instalação ou renovação real em iPhone.
+### AutoRenew Installer
+- Pré-verificação local do IPA: extensão, tamanho, cabeçalho ZIP e hash SHA-256 em leitura por blocos.
+- Fluxo **Verificar e preparar instalação** seguido de compartilhamento para AltStore/SideStore quando disponíveis no iOS.
+- A assinatura e a instalação são executadas pelo instalador escolhido; o AutoRenew não afirma sucesso nem altera o estado do app sem confirmação.
+- Aplicativo iOS independente, com Bundle ID próprio.
+- Catálogo de Releases públicas do AutoRenew, separado por Stable, Beta e Alpha.
+- Download de IPAs das Releases públicas, por link HTTPS e importação de arquivos locais.
+- Gestão local de certificados .p12 e perfis .mobileprovision.
+- Encaminhamento dos arquivos IPA pelo compartilhamento do iOS.
 
-## Compilar localmente (Mac)
+### AutoRenew
+- Acompanhamento manual de aplicativos, prazos, histórico e lembretes.
+- Aba **Catálogo** para adicionar fontes JSON compatíveis com AltStore/SideStore.
+- Busca por nome, Bundle ID e fonte; lista versões e baixa IPAs HTTPS para o armazenamento privado do app.
+- Compartilhamento dos IPAs baixados pelo iOS.
 
+## Instalação assistida por Mac
+
+Para IPAs já assinados para desenvolvimento, há um helper local para macOS que usa as ferramentas do Xcode (não envia certificado ou senha a servidores):
+
+```sh
+xcrun devicectl list devices
+./tools/install-to-iphone.sh <identificador-do-iphone> /caminho/para/app-assinado.ipa
+```
+
+Requisitos: Mac com Xcode instalado, iPhone pareado/confiado pelo computador, Developer Mode quando exigido e IPA assinado com certificado/perfil compatíveis com esse dispositivo. O helper extrai o IPA, exige um único app principal, verifica a assinatura com `codesign`, valida que o perfil CMS pode ser lido e solicita a instalação pelo `devicectl`.
+
+O helper não cria certificados, não registra dispositivos, não assina IPAs e não contorna o provisionamento. O sucesso do comando também não comprova que o app abriu corretamente no iPhone.
+
+## Compatibilidade de fontes
+
+O catálogo do AutoRenew lê o formato de fontes AltStore (AltSources), que também é compatível com SideStore. Adicione o URL HTTPS de um arquivo JSON de fonte dentro da aba **Catálogo**. Use apenas fontes confiáveis.
+
+Referências:
+- [SideStore — App Sources](https://docs.sidestore.io/docs/advanced/app-sources)
+- [AltStore — Make a Source](https://faq.altstore.io/developers/make-a-source)
+
+## Limites atuais da Alpha
+
+- O catálogo baixa e guarda os IPAs. **Ainda não assina nem instala aplicativos**.
+- Login Apple, autenticação 2FA, assinatura própria no dispositivo e instalação direta dentro do AutoRenew ainda não estão implementados. A Alpha oferece pré-verificação e encaminhamento para AltStore/SideStore.
+- A importação de .p12 e .mobileprovision no Installer é armazenamento/gestão local; ainda não comprova compatibilidade nem produz assinatura.
+- Não envie senha Apple ID, códigos 2FA, cookies, tokens ou chaves privadas.
+- Não há Releases públicas oficiais até que uma publicação seja aprovada. Builds de Actions não são Releases públicas.
+
+## Compilar e testar
+
+O workflow constrói dois targets separados:
+- AutoRenew → AutoRenew.ipa
+- AutoRenewInstaller → AutoRenew-Installer.ipa
+
+Ele executa testes unitários no simulador e publica dois artefatos unsigned para inspeção. O sucesso do build não comprova instalação real no iPhone.
+
+Para compilar localmente em um Mac:
 ```sh
 brew install xcodegen
 xcodegen generate
-xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew \
-  -destination 'platform=iOS Simulator,name=iPhone 16' test
+xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew -destination 'platform=iOS Simulator,name=iPhone 16' test
 ```
-
-## Segurança
-
-- A Alpha não solicita nem armazena senha Apple ID, códigos 2FA, cookies, tokens de sessão ou chaves privadas.
-- Na primeira inicialização desta versão, a chave legada `applePassword` das versões Alpha anteriores é removida do Keychain.
-- Endpoints Anisette configurados precisam usar HTTPS e retornar resposta HTTP válida com metadados esperados.
-- Não usar endpoints privados/não documentados, certificados compartilhados ou automação que burle controles da Apple.
-- Uma falha de rede nunca deve ser interpretada como certificado revogado.
-
-## Próximas etapas
-
-1. Decodificar e validar o CMS dos perfis importados e extrair metadados verificáveis.
-2. Distinguir validade temporal de revogação; estado remoto não será inferido apenas do arquivo local.
-3. Integrar um fluxo de assinatura documentado e suportado, condicionado a pareamento, dispositivo e autenticação explícita.
-4. Testes em iPhone físico, com logs sem dados sensíveis.
-5. Avaliação de automações adicionais somente após comprovação técnica.
-
-Não divulgar esta Alpha como versão de renovação automática funcional.
