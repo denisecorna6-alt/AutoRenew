@@ -19,6 +19,14 @@ class EcosystemSafetyPolicy(unittest.TestCase):
             self.assertIn("InstallerDownloadPolicy.fetchData", source)
             self.assertIn("InstallerDownloadPolicy.download", source)
 
+    def test_signing_helper_preserves_all_ipa_root_content(self):
+        script = read("tools/sign-ipa-macos.sh")
+        self.assertIn('EXTRACTED="$WORK/extracted"', script)
+        self.assertIn('ditto -x -k "$IPA_PATH" "$EXTRACTED"', script)
+        self.assertIn('ditto -c -k --sequesterRsrc "$EXTRACTED" "$WORK/signed.ipa"', script)
+        self.assertNotIn("--keepParent Payload", script)
+        self.assertIn('BUNDLE="$EXTRACTED/$REL_BUNDLE"', script)
+
     def test_signing_helper_never_exposes_pkcs12_password_in_process_args(self):
         script = read("tools/sign-ipa-macos.sh")
         self.assertIn("security find-identity -v -p codesigning", script)
