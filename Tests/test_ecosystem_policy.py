@@ -26,6 +26,9 @@ class EcosystemSafetyPolicy(unittest.TestCase):
         self.assertIn('ditto -c -k --sequesterRsrc "$EXTRACTED" "$WORK/signed.ipa"', script)
         self.assertNotIn("--keepParent Payload", script)
         self.assertIn('BUNDLE="$EXTRACTED/$REL_BUNDLE"', script)
+        self.assertIn('sed "s#^$EXTRACTED/##"', script)
+        self.assertIn('codesign --verify --deep --strict --verbose=2 "$EXTRACTED/$REL_BUNDLE"', script)
+        self.assertNotIn('codesign --verify --deep --strict --verbose=2 "$WORK/$REL_BUNDLE"', script)
 
     def test_signing_helper_never_exposes_pkcs12_password_in_process_args(self):
         script = read("tools/sign-ipa-macos.sh")
