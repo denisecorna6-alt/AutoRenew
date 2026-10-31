@@ -7,9 +7,10 @@ Projeto SwiftUI para iOS 17+ que ajuda a acompanhar manualmente a validade de ap
 - Cadastro manual de nome, Bundle ID e data informada pelo usuário.
 - Painel com contagem estimada de dias e estados derivados exclusivamente da data cadastrada.
 - Histórico local e lembretes de expiração.
+- Importação local de `.mobileprovision`: cópia privada no app, SHA-256, detecção de duplicatas e limite de 25 MB.
 - Agendamento em segundo plano experimental, sujeito às decisões do iOS.
 - O backend de assinatura está **indisponível**. O placeholder falha de forma segura e nunca simula uma renovação bem-sucedida.
-- O app ainda não lê os aplicativos instalados nem extrai validade de certificados/perfis.
+- O app ainda não lê os aplicativos instalados nem decodifica o CMS dos perfis importados; validade, equipe, Bundle ID, UDID e revogação permanecem desconhecidos.
 - Não há login Apple funcional, renovação/reassinatura, reinstalação ou revogação implementados.
 - O artefato de CI é **unsigned**. Não é instalável diretamente como está; exige assinatura válida e método de instalação compatível.
 
