@@ -19,6 +19,28 @@ on:
         description: 'Contexto adicional não secreto'
         required: false
         type: string
+      mode:
+        description: 'Modo de operação'
+        required: true
+        type: choice
+        options:
+          - review
+          - implement
+        default: review
+      worker:
+        description: 'IA que implementará o patch (as outras duas revisam)'
+        required: false
+        type: choice
+        options:
+          - openai
+          - claude
+          - gemini
+        default: openai
+      base_branch:
+        description: 'Branch Alpha que receberá a PR gerada'
+        required: false
+        type: string
+        default: codex/alpha-ai-central-20261031
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -38,7 +60,7 @@ jobs:
           grep -q GEMINI_API_KEY .github/workflows/ai-central.yml
           python -m unittest discover -s Tests -p 'test_ai_central.py' -v
   review:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'review'
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 8
@@ -65,4 +87,47 @@ jobs:
         with:
           name: ai-central-report
           path: ai-central-report.md
+          retention-days: 14
+
+  implement:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'implement'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_branch }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Configure GitHub CLI authentication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh auth status
+      - name: Run selected AI implementer and two independent reviewers
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          OPENAI_MODEL: gpt-6.1-sol
+          ANTHROPIC_MODEL: claude-sonnet-5-5
+          GEMINI_MODEL: gemini-3.8-flash
+          AI_TASK: ${{ inputs.task }}
+          AI_WORKER: ${{ inputs.worker }}
+          AI_BASE_BRANCH: ${{ inputs.base_branch }}
+        run: |
+          git switch -c "codex/ai-work-${GITHUB_RUN_ID}"
+          python tools/ai_coder.py
+      - name: Upload coding report
+        if: always() && hashFiles('ai-coding-report.md') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-coding-report
+          path: ai-coding-report.md
           retention-days: 14
