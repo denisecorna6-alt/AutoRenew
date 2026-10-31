@@ -233,7 +233,7 @@ final class AlphaSafetyTests: XCTestCase {
         } catch is CancellationError {
             // Expected: cancellation must not be converted to an ordinary provider failure.
         } catch {
-            XCTFail("Expected CancellationError, got: \\(error)")
+            XCTFail("Expected CancellationError, got: \(error)")
         }
     }
 
