@@ -25,9 +25,14 @@ enum BackgroundScheduler {
     }
 
     private static func handle(_ task: BGTask, budget: Duration, trigger: String) {
-        schedule()                                    // sempre reagendar primeiro
-        let work = Task { await RefreshCoordinator.shared.runIfNeeded(trigger: trigger, budget: budget) }
+        schedule()
+        let work = Task {
+            await RefreshCoordinator.shared.runIfNeeded(trigger: trigger, budget: budget)
+        }
         task.expirationHandler = { work.cancel() }
-        Task { await work.value; task.setTaskCompleted(success: !work.isCancelled) }
+        Task {
+            let summary = await work.value
+            task.setTaskCompleted(success: summary.backgroundTaskSucceeded && !work.isCancelled)
+        }
     }
 }
