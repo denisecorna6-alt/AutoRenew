@@ -44,6 +44,8 @@ class EcosystemSafetyPolicy(unittest.TestCase):
         validator = read("tools/validate-install-target.py")
         self.assertIn("security cms -V -i", script)
         self.assertIn("validate-install-target.py", script)
+        self.assertIn('PROFILE_PLIST="$WORK_DIR/profile.plist"', script)
+        self.assertNotIn('PROFILE_PLIST="$WORK/profile.plist"', script)
         self.assertIn("codesign --verify --deep --strict", script)
         self.assertIn("application-identifier", validator)
         self.assertIn("Bundle ID do app não corresponde", validator)
