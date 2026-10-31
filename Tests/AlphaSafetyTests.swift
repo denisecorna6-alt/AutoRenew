@@ -308,6 +308,27 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertFalse(timedOut.backgroundTaskSucceeded)
     }
 
+    func testBackgroundTaskDoesNotReportSuccessWhenAnAppWasDeferred() {
+        let deferred = RefreshRunSummary(
+            considered: 2, renewed: 1, failed: 0, skipped: false,
+            message: "Verificação concluída.", deferred: 1
+        )
+        XCTAssertFalse(deferred.backgroundTaskSucceeded)
+    }
+
+    func testBackgroundTaskSucceedsOnlyWhenEveryDueAppWasAccountedFor() {
+        let complete = RefreshRunSummary(
+            considered: 2, renewed: 1, failed: 1, skipped: false,
+            message: "Verificação concluída."
+        )
+        let incomplete = RefreshRunSummary(
+            considered: 2, renewed: 1, failed: 0, skipped: false,
+            message: "Verificação concluída."
+        )
+        XCTAssertTrue(complete.backgroundTaskSucceeded)
+        XCTAssertFalse(incomplete.backgroundTaskSucceeded)
+    }
+
     func testRenewalDateMustBeFutureAndLaterThanCurrentExpiry() {
         let now = Date(timeIntervalSince1970: 1_900_000_000)
         let currentExpiry = now.addingTimeInterval(24 * 3600)
