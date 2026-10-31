@@ -14,6 +14,9 @@
 ## O que cada aplicativo faz
 
 ### AutoRenew Installer
+- Pré-verificação local do IPA: extensão, tamanho, cabeçalho ZIP e hash SHA-256 em leitura por blocos.
+- Fluxo **Verificar e preparar instalação** seguido de compartilhamento para AltStore/SideStore quando disponíveis no iOS.
+- A assinatura e a instalação são executadas pelo instalador escolhido; o AutoRenew não afirma sucesso nem altera o estado do app sem confirmação.
 - Aplicativo iOS independente, com Bundle ID próprio.
 - Catálogo de Releases públicas do AutoRenew, separado por Stable, Beta e Alpha.
 - Download de IPAs das Releases públicas, por link HTTPS e importação de arquivos locais.
@@ -37,7 +40,7 @@ Referências:
 ## Limites atuais da Alpha
 
 - O catálogo baixa e guarda os IPAs. **Ainda não assina nem instala aplicativos**.
-- Login Apple, autenticação 2FA, assinatura no dispositivo, instalação e renovação automática ainda não estão implementados.
+- Login Apple, autenticação 2FA, assinatura própria no dispositivo e instalação direta dentro do AutoRenew ainda não estão implementados. A Alpha oferece pré-verificação e encaminhamento para AltStore/SideStore.
 - A importação de .p12 e .mobileprovision no Installer é armazenamento/gestão local; ainda não comprova compatibilidade nem produz assinatura.
 - Não envie senha Apple ID, códigos 2FA, cookies, tokens ou chaves privadas.
 - Não há Releases públicas oficiais até que uma publicação seja aprovada. Builds de Actions não são Releases públicas.
