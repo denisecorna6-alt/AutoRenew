@@ -30,12 +30,19 @@ if ! command -v xcrun >/dev/null 2>&1 || ! xcrun --find devicectl >/dev/null 2>&
   exit 69
 fi
 
-if ! command -v ditto >/dev/null 2>&1 || ! command -v codesign >/dev/null 2>&1; then
+if ! command -v ditto >/dev/null 2>&1 || ! command -v codesign >/dev/null 2>&1 || ! command -v security >/dev/null 2>&1; then
   echo "Erro: ferramentas de sistema do macOS não estão disponíveis." >&2
   exit 69
 fi
 
 IPA_PATH="$(cd "$(dirname "$IPA_INPUT")" && pwd)/$(basename "$IPA_INPUT")"
+IPA_SIZE="$(stat -f%z "$IPA_PATH")"
+if [[ "$IPA_SIZE" -le 0 || "$IPA_SIZE" -gt 1500000000 ]]; then
+  echo "Erro: o IPA está vazio ou excede 1,5 GB." >&2
+  exit 65
+fi
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+python3 "$ROOT/tools/validate-signing-inputs.py" --inspect-ipa "$IPA_PATH"
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/autorenew-install.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
