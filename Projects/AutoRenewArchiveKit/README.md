@@ -5,7 +5,7 @@
 ## Estado implementado no Alpha
 
 - O inspector do app verifica extensão, tamanho, cabeçalho ZIP e SHA-256.
-- `tools/validate-signing-inputs.py` inspeciona o diretório central do ZIP e bloqueia path traversal, links simbólicos, entradas duplicadas, entradas excessivas, arquivos individuais grandes e taxa de compressão suspeita.
+- `tools/validate-signing-inputs.py` inspeciona o diretório central do ZIP e bloqueia path traversal, links/tipos especiais, entradas duplicadas, colisões case-insensitive e de normalização Unicode, conflitos arquivo/diretório, entradas excessivas, arquivos individuais grandes e taxa de compressão suspeita.
 - `tools/sign-ipa-macos.sh` extrai em diretório temporário, assina os bundles e reconstrói o IPA com `ditto`, preservando a pasta Payload e metadados suportados pelo macOS.
 - Depois de reconstruir, o helper reabre o IPA e executa novamente a verificação de assinatura dos bundles.
 
