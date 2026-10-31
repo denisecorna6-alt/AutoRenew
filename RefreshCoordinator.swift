@@ -9,7 +9,8 @@ actor RefreshCoordinator {
 
     func runIfNeeded(trigger: String, budget: Duration, force: Bool = false) async {
         guard !running else { return }
-        running = true; defer { running = false }
+        running = true
+        defer { running = false }
 
         let clock = ContinuousClock()
         let deadline = clock.now + budget
@@ -21,27 +22,41 @@ actor RefreshCoordinator {
         guard !due.isEmpty else { return }
 
         let router = AnisetteRouter(urls: settings.anisetteURLs)
-        outer: for app in due {
-            for attempt in 0..<3 {
-                if Task.isCancelled || clock.now >= deadline { break outer }
-                do {
-                    let anisette = try await router.fetch()
-                    let expiry = try await backend.refresh(app: app, anisette: anisette)
-                    await MainActor.run { AppStore.shared.didRefresh(app, newExpiry: expiry, trigger: trigger) }
-                    break
-                } catch let e as RefreshError where e == .authentication {
-                    await fail(app, trigger, "Autenticação falhou — reabra o app e faça login")
-                    break outer                       // nunca repetir erro de auth (evita bloqueio da conta)
-                } catch {
-                    if attempt == 2 { await fail(app, trigger, "Falha: \(error)") }
-                    else { try? await Task.sleep(for: .seconds(pow(2, Double(attempt + 1)))) }  // backoff
+        for app in due {
+            if Task.isCancelled || clock.now >= deadline { break }
+            do {
+                let anisette = try await router.fetch()
+                let expiry = try await backend.refresh(app: app, anisette: anisette)
+                await MainActor.run {
+                    AppStore.shared.didRefresh(app, newExpiry: expiry, trigger: trigger)
                 }
+            } catch let error as RefreshError {
+                switch error {
+                case .notImplemented:
+                    await fail(app, trigger,
+                               "Renovação real indisponível: integração de assinatura ainda não implementada. Nenhuma alteração foi feita.")
+                    return
+                case .authentication:
+                    await fail(app, trigger, "Autenticação falhou. Nenhuma renovação foi realizada.")
+                    return
+                case .anisetteUnavailable:
+                    await fail(app, trigger, "Serviço Anisette indisponível. Estado da assinatura não foi alterado.")
+                case .network:
+                    await fail(app, trigger, "Falha de rede. Estado da assinatura não foi alterado.")
+                case .other:
+                    await fail(app, trigger, "Falha não classificada. Estado da assinatura não foi alterado.")
+                }
+            } catch {
+                await fail(app, trigger,
+                           "Falha inesperada: \(error.localizedDescription). Estado da assinatura não foi alterado.")
             }
         }
         await MainActor.run { Notifier.reschedule(AppStore.shared.apps) }
     }
 
     private func fail(_ app: ManagedApp, _ trigger: String, _ msg: String) async {
-        await MainActor.run { AppStore.shared.log(app, trigger: trigger, success: false, message: msg) }
+        await MainActor.run {
+            AppStore.shared.log(app, trigger: trigger, success: false, message: msg)
+        }
     }
 }
