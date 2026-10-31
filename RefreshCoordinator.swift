@@ -1,5 +1,23 @@
 import Foundation
 
+struct RefreshRunSummary {
+    let considered: Int
+    let renewed: Int
+    let deferred: Int
+    let failed: Int
+    let skipped: Bool
+    let cancelled: Bool
+
+    var backgroundTaskSucceeded: Bool {
+        !cancelled && failed == 0 && deferred == 0
+    }
+
+    static let noWork = RefreshRunSummary(
+        considered: 0, renewed: 0, deferred: 0, failed: 0,
+        skipped: true, cancelled: false
+    )
+}
+
 actor RefreshCoordinator {
     static let shared = RefreshCoordinator()
     private var backend: SigningBackend = StubSigningBackend()
@@ -7,8 +25,9 @@ actor RefreshCoordinator {
 
     func setBackend(_ backend: SigningBackend) { self.backend = backend }
 
-    func runIfNeeded(trigger: String, budget: Duration, force: Bool = false) async {
-        guard !running else { return }
+    @discardableResult
+    func runIfNeeded(trigger: String, budget: Duration, force: Bool = false) async -> RefreshRunSummary {
+        guard !running else { return .noWork }
         running = true
         defer { running = false }
 
@@ -20,7 +39,7 @@ actor RefreshCoordinator {
         let due = apps
             .filter { force || $0.expiresAt.timeIntervalSinceNow < settings.thresholdHours * 3600 }
             .sorted { $0.expiresAt < $1.expiresAt }
-        guard !due.isEmpty else { return }
+        guard !due.isEmpty else { return .noWork }
 
         // Fail closed before any network access while no reviewed signer exists.
         guard backend.isAvailable else {
@@ -29,21 +48,39 @@ actor RefreshCoordinator {
                            "Renovação real indisponível nesta Alpha. Nenhuma rede, assinatura ou alteração de validade foi executada.")
             }
             await rescheduleNotifications()
-            return
+            return RefreshRunSummary(
+                considered: due.count, renewed: 0, deferred: 0, failed: due.count,
+                skipped: true, cancelled: false
+            )
         }
 
-        for app in due {
-            guard !Task.isCancelled, clock.now < deadline else { break }
+        var renewed = 0
+        var deferred = 0
+        var failed = 0
+        var cancelled = false
+
+        for (index, app) in due.enumerated() {
+            if Task.isCancelled {
+                cancelled = true
+                deferred += due.count - index
+                break
+            }
+            if clock.now >= deadline {
+                deferred += due.count - index
+                break
+            }
             do {
                 let newExpiry = try await backend.refresh(app: app)
                 guard newExpiry > app.expiresAt else {
                     await fail(app, trigger,
                                "O backend não confirmou uma validade posterior. Nenhuma alteração foi feita.")
+                    failed += 1
                     continue
                 }
                 await MainActor.run {
                     AppStore.shared.didRefresh(app, newExpiry: newExpiry, trigger: trigger)
                 }
+                renewed += 1
             } catch let error as RefreshError {
                 let message: String
                 switch error {
@@ -55,12 +92,19 @@ actor RefreshCoordinator {
                     message = "Falha não classificada. Nenhuma alteração foi feita."
                 }
                 await fail(app, trigger, message)
+                failed += 1
             } catch {
                 await fail(app, trigger,
                            "Falha inesperada. O estado da assinatura permanece desconhecido.")
+                failed += 1
             }
         }
+
         await rescheduleNotifications()
+        return RefreshRunSummary(
+            considered: due.count, renewed: renewed, deferred: deferred,
+            failed: failed, skipped: false, cancelled: cancelled
+        )
     }
 
     private func rescheduleNotifications() async {
