@@ -245,7 +245,12 @@ struct InstallerView: View {
     private let channels = ["Todas", "Stable", "Beta", "Alpha"]
 
     private var visibleReleases: [GitHubRelease] {
-        selectedChannel == "Todas" ? catalog.releases : catalog.releases.filter { $0.channel == selectedChannel }
+        if selectedChannel == "Todas" {
+            return catalog.releases
+        }
+        return catalog.releases.filter { release in
+            release.channel == selectedChannel
+        }
     }
 
     var body: some View {
@@ -523,7 +528,7 @@ struct InstallerView: View {
                 }
                 Button("Cancelar", role: .cancel) { pendingDeepLinkURL = nil }
             } message: {
-                Text("O link solicita apenas o download de um IPA por HTTPS de \\(pendingDeepLinkURL?.host ?? "origem desconhecida"). O arquivo será salvo para inspeção. Não haverá assinatura nem instalação automática.")
+                Text("O link solicita apenas o download de um IPA por HTTPS de \(InstallerDeepLink.displayHost(for: pendingDeepLinkURL)). O arquivo será salvo para inspeção. Não haverá assinatura nem instalação automática.")
             }
             .fileImporter(isPresented: $showingIPAImporter, allowedContentTypes: [UTType(filenameExtension: "ipa") ?? .data]) { result in
                 do {
