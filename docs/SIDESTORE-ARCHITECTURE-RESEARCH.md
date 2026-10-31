@@ -53,6 +53,32 @@ Isso não pode ser reproduzido apenas adicionando uma dependência Swift Package
 
 SideSource é uma solução separada para compor catálogos de apps a partir de GitHub Releases, outras fontes e configurações remotas. É a parte mais segura e independente para inspirar uma primeira integração: catálogo JSON, metadados, canais e cache, sem autenticação Apple nem instalação privilegiada.
 
+### 1.6 Fluxo real observado no código-fonte
+
+A leitura dos arquivos de operação da branch pública develop confirma que o fluxo é uma cadeia de etapas, não uma chamada única:
+
+1. SignInOperation obtém credenciais por meio de um handler, solicita dados Anisette e chama AuthManager para autenticar; depois resolve a equipe.
+2. DeviceRegistrationFlow obtém o identificador do dispositivo e consulta/registra o dispositivo na equipe.
+3. CertificateProvisioningFlow consulta certificados da equipe e pode solicitar/substituir um certificado.
+4. FetchProvisioningProfilesOperation obtém os perfis para o app e extensões.
+5. VerifyCertificateOperation compara certificados ativos do portal e pode recorrer a OCSP.
+6. ResignAppOperation prepara o bundle, ajusta IDs/entitlements/perfis e assina o app.
+7. InstallAppOperation entrega o bundle re-assinado ao fluxo de instalação e atualiza os metadados locais.
+8. RefreshAppOperation atualiza perfis/estado da instalação; o fluxo de refresh também coordena operações de instalação.
+
+Arquivos de referência:
+- SignInOperation: https://github.com/SideStore/SideStore/blob/develop/SideStore/Core/Operations/StandaloneOperations/SignInOperation.swift
+- DeviceRegistrationFlow: https://github.com/SideStore/SideStore/blob/develop/SideStore/Core/Auth/Flows/DeviceRegistrationFlow.swift
+- CertificateProvisioningFlow: https://github.com/SideStore/SideStore/blob/develop/SideStore/Core/Auth/Flows/CertificateProvisioningFlow.swift
+- VerifyCertificateOperation: https://github.com/SideStore/SideStore/blob/develop/SideStore/Core/Operations/PipelineOperations/VerifyCertificateOperation.swift
+- ResignAppOperation: https://github.com/SideStore/SideStore/blob/develop/SideStore/Core/Operations/PipelineOperations/ResignAppOperation.swift
+- InstallAppOperation: https://github.com/SideStore/SideStore/blob/develop/SideStore/Core/Operations/PipelineOperations/InstallAppOperation.swift
+- RefreshAppOperation: https://github.com/SideStore/SideStore/blob/develop/SideStore/Core/Operations/PipelineOperations/RefreshAppOperation.swift
+- EMProxyWrapper: https://github.com/SideStore/SideStore/blob/develop/SideStore/Core/DeviceApi/EMProxyWrapper.swift
+- MinimuxerWrapper: https://github.com/SideStore/SideStore/blob/develop/SideStore/Core/DeviceApi/MinimuxerWrapper.swift
+
+**Diferença importante para o AutoRenew:** o código upstream tem um fluxo de autenticação Apple/Anisette e gestão de sessão/credenciais. O README atual do AutoRenew proíbe expressamente coletar ou armazenar Apple ID, senha, 2FA, cookies e tokens. Portanto, não copiar esse SignInOperation nem as rotinas de sessão para o AutoRenew. A integração segura começa no catálogo, validação e exportação para um instalador externo já configurado pelo usuário.
+
 ## 2. O que pode ser aproveitado agora
 
 | Componente/padrão | Decisão | Motivo |
@@ -141,3 +167,14 @@ Fluxo:
 ## Resultado desta análise
 
 A integração direta do SideStore inteiro não é tecnicamente nem legalmente apropriada como primeira mudança. O caminho de menor risco é implementar primeiro catálogo + validação IPA + contratos de backend no AutoRenew, mantendo assinatura e instalação desabilitadas até haver uma solução documentada, licenciada e testada em dispositivo.
+
+
+## 7. Referências oficiais Apple para o caminho suportado
+
+- App Store Connect API — Provisioning: https://developer.apple.com/documentation/appstoreconnectapi (recursos de Bundle IDs, Certificates, Devices e Profiles).
+- Profiles API: https://developer.apple.com/documentation/appstoreconnectapi/profiles
+- Criar perfil de desenvolvimento: https://developer.apple.com/help/account/provisioning-profiles/create-a-development-provisioning-profile
+- Distribuir para dispositivos registrados: https://developer.apple.com/documentation/xcode/distributing-your-app-to-registered-devices
+- Background Tasks: https://developer.apple.com/documentation/uikit/using-background-tasks-to-update-your-app
+
+A Apple documenta perfis como vínculos entre App ID, certificados e dispositivos; o App Store Connect API permite gerenciar esses recursos. O sistema decide quando executa tarefas de background, então o AutoRenew deve oferecer lembretes e tentativas oportunistas, não prometer execução exata em segundo plano.
