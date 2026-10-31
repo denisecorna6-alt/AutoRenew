@@ -106,18 +106,15 @@ struct LogsView: View {
 
 struct SettingsView: View {
     @EnvironmentObject var store: AppStore
-    @State private var password = ""
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Apple ID") {
-                    TextField("E-mail", text: $store.settings.appleID)
-                        .textInputAutocapitalization(.never).keyboardType(.emailAddress)
-                    SecureField("Senha (Keychain)", text: $password)
-                    Button("Salvar credenciais") {
-                        Keychain.set(password, for: "applePassword"); password = ""
-                    }
+                Section("Privacidade e integração") {
+                    Text("Esta Alpha não solicita nem armazena senha, código de autenticação ou sessão da Apple. A integração real de assinatura ainda não está implementada.")
+                    Text("Não informe credenciais Apple nesta versão.")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
                 }
                 Section("Servidor Anisette (um por linha, em ordem de prioridade)") {
                     TextField("URLs", text: Binding(
