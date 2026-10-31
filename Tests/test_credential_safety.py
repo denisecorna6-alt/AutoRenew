@@ -78,6 +78,15 @@ class CredentialSafetyTests(unittest.TestCase):
         self.assertIn("maximumPendingReminders = 60", notifier)
         self.assertIn("await Notifier.reschedule", coordinator)
 
+    def test_background_task_success_reflects_refresh_outcome(self):
+        coordinator = read("RefreshCoordinator.swift")
+        scheduler = read("BackgroundScheduler.swift")
+        self.assertIn("struct RefreshRunSummary", coordinator)
+        self.assertIn("!cancelled && failed == 0 && deferred == 0", coordinator)
+        self.assertIn("failed: due.count", coordinator)
+        self.assertIn("summary.backgroundTaskSucceeded", scheduler)
+        self.assertNotIn("success: !work.isCancelled", scheduler)
+
     def test_supported_interface_orientations_are_explicit(self):
         project = read("project.yml")
         self.assertIn("UISupportedInterfaceOrientations:", project)
