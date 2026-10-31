@@ -3,9 +3,20 @@
 O Installer é um app iOS independente. Para obter o pacote de avaliação mais recente:
 
 1. Abra [a página de execuções do workflow](https://github.com/xlightxt/AutoRenew/actions/workflows/build.yml).
-2. Escolha a execução mais recente com resultado **Success** na branch codex/alpha-installer-hub-20261031.
-3. Baixe o artefato **AutoRenew-Installer-ipa-unsigned**.
-4. O artefato **AutoRenew-ipa-unsigned** é o aplicativo principal AutoRenew.
+2. Para testar a Alpha atual, abra [execução 41216556796 — CI Success](https://github.com/xlightxt/AutoRenew/actions/runs/41216556796), commit `181a2567129ef836bc0565aca9925557b54a81f2`.
+3. Baixe o artefato **AutoRenew-Installer-ipa-unsigned** (SHA-256 `eb42a4141adb86183abc92a90ec3841afe6aa9fbb8706763a7d86b7d03d06c89`).
+4. O aplicativo principal está em **AutoRenew-ipa-unsigned** (SHA-256 `e3ae953d748b76bef9593425728a09dcde6ba9f0b9671f2eb3b443051192ddfa`).
+5. Esses artefatos expiram em 30 dias e são **unsigned**; não instalam diretamente. Para testar, use um instalador confiável que assine o pacote e aceite IPAs externos.
+
+## Links de download do Installer
+
+O Installer aceita o esquema próprio abaixo, após a instalação do app:
+
+```
+autorenewinstaller://install?url=https%3A%2F%2Fexample.com%2Fbuild.ipa
+```
+
+O link abre uma confirmação e baixa somente o IPA por HTTPS. Não assina, instala ou executa automaticamente. HTTP, URLs com usuário/senha, fragmentos e links que não terminam em .ipa são rejeitados.
 
 ## Preparar e encaminhar um IPA
 
@@ -30,6 +41,7 @@ O iPhone precisa estar pareado/confiado pelo Mac e o IPA precisa ter assinatura 
 ## O que há no Installer
 
 - Navegação de Releases públicas Stable/Beta/Alpha do AutoRenew.
+- Deep links de download HTTPS com confirmação explícita.
 - Download de IPA por asset público ou URL HTTPS direta.
 - Importação de IPA pelo app Arquivos.
 - Inventário local de identidades PKCS#12 e perfis mobileprovision.

@@ -125,6 +125,19 @@ final class AlphaSafetyTests: XCTestCase {
         }
     }
 
+    func testIPAInspectorRejectsEmptyFile() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let source = root.appendingPathComponent("empty.ipa")
+        try Data().write(to: source)
+        XCTAssertThrowsError(try IPAInspector.inspect(fileURL: source)) { error in
+            XCTAssertEqual(error as? IPAInspectionError, .emptyFile)
+        }
+    }
+
     func testIPAInspectorRejectsWrongExtension() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
