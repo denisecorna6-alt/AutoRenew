@@ -7,6 +7,7 @@ import plistlib
 import re
 import stat
 import sys
+import unicodedata
 import zipfile
 from pathlib import PurePosixPath
 
@@ -21,21 +22,40 @@ def safe_archive(path):
             if not names:
                 fail("IPA vazio.")
             seen = set()
+            file_paths = set()
+            all_paths = set()
             total = 0
             if len(names) > 100000:
                 fail("IPA contém entradas demais.")
             for info in archive.infolist():
                 name = info.filename
+                raw_path = name[:-1] if name.endswith("/") else name
                 p = PurePosixPath(name)
                 mode = (info.external_attr >> 16) & 0xFFFF
-                if p.is_absolute() or ".." in p.parts or name.startswith("/") or "\\" in name or "\x00" in name:
-                    fail("IPA contém caminho inseguro.")
-                if stat.S_ISLNK(mode):
-                    fail("IPA contém link simbólico; extração bloqueada.")
+                file_type = stat.S_IFMT(mode)
+                if (p.is_absolute() or ".." in p.parts or name.startswith("/")
+                        or "\\" in name or "\x00" in name or str(p) in ("", ".")
+                        or str(p) != raw_path):
+                    fail("IPA contém caminho inseguro ou não canônico.")
+                if file_type not in (0, stat.S_IFREG, stat.S_IFDIR):
+                    fail("IPA contém tipo de arquivo especial; extração bloqueada.")
+                is_dir = info.is_dir() or file_type == stat.S_IFDIR
                 normalized = str(p)
-                if normalized in seen:
-                    fail("IPA contém entradas duplicadas.")
-                seen.add(normalized)
+                # APFS/HFS volumes are commonly case-insensitive and normalization-insensitive.
+                # Reject aliases before extraction so two ZIP names cannot overwrite one path.
+                canonical = unicodedata.normalize("NFD", normalized).casefold()
+                if canonical in seen:
+                    fail("IPA contém colisão de caminho (case/Unicode) ou entrada duplicada.")
+                seen.add(canonical)
+                parts = canonical.split("/")
+                for index in range(1, len(parts)):
+                    if "/".join(parts[:index]) in file_paths:
+                        fail("IPA contém conflito entre arquivo e diretório.")
+                if not is_dir:
+                    if any(existing.startswith(canonical + "/") for existing in all_paths):
+                        fail("IPA contém conflito entre arquivo e diretório.")
+                    file_paths.add(canonical)
+                all_paths.add(canonical)
                 if info.file_size > 1024 * 1024 * 1024:
                     fail("Entrada individual excede 1 GiB.")
                 if info.compress_size == 0 and info.file_size > 0:
