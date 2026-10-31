@@ -77,6 +77,12 @@ class SigningInputValidationTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("DeveloperCertificates", result.stderr)
 
+    def test_signing_vault_uses_explicit_certificate_status_guards(self):
+        source = open(VAULT, encoding="utf-8").read()
+        self.assertIn("let certificateStatus = SecIdentityCopyCertificate(identity, &certificate)", source)
+        self.assertIn("guard certificateStatus == errSecSuccess else", source)
+        self.assertIn("guard let certificate else", source)
+
     def test_rejects_unsafe_zip_path(self):
         with zipfile.ZipFile(self.ipa, "w") as z: z.writestr("../outside.txt", b"x")
         result = self.run_validator()
