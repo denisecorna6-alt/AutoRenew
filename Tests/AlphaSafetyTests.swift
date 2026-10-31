@@ -296,4 +296,70 @@ final class AlphaSafetyTests: XCTestCase {
         ))
     }
 
+    func testAnisetteV3HeadersRequestUsesPOSTAndBase64ProvisioningState() throws {
+        let state = AnisetteV3ProvisioningState(
+            identifier: Data([0x01, 0x02, 0x03]),
+            adiPB: Data([0x04, 0x05, 0x06])
+        )
+        let request = try AnisetteV3HeadersClient.makeRequest(
+            serverURL: URL(string: "https://anisette.example/")!,
+            state: state
+        )
+
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.url?.absoluteString, "https://anisette.example/v3/get_headers")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
+        let body = try XCTUnwrap(request.httpBody)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: String])
+        XCTAssertEqual(object["identifier"], Data([0x01, 0x02, 0x03]).base64EncodedString())
+        XCTAssertEqual(object["adi_pb"], Data([0x04, 0x05, 0x06]).base64EncodedString())
+    }
+
+    func testAnisetteV3HeadersRequestRejectsInsecureOrCredentialBearingURLs() throws {
+        let state = AnisetteV3ProvisioningState(identifier: Data([1]), adiPB: Data([2]))
+        for rawURL in [
+            "http://anisette.example",
+            "https://user:pass@anisette.example",
+            "https://anisette.example/path?token=secret",
+            "https://anisette.example/#fragment"
+        ] {
+            XCTAssertThrowsError(try AnisetteV3HeadersClient.makeRequest(
+                serverURL: URL(string: rawURL)!, state: state
+            ))
+        }
+    }
+
+    func testAnisetteV3HeadersResponseMapsRequiredAppleHeaders() throws {
+        let payload = Data("""
+        {
+          "result": "Headers",
+          "X-Apple-I-MD-M": "machine",
+          "X-Apple-I-MD": "otp",
+          "X-Apple-I-MD-RINFO": "routing"
+        }
+        """.utf8)
+
+        let anisette = try AnisetteV3HeadersClient.decodeResponse(payload)
+        XCTAssertEqual(anisette.headers["X-Apple-I-MD-M"], "machine")
+        XCTAssertEqual(anisette.headers["X-Apple-I-MD"], "otp")
+        XCTAssertEqual(anisette.headers["X-Apple-I-MD-RINFO"], "routing")
+        XCTAssertTrue(anisette.isValid)
+    }
+
+    func testAnisetteV3HeadersResponseRejectsServerErrorsAndMissingHeaders() {
+        for payload in [
+            Data(#"{"result":"GetHeadersError","message":"unavailable"}"#.utf8),
+            Data(#"{"result":"Headers","X-Apple-I-MD-M":"machine"}"#.utf8),
+            Data("not-json".utf8)
+        ] {
+            XCTAssertThrowsError(try AnisetteV3HeadersClient.decodeResponse(payload))
+        }
+    }
+
+    func testAnisetteV3ProvisioningStateRejectsEmptyAndOversizedData() {
+        XCTAssertFalse(AnisetteV3ProvisioningState(identifier: Data(), adiPB: Data([1])).isUsable)
+        XCTAssertFalse(AnisetteV3ProvisioningState(identifier: Data([1]), adiPB: Data()).isUsable)
+        XCTAssertTrue(AnisetteV3ProvisioningState(identifier: Data([1]), adiPB: Data([2])).isUsable)
+    }
+
 }
