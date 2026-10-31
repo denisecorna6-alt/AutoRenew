@@ -150,10 +150,13 @@ struct InstallerView: View {
     @State private var selectedChannel = "Todas"
     @State private var showingIPAImporter = false
     @StateObject private var signingVault = SigningIdentityVault()
+    @ObservedObject private var appStore = AppStore.shared
     @State private var showingP12Importer = false
+    @State private var showingProfileImporter = false
     @State private var pendingP12URL: URL?
     @State private var p12Password = ""
     @State private var certificateMessage: String?
+    @State private var profileMessage: String?
 
     private let channels = ["Todas", "Stable", "Beta", "Alpha"]
 
@@ -320,6 +323,32 @@ struct InstallerView: View {
                         .font(.caption).foregroundStyle(.orange)
                 }
 
+                Section("Perfis de provisionamento") {
+                    Text("Importe o .mobileprovision correspondente ao certificado e ao app. Nesta versão o arquivo é guardado localmente e seu SHA-256 é registrado; o conteúdo CMS ainda não é interpretado nem validado.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button {
+                        showingProfileImporter = true
+                    } label: {
+                        Label("Importar perfil (.mobileprovision)", systemImage: "doc.badge.plus")
+                    }
+                    if appStore.profiles.isEmpty {
+                        Text("Nenhum perfil importado.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        ForEach(appStore.profiles) { profile in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(profile.originalFileName).font(.subheadline.weight(.medium))
+                                Text("\(profile.formattedSize) · SHA-256 \(profile.sha256.prefix(12))…")
+                                    .font(.caption2).foregroundStyle(.secondary)
+                                Button("Remover perfil", role: .destructive) {
+                                    appStore.removeProfile(profile)
+                                }
+                                .font(.caption)
+                            }
+                        }
+                    }
+                }
+
                 if let message = catalog.statusMessage {
                     Section { Label(message, systemImage: "checkmark.circle").foregroundStyle(.green) }
                 }
@@ -357,6 +386,27 @@ struct InstallerView: View {
                 case .failure(let error):
                     certificateMessage = "Não foi possível selecionar o certificado: \(error.localizedDescription)"
                 }
+            }
+            .fileImporter(isPresented: $showingProfileImporter, allowedContentTypes: [UTType(filenameExtension: "mobileprovision", conformingTo: .data) ?? .data]) { result in
+                switch result {
+                case .success(let url):
+                    do {
+                        let profile = try appStore.importProfile(from: url)
+                        profileMessage = "Perfil importado localmente. SHA-256: \(profile.sha256). O conteúdo ainda não foi validado."
+                    } catch {
+                        profileMessage = error.localizedDescription
+                    }
+                case .failure(let error):
+                    profileMessage = "Não foi possível selecionar o perfil: \(error.localizedDescription)"
+                }
+            }
+            .alert("Perfil de provisionamento", isPresented: Binding(
+                get: { profileMessage != nil },
+                set: { if !$0 { profileMessage = nil } }
+            )) {
+                Button("OK") { profileMessage = nil }
+            } message: {
+                Text(profileMessage ?? "")
             }
             .alert("Certificado de assinatura", isPresented: Binding(
                 get: { certificateMessage != nil },
