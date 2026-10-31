@@ -14,7 +14,7 @@ struct ImportedProfile: Codable, Identifiable, Hashable {
     }
 }
 
-enum ProfileImportError: LocalizedError {
+enum ProfileImportError: LocalizedError, Equatable {
     case unsupportedFile
     case fileTooLarge
     case duplicate
