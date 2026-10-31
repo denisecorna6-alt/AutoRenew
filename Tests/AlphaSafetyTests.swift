@@ -469,7 +469,7 @@ final class AlphaSafetyTests: XCTestCase {
 
 
     func testAnisetteV3AppleRequestUsesSecureAppleEndpointAndDerivedIdentityHeaders() throws {
-        let identifier = Data(0..<16)
+        let identifier = Data((0..<16).map { UInt8($0) })
         let clientInfo = AnisetteV3AppleClientInfo(clientInfo: "test-client", userAgent: "Xcode")
         let request = try AnisetteV3AppleProvisioningClient.makeAppleRequest(
             url: URL(string: "https://gsa.apple.com/grandslam/GsService2/lookup")!,
