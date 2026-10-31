@@ -12,6 +12,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VALIDATOR = os.path.join(ROOT, "tools", "validate-signing-inputs.py")
 SIGNER = os.path.join(ROOT, "tools", "sign-ipa-macos.sh")
 DEVICE_INSTALLER = os.path.join(ROOT, "tools", "install-to-iphone.sh")
+VAULT = os.path.join(ROOT, "SigningIdentityVault.swift")
 
 class SigningInputValidationTests(unittest.TestCase):
     def setUp(self):
@@ -100,6 +101,12 @@ class SigningInputValidationTests(unittest.TestCase):
         extract = script.index('ditto -x -k "$IPA_PATH"')
         self.assertLess(validate, extract)
         self.assertIn('security cms -V -i "$APP_PATH/embedded.mobileprovision"', script)
+
+    def test_signing_vault_uses_explicit_certificate_status_guards(self):
+        source = open(VAULT, encoding="utf-8").read()
+        self.assertIn("let certificateStatus = SecIdentityCopyCertificate(identity, &certificate)", source)
+        self.assertIn("guard certificateStatus == errSecSuccess else", source)
+        self.assertIn("guard let certificate else", source)
 
     def test_rejects_unsafe_zip_path(self):
         with zipfile.ZipFile(self.ipa, "w") as z: z.writestr("../outside.txt", b"x")
