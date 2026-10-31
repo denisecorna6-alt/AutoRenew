@@ -1,7 +1,12 @@
 name: Build IPA
 on:
   workflow_dispatch:
-  push: { branches: [main] }
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: macos-15
@@ -17,5 +22,6 @@ jobs:
           cp -R build/Build/Products/Release-iphoneos/AutoRenew.app Payload/
           zip -qr AutoRenew.ipa Payload
       - uses: actions/upload-artifact@v4
-        with: { name: AutoRenew-ipa, path: AutoRenew.ipa }
-         
+        with:
+          name: AutoRenew-ipa
+          path: AutoRenew.ipa
