@@ -1,5 +1,6 @@
 import datetime
 import hashlib
+import json
 import os
 import plistlib
 import subprocess
@@ -58,6 +59,52 @@ class SigningInputValidationTests(unittest.TestCase):
             "--identity-list", self.identities, "--bundle-id", "com.example.app",
             "--ipa", self.ipa,
         ], capture_output=True, text=True)
+
+    def run_install_target_validator(self, provisioned_devices, requested_id="coredevice-device-1",
+                                     bundle_id="com.example.app", device_list=None):
+        profile_path = os.path.join(self.root, "install-profile.plist")
+        devices_path = os.path.join(self.root, "devices.json")
+        with open(self.profile, "rb") as f:
+            profile = plistlib.load(f)
+        profile["ProvisionedDevices"] = provisioned_devices
+        with open(profile_path, "wb") as f:
+            plistlib.dump(profile, f)
+        if device_list is None:
+            device_list = [{
+                "identifier": "coredevice-device-1",
+                "hardwareProperties": {"udid": "A" * 40},
+            }]
+        with open(devices_path, "w", encoding="utf-8") as f:
+            json.dump({"result": {"devices": device_list}}, f)
+        return subprocess.run([
+            sys.executable, os.path.join(ROOT, "tools", "validate-install-target.py"),
+            profile_path, bundle_id, devices_path, requested_id,
+        ], capture_output=True, text=True)
+
+    def test_install_target_accepts_device_in_profile(self):
+        result = self.run_install_target_validator(["A" * 40])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Dispositivo autorizado pelo perfil", result.stdout)
+
+    def test_install_target_rejects_device_missing_from_profile(self):
+        result = self.run_install_target_validator(["B" * 40])
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("UDID deste iPhone não está autorizado", result.stderr)
+
+    def test_install_target_rejects_unknown_device_identifier(self):
+        result = self.run_install_target_validator(
+            ["A" * 40], device_list=[{
+                "identifier": "different-device",
+                "hardwareProperties": {"udid": "B" * 40},
+            }]
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Dispositivo não encontrado", result.stderr)
+
+    def test_install_target_rejects_bundle_id_mismatch(self):
+        result = self.run_install_target_validator(["A" * 40], bundle_id="com.other.app")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Bundle ID do app não corresponde", result.stderr)
 
     def test_accepts_profile_matching_identity_and_reduced_entitlements(self):
         result = self.run_validator()
