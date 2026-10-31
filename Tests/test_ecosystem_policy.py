@@ -111,11 +111,14 @@ class EcosystemSafetyPolicy(unittest.TestCase):
     def test_ci_runs_tests_and_builds_both_targets_for_main_prs(self):
         workflow = read(".github/workflows/official-ci.yml")
         self.assertIn("pull_request:", workflow)
-        self.assertIn("branches: [main, beta]", workflow)
+        self.assertIn("branches: [main, beta, 'codex/alpha-*']", workflow)
         self.assertIn("python3 -m unittest discover", workflow)
         self.assertIn("-scheme AutoRenew", workflow)
         self.assertIn("-scheme AutoRenewInstaller", workflow)
         self.assertIn("contents: read", workflow)
+        build_workflow = read(".github/workflows/build.yml")
+        self.assertIn("pull_request:", build_workflow)
+        self.assertIn("      - 'codex/alpha-*'", build_workflow)
         self.assertNotIn("contents: write", workflow)
 
     def test_two_apps_and_unit_test_target_are_declared(self):
