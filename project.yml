@@ -24,3 +24,12 @@ targets:
       properties:
         UIBackgroundModes: [fetch, processing]
         BGTaskSchedulerPermittedIdentifiers: [app.autorenew.refresh, app.autorenew.processing]
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        "UISupportedInterfaceOrientations~ipad":
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
