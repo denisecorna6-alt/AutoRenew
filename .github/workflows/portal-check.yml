@@ -9,6 +9,7 @@ on:
       - 'docs/catalog.mjs'
       - 'Tests/test_portal_catalog.mjs'
       - '.github/workflows/portal-check.yml'
+      - '.github/workflows/deploy-pages.yml'
   pull_request:
     branches: [main]
     paths:
