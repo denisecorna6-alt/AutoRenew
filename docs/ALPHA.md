@@ -8,6 +8,7 @@ Esta é uma compilação inicial de avaliação. O objetivo é validar a navega�
 - Cadastro de apps de demonstração.
 - Lembretes locais com permissão solicitada somente após tocar em **Ativar lembretes**; no máximo 60 notificações pendentes, sujeitas às regras de entrega do iOS. Apps de demonstração nunca geram avisos reais.
 - Orientação de interface declarada para iPhone em retrato/paisagem e iPad em quatro orientações.
+- Guia opcional para configurar a ação pública “Refresh All Apps” do SideStore pelo app Atalhos; o AutoRenew não chama APIs do SideStore nem controla a sessão Apple.
 - Mensagens explícitas de que a renovação real não está disponível.
 
 ## O que NÃO está implementado
