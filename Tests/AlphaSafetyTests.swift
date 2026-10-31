@@ -362,4 +362,36 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertTrue(AnisetteV3ProvisioningState(identifier: Data([1]), adiPB: Data([2])).isUsable)
     }
 
+
+    func testAnisetteV3StoredStateRoundTripsWithoutLosingProvisioningData() throws {
+        let identifier = Data(repeating: 0x11, count: 16)
+        let adiPB = Data(repeating: 0x22, count: 128)
+        let state = try AnisetteV3StoredState(identifier: identifier, adiPB: adiPB)
+        let encoded = try PropertyListEncoder().encode(state)
+        let decoded = try PropertyListDecoder().decode(AnisetteV3StoredState.self, from: encoded)
+
+        XCTAssertEqual(decoded.identifier, identifier)
+        XCTAssertEqual(decoded.adiPB, adiPB)
+        XCTAssertEqual(decoded.provisioningState?.identifier, identifier)
+        XCTAssertEqual(decoded.provisioningState?.adiPB, adiPB)
+    }
+
+    func testAnisetteV3StoredStateAllowsUnprovisionedIdentifierOnly() throws {
+        let state = try AnisetteV3StoredState(identifier: Data(repeating: 0x33, count: 16))
+        XCTAssertNil(state.adiPB)
+        XCTAssertNil(state.provisioningState)
+    }
+
+    func testAnisetteV3StoredStateRejectsInvalidIdentifierAndADIBlob() {
+        XCTAssertThrowsError(try AnisetteV3StoredState(identifier: Data(repeating: 0x01, count: 15)))
+        XCTAssertThrowsError(try AnisetteV3StoredState(
+            identifier: Data(repeating: 0x01, count: 16),
+            adiPB: Data()
+        ))
+        XCTAssertThrowsError(try AnisetteV3StoredState(
+            identifier: Data(repeating: 0x01, count: 16),
+            adiPB: Data(repeating: 0x02, count: 1_000_001)
+        ))
+    }
+
 }
