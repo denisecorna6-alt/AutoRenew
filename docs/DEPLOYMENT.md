@@ -6,7 +6,7 @@ Audit date: 2026-10-31.
 
 - URL: https://xlightxt.github.io/AutoRenew/
 - The portal is public and reads GitHub Releases and Actions metadata dynamically.
-- Latest deployment verified after the portal correction: run [#41243192941](https://github.com/xlightxt/AutoRenew/actions/runs/41243192941), success, main commit b29dae9.
+- Latest deployment verified after the portal and CI policy merges: run [#41243799895](https://github.com/xlightxt/AutoRenew/actions/runs/41243799895), success, main commit e927776.
 - The live portal now filters Alpha/Beta/Official by exact branch, labels unsigned and unverified releases, restricts dynamic links to GitHub HTTPS, and includes keyboard skip/focus and screen-reader status support.
 
 ## Release catalog observed
@@ -25,14 +25,16 @@ Audit date: 2026-10-31.
 | Alpha | [#41237485558](https://github.com/xlightxt/AutoRenew/actions/runs/41237485558) | Success; 23 Swift tests passed | Alpha app/Installer build and test pipeline ran on Xcode 16.4; produced unsigned test packages |
 | Beta | [#41181299910](https://github.com/xlightxt/AutoRenew/actions/runs/41181299910) | Success | Workflow ran on the actual beta branch; no Beta Release exists |
 | Beta PR | [#41182023247](https://github.com/xlightxt/AutoRenew/actions/runs/41182023247) | Success | This was a PR branch (codex/ipa-packaging-validation), not the beta branch; it must not be shown as the Beta channel's latest build |
-| Official | [#41243192913](https://github.com/xlightxt/AutoRenew/actions/runs/41243192913) | Success on Xcode 26.6 / iOS Simulator SDK 26.5 | Simulator build only; this run predates the new Python policy-test step |
-| Official IPA | [#41243192923](https://github.com/xlightxt/AutoRenew/actions/runs/41243192923) | Success on Xcode 16.4 / iOS SDK 18.5 | Uploaded `AutoRenew-Official-unsigned-IPA`; no signature or installation validation |
-| Main build | [#41243192899](https://github.com/xlightxt/AutoRenew/actions/runs/41243192899) | Success on Xcode 16.4 / iOS SDK 18.5 | Historical artifact name `AutoRenew-ipa` was ambiguous; this PR renames future outputs to `AutoRenew-ipa-unsigned` |
-| Main build | [#41241899850](https://github.com/xlightxt/AutoRenew/actions/runs/41241899850) | Success | Main build workflow ran; its artifact name still needs an explicit unsigned suffix |
+| Official CI | [#41243799862](https://github.com/xlightxt/AutoRenew/actions/runs/41243799862) | Success on Xcode 26.6 / iOS Simulator SDK 26.5; 9 Python regression/policy tests passed | Simulator compile plus repository policy tests; no XCTest target on main |
+| Official IPA | [#41243799878](https://github.com/xlightxt/AutoRenew/actions/runs/41243799878) | Success on Xcode 26.6 / iOS SDK 26.5 | Uploaded `AutoRenew-Official-unsigned-IPA` (61,596 bytes); no signature or installation validation |
+| Main build | [#41243799918](https://github.com/xlightxt/AutoRenew/actions/runs/41243799918) | Success on Xcode 16.4 / iOS SDK 18.5 | Uploaded `AutoRenew-ipa-unsigned` (93,605 bytes); legacy runner remains older than Official CI |
+| Portal deploy | [#41243799895](https://github.com/xlightxt/AutoRenew/actions/runs/41243799895) | Success | GitHub Pages deployment completed for main commit e927776 |
 
 An Actions artifact is a temporary CI output. An IPA is only an archive. An unsigned IPA has no valid Apple code signature and embedded provisioning profile, so it is not an installable deliverable. A signed IPA still needs a valid certificate/profile/entitlement match and device eligibility. An installation is validated only after installation on a physical iPhone/iPad. First launch is a separate validation step: the app must open successfully on that device. None of the current runs proves the last three states.
 
 The portal only reads release/build metadata. It does not inspect code signatures, install apps, or observe first launch.
+
+The latest Xcode 26.6 build logs also emitted `All interface orientations must be supported unless the app requires full screen`. This PR adds explicit portrait/landscape support for iPhone and all four orientations for iPad. The benign `AppIntents` metadata-skipped warning is expected because the app does not link AppIntents; Node `punycode`/`url.parse` deprecation warnings originate in the GitHub Actions artifact action runtime, not AutoRenew source.
 
 ## Repository shape
 
@@ -61,7 +63,7 @@ The portal only reads release/build metadata. It does not inspect code signature
 
 ### Current toolchain gap
 
-Apple released iOS 27.2 on 2026-10-26 and Xcode 27.2 (27B52) on 2026-10-29; Xcode 27.2 includes Swift 6.4 and the iOS 27.2 SDK. The current main and Alpha build logs still report Xcode 16.4 / iOS Simulator SDK 18.5. The GitHub macos-26 image currently defaults to Xcode 26.6, while the public-preview xcode-27 image documents Xcode 27.1 RC; no hosted Xcode 27.2 runner was verified in this audit. The current CI therefore does not validate the latest iOS SDK. Add a dedicated runner when the Xcode 27.2 image becomes available and test before claiming iOS 27.2 compatibility. [Apple iOS 27.2 release](https://developer.apple.com/news/releases/), [Xcode 27.2 release](https://developer.apple.com/news/releases/?id=10292026a), [Xcode 27.2 release notes](https://developer.apple.com/documentation/xcode-release-notes/xcode-27_2-release-notes), [GitHub macOS 26 image](https://github.com/actions/runner-images/blob/main/images/macos/macos-26-Readme.md), [GitHub Xcode 27 preview image](https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md).
+Apple released iOS 27.2 on 2026-10-26 and Xcode 27.2 (27B52) on 2026-10-29; Xcode 27.2 includes Swift 6.4 and the iOS 27.2 SDK. The current main Official CI and Official IPA runs report Xcode 26.6 / iOS SDK 26.5; the legacy main Build IPA and the Alpha Installer run still use Xcode 16.4 / iOS 18.5. GitHub's macOS 26 image currently lists Xcode 26.6, while `xcode-27` remains a public-preview image; no hosted Xcode 27.2 final runner was verified in this audit. The current CI therefore does not validate iOS 27.2. Keep stable CI on Xcode 26.6 until a supported final Xcode 27.2 runner is available, then add a separate compatibility build before claiming iOS 27.2 support. [Apple iOS 27.2 release](https://developer.apple.com/news/releases/), [Xcode 27.2 release](https://developer.apple.com/news/releases/?id=10292026a), [Xcode 27.2 release notes](https://developer.apple.com/documentation/xcode-release-notes/xcode-27_2-release-notes), [GitHub macOS 26 image](https://github.com/actions/runner-images/blob/main/images/macos/macos-26-Readme.md), [GitHub Xcode 27 preview image](https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md).
 
 ## Safety gates still open
 
