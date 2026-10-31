@@ -10,7 +10,6 @@ struct AutoRenewApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView().environmentObject(store)
-                .task { Notifier.requestAuth() }
         }
         .onChange(of: phase) { _, new in
             switch new {

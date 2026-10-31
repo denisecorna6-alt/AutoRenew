@@ -32,10 +32,9 @@ final class AppStore: ObservableObject {
         }
         loading = false
 
-        // Delete only the exact legacy password item created by the previous Alpha UI.
         LegacyCredentialCleanup.run()
-        // Re-encode a valid legacy snapshot so removed Apple ID/Anisette fields are not kept on disk.
         if restoredSnapshot { save() }
+        Task { await Notifier.reschedule(apps, thresholdHours: settings.thresholdHours) }
     }
 
     private func save() {
@@ -63,12 +62,29 @@ final class AppStore: ObservableObject {
         apps[index].expiresAt = newExpiry
         log(app, trigger: trigger, success: true,
             message: "Renovação confirmada pelo backend até \(newExpiry.formatted())")
+        Task { await Notifier.reschedule(apps, thresholdHours: settings.thresholdHours) }
     }
 
-    func addDemoApp() {
-        let number = apps.count + 1
-        apps.append(ManagedApp(bundleID: "demo.app\(number)", name: "App Demo \(number)",
-                               expiresAt: Date(timeIntervalSinceNow: 2 * 86_400)))
-        Notifier.reschedule(apps)
+    @discardableResult
+    func addApp(name: String, bundleID: String, expiresAt: Date) -> Bool {
+        let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanBundleID = bundleID.trimmingCharacters(in: .whitespacesAndNewlines)
+        let validBundleID = cleanBundleID.range(
+            of: #"^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$"#,
+            options: .regularExpression
+        ) != nil
+        guard !cleanName.isEmpty, cleanName.count <= 80,
+              validBundleID, cleanBundleID.count <= 255,
+              !apps.contains(where: { $0.bundleID.caseInsensitiveCompare(cleanBundleID) == .orderedSame }),
+              expiresAt > Date() else { return false }
+
+        apps.append(ManagedApp(bundleID: cleanBundleID, name: cleanName, expiresAt: expiresAt))
+        Task { await Notifier.reschedule(apps, thresholdHours: settings.thresholdHours) }
+        return true
+    }
+
+    func removeApps(at offsets: IndexSet) {
+        apps.remove(atOffsets: offsets)
+        Task { await Notifier.reschedule(apps, thresholdHours: settings.thresholdHours) }
     }
 }
