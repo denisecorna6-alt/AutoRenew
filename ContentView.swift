@@ -15,7 +15,7 @@ struct AlphaNotice: View {
         VStack(alignment: .leading, spacing: 6) {
             Label("ALPHA · versão de testes", systemImage: "flask")
                 .font(.headline)
-            Text("A renovação real ainda não está conectada. Os testes atuais simulam a operação e não estendem a validade dos apps.")
+            Text("A renovação real ainda não está conectada. Esta versão apenas acompanha datas de demonstração e envia lembretes; não altera validade, assina ou reinstala apps.")
                 .font(.caption)
             Text("Não use esta versão como garantia para manter apps assinados.")
                 .font(.caption.weight(.semibold))
@@ -71,10 +71,10 @@ struct DashboardView: View {
             .navigationTitle("AutoRenew Alpha")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Testar fluxo") {
+                    Button("Verificar disponibilidade") {
                         busy = true
                         Task {
-                            await RefreshCoordinator.shared.runIfNeeded(trigger: "alpha-test", budget: .seconds(120), force: true)
+                            await RefreshCoordinator.shared.runIfNeeded(trigger: "alpha-check", budget: .seconds(120), force: true)
                             busy = false
                         }
                     }.disabled(busy || store.apps.isEmpty)
@@ -91,12 +91,12 @@ struct LogsView: View {
     @EnvironmentObject var store: AppStore
     var body: some View {
         NavigationStack {
-            List(store.attempts.reversed()) { a in
+            List(store.attempts.reversed()) { attempt in
                 VStack(alignment: .leading, spacing: 2) {
-                    Label(a.bundleID, systemImage: a.success ? "checkmark.circle.fill" : "xmark.octagon.fill")
-                        .foregroundStyle(a.success ? .green : .red)
-                    Text(a.message).font(.caption)
-                    Text("\(a.date.formatted()) · \(a.trigger)").font(.caption2).foregroundStyle(.secondary)
+                    Label(attempt.bundleID, systemImage: attempt.success ? "checkmark.circle.fill" : "xmark.octagon.fill")
+                        .foregroundStyle(attempt.success ? .green : .red)
+                    Text(attempt.message).font(.caption)
+                    Text("\(attempt.date.formatted()) · \(attempt.trigger)").font(.caption2).foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("Logs")
@@ -106,35 +106,18 @@ struct LogsView: View {
 
 struct SettingsView: View {
     @EnvironmentObject var store: AppStore
-    @State private var password = ""
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Apple ID") {
-                    TextField("E-mail", text: $store.settings.appleID)
-                        .textInputAutocapitalization(.never).keyboardType(.emailAddress)
-                    SecureField("Senha (Keychain)", text: $password)
-                    Button("Salvar credenciais") {
-                        Keychain.set(password, for: "applePassword"); password = ""
-                    }
-                }
-                Section("Servidor Anisette (um por linha, em ordem de prioridade)") {
-                    TextField("URLs", text: Binding(
-                        get: { store.settings.anisetteURLs.joined(separator: ", ") },
-                        set: { store.settings.anisetteURLs = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } }
-                    ))
-                    .textInputAutocapitalization(.never).autocorrectionDisabled()
-                }
-                Section("Renovação") {
-                    Stepper("Renovar com menos de \(Int(store.settings.thresholdHours))h",
+                Section("Lembretes") {
+                    Stepper("Avisar com menos de \(Int(store.settings.thresholdHours))h",
                             value: $store.settings.thresholdHours, in: 6...120, step: 6)
-                    Text("Na Alpha, o backend é simulado. Nenhuma assinatura é renovada de verdade.")
+                    Text("Os lembretes não renovam nem reinstalam aplicativos. A renovação real ainda não está disponível.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
-                Section("Avançado") {
-                    Toggle("Bloquear domínios OCSP/PPQ (VPN)", isOn: $store.settings.blockDomains)
-                    Text("Requer a extensão de túnel (entitlement Network Extension). Não estende os 7 dias de conta gratuita.")
+                Section("Privacidade") {
+                    Text("Esta Alpha não solicita nem armazena Apple ID, senha, códigos 2FA, cookies, tokens ou chaves privadas. Nenhum servidor Anisette é consultado enquanto não existir um backend revisado.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
