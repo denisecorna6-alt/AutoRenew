@@ -11,6 +11,7 @@ on:
       - main
       - beta
       - 'codex/alpha-ai-orchestrator-20261031'
+      - 'codex/alpha-*'
 concurrency:
   group: autorenew-build-${{ github.ref }}
   cancel-in-progress: true
