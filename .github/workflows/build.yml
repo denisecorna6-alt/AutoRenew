@@ -11,6 +11,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build-and-test:
+    permissions:
+      contents: write
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
