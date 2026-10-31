@@ -1,0 +1,234 @@
+name: AutoRenew AI Central
+run-name: AI Central review
+on:
+  push:
+    branches:
+      - 'codex/alpha-*'
+    paths:
+      - '.github/workflows/ai-central.yml'
+      - 'project.yml'
+      - '**/*.swift'
+      - 'tools/**'
+      - 'Tests/**'
+      - 'docs/**'
+  pull_request:
+    branches:
+      - main
+      - 'codex/alpha-*'
+    paths:
+      - '.github/workflows/ai-central.yml'
+      - 'project.yml'
+      - '**/*.swift'
+      - 'tools/**'
+      - 'Tests/**'
+      - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Tarefa para as três IAs analisarem'
+        required: true
+        type: string
+      context:
+        description: 'Contexto adicional não secreto'
+        required: false
+        type: string
+      mode:
+        description: 'Modo de operação'
+        required: true
+        type: choice
+        options:
+          - review
+          - implement
+        default: review
+      worker:
+        description: 'IA que implementará o patch (as outras duas revisam)'
+        required: false
+        type: choice
+        options:
+          - openai
+          - claude
+          - gemini
+        default: openai
+      base_branch:
+        description: 'Branch Alpha que receberá a PR gerada'
+        required: false
+        type: string
+        default: codex/alpha-ai-central-20261031
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Compile orchestrator
+        run: python -m py_compile tools/ai_central.py tools/ai_propose.py tools/ai_publish.py tools/ai_patch_policy.py
+      - name: Validate required workflow wiring
+        run: |
+          grep -q OPENAI_API_KEY .github/workflows/ai-central.yml
+          grep -q ANTHROPIC_API_KEY .github/workflows/ai-central.yml
+          grep -q GEMINI_API_KEY .github/workflows/ai-central.yml
+          python -m unittest discover -s Tests -p 'test_ai_central.py' -v
+  project-validation:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    needs: validate
+    runs-on: macos-15
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then brew install xcodegen; fi
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Run Python regression tests
+        run: |
+          if [ -d Tests ]; then
+            python3 -m unittest discover -s Tests -p 'test_*.py' -v
+          fi
+      - name: Validate shell scripts
+        run: |
+          shopt -s nullglob
+          scripts=(tools/*.sh)
+          if [ "${#scripts[@]}" -gt 0 ]; then
+            for script in "${scripts[@]}"; do bash -n "$script"; done
+          else
+            echo "No shell scripts on this branch; nothing to validate."
+          fi
+      - name: Build every available app scheme
+        run: |
+          xcodebuild -list -project AutoRenew.xcodeproj | tee /tmp/autorenew-schemes.txt
+          grep -q 'AutoRenew' /tmp/autorenew-schemes.txt
+          xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" build
+          if grep -q 'AutoRenewInstaller' /tmp/autorenew-schemes.txt; then
+            xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenewInstaller -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" build
+          fi
+      - name: Run simulator tests when the project has a test target
+        run: |
+          if ! grep -q 'AutoRenewTests' /tmp/autorenew-schemes.txt; then
+            echo "AutoRenewTests target not present on this branch; simulator tests skipped."
+            exit 0
+          fi
+          DEVICE_ID="$(xcrun simctl list devices available | sed -nE 's/.*iPhone[^()]*\(([0-9A-Fa-f-]{36})\).*/\1/p' | head -n 1)"
+          if [ -n "$DEVICE_ID" ]; then
+            xcodebuild test -project AutoRenew.xcodeproj -scheme AutoRenew -destination "platform=iOS Simulator,id=$DEVICE_ID" CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY=""
+          else
+            echo "No available iPhone simulator; compiling tests instead."
+            xcodebuild build-for-testing -project AutoRenew.xcodeproj -scheme AutoRenew -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY=""
+          fi
+  review:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'review'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Run three independent AI reviews
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_MODEL: gpt-6.1-sol
+          ANTHROPIC_MODEL: claude-sonnet-5-5
+          GEMINI_MODEL: gemini-3.8-flash
+          AI_TASK: ${{ inputs.task }}
+          AI_CONTEXT: ${{ inputs.context }}
+        run: python tools/ai_central.py
+      - name: Upload AI review report
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: ai-central-report
+          path: ai-central-report.md
+          retention-days: 14
+
+  propose:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'implement'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Compile trusted proposal tools
+        run: python -m py_compile tools/ai_propose.py tools/ai_patch_policy.py
+      - name: Generate patch and obtain two independent reviews (read-only)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_MODEL: gpt-6.1-sol
+          ANTHROPIC_MODEL: claude-sonnet-5-5
+          GEMINI_MODEL: gemini-3.8-flash
+          AI_TASK: ${{ inputs.task }}
+          AI_WORKER: ${{ inputs.worker }}
+          AI_BASE_BRANCH: ${{ inputs.base_branch }}
+          AI_OUTPUT_DIR: ${{ runner.temp }}/autorenew-ai-proposal
+        run: python tools/ai_propose.py
+      - name: Upload proposal and reviewer report
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: ai-coding-proposal
+          path: ${{ runner.temp }}/autorenew-ai-proposal/
+          if-no-files-found: warn
+          retention-days: 14
+
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'implement'
+    needs: propose
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v7.0.2
+        with:
+          name: ai-coding-proposal
+          path: ai-proposal-output
+      - name: Publish approved patch as an Alpha PR (no provider keys)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AI_BASE_BRANCH: ${{ inputs.base_branch }}
+          AI_PUBLISH_REPORT_PATH: ${{ runner.temp }}/ai-publish-report.md
+        run: python tools/ai_publish.py
+      - name: Upload publication report
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: ai-publish-report
+          path: ${{ runner.temp }}/ai-publish-report.md
+          if-no-files-found: warn
+          retention-days: 14
