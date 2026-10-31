@@ -20,6 +20,11 @@ enum InstallerDeepLink {
         }
     }
 
+    static func displayHost(for url: URL?) -> String {
+        guard let host = url?.host, !host.isEmpty else { return "origem desconhecida" }
+        return host
+    }
+
     static func parse(_ incomingURL: URL) throws -> URL {
         guard let components = URLComponents(url: incomingURL, resolvingAgainstBaseURL: false),
               components.scheme?.lowercased() == "autorenewinstaller",
