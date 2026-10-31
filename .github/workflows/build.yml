@@ -1,7 +1,10 @@
 name: Build IPA
 on:
   workflow_dispatch:
-  push: { branches: [main] }
+  push:
+    branches:
+      - main
+      - 'codex/alpha-*'
 jobs:
   build:
     runs-on: macos-15
@@ -18,4 +21,3 @@ jobs:
           zip -qr AutoRenew.ipa Payload
       - uses: actions/upload-artifact@v4
         with: { name: AutoRenew-ipa, path: AutoRenew.ipa }
-         
