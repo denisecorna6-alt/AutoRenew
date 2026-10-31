@@ -293,4 +293,50 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: existing), Data("keep me".utf8))
     }
 
+
+    func testExpiryNotificationPolicyCapsAtIOSPendingLimitAndSortsEarliestFirst() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let apps = (0..<30).map { index in
+            ManagedApp(
+                bundleID: "com.example.app\(index)",
+                name: "App \(index)",
+                expiresAt: now.addingTimeInterval(Double(index + 3) * 86_400)
+            )
+        }
+
+        let reminders = ExpiryNotificationPolicy.reminders(for: apps, now: now)
+
+        XCTAssertEqual(ExpiryNotificationPolicy.maximumPendingRequests, 64)
+        XCTAssertEqual(reminders.count, 64)
+        XCTAssertEqual(reminders.map(\.fireDate), reminders.map(\.fireDate).sorted())
+        XCTAssertTrue(reminders.allSatisfy { $0.fireDate > now })
+    }
+
+    func testExpiryNotificationPolicySkipsInactiveAndPastReminders() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let active = ManagedApp(
+            bundleID: "com.example.active",
+            name: "Active",
+            expiresAt: now.addingTimeInterval(3 * 86_400)
+        )
+        let inactive = ManagedApp(
+            bundleID: "com.example.inactive",
+            name: "Inactive",
+            expiresAt: now.addingTimeInterval(5 * 86_400),
+            isActive: false
+        )
+        let nearExpiry = ManagedApp(
+            bundleID: "com.example.near",
+            name: "Near",
+            expiresAt: now.addingTimeInterval(86_400)
+        )
+
+        let reminders = ExpiryNotificationPolicy.reminders(for: [active, inactive, nearExpiry], now: now)
+
+        XCTAssertFalse(reminders.contains { $0.identifier.contains("com.example.inactive") })
+        XCTAssertEqual(reminders.filter { $0.identifier.contains("com.example.active") }.count, 3)
+        XCTAssertEqual(reminders.filter { $0.identifier.contains("com.example.near") }.count, 1)
+        XCTAssertTrue(ExpiryNotificationPolicy.reminders(for: [active], now: now, limit: 0).isEmpty)
+    }
+
 }
