@@ -70,12 +70,14 @@ enum ProfileImporter {
 
         do {
             try FileManager.default.createDirectory(
-                at: directory, withIntermediateDirectories: true
+                at: directory,
+                withIntermediateDirectories: true,
+                attributes: [.protectionKey: FileProtectionType.complete]
             )
             let id = UUID().uuidString
             let storedName = "\(id).mobileprovision"
             let destination = directory.appendingPathComponent(storedName, isDirectory: false)
-            try data.write(to: destination, options: .atomic)
+            try data.write(to: destination, options: [.atomic, .completeFileProtection])
             return ImportedProfile(
                 id: id,
                 originalFileName: sourceURL.lastPathComponent,
