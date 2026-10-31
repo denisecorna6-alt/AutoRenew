@@ -68,6 +68,9 @@ class CentralSafety(unittest.TestCase):
         self.assertNotIn("generativelanguage.googleapis.com", PUBLISH)
         self.assertIn("artifact.is_symlink()", PUBLISH)
         self.assertIn("validate_workspace_paths(files)", PUBLISH)
+        self.assertIn("current_base_sha != base_sha", PUBLISH)
+        self.assertIn("ai-base-sha.txt", PROPOSE)
+        self.assertIn("ai-base-sha.txt", PUBLISH)
 
     def test_proposal_artifact_is_written_outside_target_checkout(self):
         self.assertIn("AI_OUTPUT_DIR", PROPOSE)
