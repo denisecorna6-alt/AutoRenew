@@ -40,7 +40,7 @@ class EcosystemSafetyPolicy(unittest.TestCase):
         self.assertIn("let isAvailable = false", backend)
         self.assertIn("throw RefreshError.notImplemented", backend)
         coordinator = read("RefreshCoordinator.swift")
-        self.assertIn("guard backend.isAvailable", coordinator)
+        self.assertIn("guard selectedBackend.isAvailable", coordinator)
         self.assertIn("Nenhuma alteração foi feita", coordinator)
 
     def test_ci_runs_tests_and_builds_both_targets_for_main_prs(self):
