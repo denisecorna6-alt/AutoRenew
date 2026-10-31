@@ -12,7 +12,7 @@ targets:
     platform: iOS
     sources:
       - path: .
-        includes: ["*.swift"]
+        includes: ["*.swift", "Assets.xcassets/**"]
         excludes: ["PacketTunnelProvider.swift"]
     settings:
       base:
