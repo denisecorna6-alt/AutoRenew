@@ -13,11 +13,15 @@ jobs:
   build-and-test:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - name: Generate Xcode project
         run: brew install xcodegen && xcodegen generate
-      - name: Validate macOS install helper syntax
-        run: bash -n tools/install-to-iphone.sh
+      - name: Validate macOS helper syntax and signing validator tests
+        run: |
+          bash -n tools/install-to-iphone.sh
+          bash -n tools/sign-ipa-macos.sh
+          python3 -m py_compile tools/validate-signing-inputs.py
+          python3 -m unittest discover -s Tests -p 'test_*.py' -v
       - name: Build AutoRenew for iOS
         run: |
           xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew -configuration Release \
@@ -59,13 +63,13 @@ jobs:
           (cd AutoRenewPayload && zip -qr ../AutoRenew.ipa Payload)
           (cd InstallerPayload && zip -qr ../AutoRenew-Installer.ipa Payload)
       - name: Upload AutoRenew unsigned IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: AutoRenew-ipa-unsigned
           path: AutoRenew.ipa
           retention-days: 30
       - name: Upload Installer unsigned IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: AutoRenew-Installer-ipa-unsigned
           path: AutoRenew-Installer.ipa

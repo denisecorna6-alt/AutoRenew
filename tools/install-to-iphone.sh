@@ -30,12 +30,17 @@ if ! command -v xcrun >/dev/null 2>&1 || ! xcrun --find devicectl >/dev/null 2>&
   exit 69
 fi
 
-if ! command -v ditto >/dev/null 2>&1 || ! command -v codesign >/dev/null 2>&1; then
-  echo "Erro: ferramentas de sistema do macOS não estão disponíveis." >&2
+if ! command -v ditto >/dev/null 2>&1 || ! command -v codesign >/dev/null 2>&1 || ! command -v security >/dev/null 2>&1 || ! command -v python3 >/dev/null 2>&1; then
+  echo "Erro: ferramentas de sistema do macOS/Python não estão disponíveis." >&2
   exit 69
 fi
 
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 IPA_PATH="$(cd "$(dirname "$IPA_INPUT")" && pwd)/$(basename "$IPA_INPUT")"
+# Validate ZIP central-directory paths, symlinks, duplicate entries and size
+# bounds before any extraction touches the filesystem.
+python3 "$ROOT/tools/validate-signing-inputs.py" --inspect-ipa "$IPA_PATH"
+
 WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/autorenew-install.XXXXXX")"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
@@ -62,6 +67,7 @@ fi
 
 echo "Verificando a assinatura do aplicativo…"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+security cms -V -i "$APP_PATH/embedded.mobileprovision"
 security cms -D -i "$APP_PATH/embedded.mobileprovision" >/dev/null
 
 echo "Dispositivos conhecidos pelo Xcode:"
