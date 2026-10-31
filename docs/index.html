@@ -27,7 +27,7 @@ import { channelFor, isUnsignedRelease, latestRunForChannel } from "./catalog.mj
 const api="https://api.github.com/repos/xlightxt/AutoRenew";
 const $=id=>document.getElementById(id);
 function node(tag,cls,txt){const n=document.createElement(tag);if(cls)n.className=cls;if(txt)n.textContent=txt;return n}
-function link(href,label){const a=node("a","btn secondary",label);a.href=href;a.rel="noopener";return a}
+function link(href,label){try{const url=new URL(href);if(url.protocol!=="https:"||url.hostname!=="github.com")throw Error("invalid host");const a=node("a","btn secondary",label);a.href=url.href;a.rel="noopener noreferrer";return a}catch{return node("span","muted small","Link seguro indisponível.")}}
 function renderRelease(rel){
  const d=node("div","channel");
  const unsigned=isUnsignedRelease(rel);
