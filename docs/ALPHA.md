@@ -7,6 +7,7 @@ Esta compilação de avaliação permite cadastrar manualmente aplicativos, acom
 - Interface SwiftUI para cadastro manual de nome, Bundle ID e data informada de expiração.
 - Painel com estados calculados a partir dessa data manual.
 - Catálogo de IPAs com fontes JSON no formato AltStore/SideStore (AltSources): busca, versões e download HTTPS para armazenamento local. O catálogo não assina nem instala.
+- No AutoRenew Installer, pré-verificação do IPA (extensão, tamanho máximo, cabeçalho ZIP e SHA-256 em streaming) e encaminhamento pelo compartilhamento do iOS para AltStore/SideStore quando disponíveis.
 - Persistência local e histórico limitado.
 - Importação explícita de arquivos `.mobileprovision`, com cópia privada local, limite de 25 MB, detecção de duplicatas por SHA-256 e opção de remover a cópia importada.
 - Inventário de metadados: nome do arquivo, tamanho, data de importação e hash SHA-256.
@@ -16,7 +17,7 @@ Esta compilação de avaliação permite cadastrar manualmente aplicativos, acom
 ## O que NÃO está implementado
 
 - Login Apple, autenticação de dois fatores ou integração real com SideSign/AltSign/minimuxer.
-- Assinatura ou instalação dos IPAs baixados pelo catálogo; o download é apenas a transferência do arquivo.
+- Motor próprio de assinatura ou instalação direta dos IPAs. O encaminhamento não instala por si só: o aplicativo receptor executa sua própria assinatura e instalação.
 - Leitura automática da lista de apps instalados.
 - Decodificação do conteúdo CMS de provisioning profiles e extração/validação de datas, Bundle IDs, equipe, UDID ou estado de revogação.
 - Reassinatura, reinstalação ou renovação real de IPA.
@@ -39,7 +40,7 @@ O backend `StubSigningBackend` informa que a integração não está implementad
 
 1. Decodificar e validar o CMS do perfil com uma implementação compatível e documentada, sem extrair ou transmitir segredos.
 2. Extrair metadados verificáveis e distinguir validade temporal de revogação (que não pode ser inferida apenas pelo arquivo local).
-3. Integrar um fluxo de assinatura documentado e suportado, condicionado a pareamento, dispositivo e autenticação explícita.
+3. Desenvolver uma integração de instalação assistida por computador usando ferramentas Apple documentadas, ou avaliar uma integração on-device com entitlements e APIs oficialmente disponíveis; não reproduzir protocolos privados nem contornar controles do iOS.
 4. Testes automatizados, depois testes em iPhone físico com logs sem dados sensíveis.
 5. Avaliação de automações adicionais somente após comprovação técnica.
 
