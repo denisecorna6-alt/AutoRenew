@@ -6,7 +6,7 @@ Esta é uma compilação inicial de avaliação. O objetivo é validar a navega�
 
 - Interface SwiftUI do painel, lista de apps e histórico.
 - Cadastro de apps de demonstração.
-- Lembretes locais com permissão solicitada somente após tocar em **Ativar lembretes**; no máximo 60 notificações pendentes, sujeitas às regras de entrega do iOS.
+- Lembretes locais com permissão solicitada somente após tocar em **Ativar lembretes**; no máximo 60 notificações pendentes, sujeitas às regras de entrega do iOS. Apps de demonstração nunca geram avisos reais.
 - Orientação de interface declarada para iPhone em retrato/paisagem e iPad em quatro orientações.
 - Mensagens explícitas de que a renovação real não está disponível.
 

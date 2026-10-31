@@ -25,7 +25,11 @@ final class AppStore: ObservableObject {
         var restoredSnapshot = false
         if let data = try? Data(contentsOf: url),
            let snapshot = try? JSONDecoder().decode(Snapshot.self, from: data) {
-            apps = snapshot.apps
+            apps = snapshot.apps.map { app in
+                var app = app
+                if app.bundleID.hasPrefix("demo.") { app.isDemo = true }
+                return app
+            }
             attempts = snapshot.attempts
             settings = snapshot.settings
             restoredSnapshot = true
@@ -69,7 +73,7 @@ final class AppStore: ObservableObject {
     func addDemoApp() {
         let number = apps.count + 1
         apps.append(ManagedApp(bundleID: "demo.app\(number)", name: "App Demo \(number)",
-                               expiresAt: Date(timeIntervalSinceNow: 2 * 86_400)))
+                               expiresAt: Date(timeIntervalSinceNow: 2 * 86_400), isDemo: true))
         Task { await Notifier.reschedule(apps, thresholdHours: settings.thresholdHours) }
     }
 

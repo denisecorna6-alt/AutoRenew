@@ -34,7 +34,7 @@ An Actions artifact is a temporary CI output. An IPA is only an archive. An unsi
 
 The portal only reads release/build metadata. It does not inspect code signatures, install apps, or observe first launch.
 
-The `All interface orientations must be supported unless the app requires full screen` warning is absent from the post-merge Xcode 26.6/26.5 archive and simulator logs after explicit iPhone/iPad orientation declarations. The app now asks for notification permission only after the user taps **Ativar lembretes**, respects the current authorization state, and caps scheduled reminders at 60. Remaining benign warnings: Xcode selects the first of multiple matching simulator destinations; AppIntents metadata extraction is skipped because the app does not link AppIntents; Node `punycode`/`url.parse` deprecation warnings originate in the GitHub Actions artifact action runtime, not AutoRenew source.
+The `All interface orientations must be supported unless the app requires full screen` warning is absent from the post-merge Xcode 26.6/26.5 archive and simulator logs after explicit iPhone/iPad orientation declarations. The app now asks for notification permission only after the user taps **Ativar lembretes**, respects the current authorization state, caps scheduled reminders at 60, and excludes demo records from real expiry notifications. Since main still has no manual app registration, no real-app reminder is scheduled yet. Remaining benign warnings: Xcode selects the first of multiple matching simulator destinations; AppIntents metadata extraction is skipped because the app does not link AppIntents; Node `punycode`/`url.parse` deprecation warnings originate in the GitHub Actions artifact action runtime, not AutoRenew source.
 
 ## Repository shape
 
