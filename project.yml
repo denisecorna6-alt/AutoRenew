@@ -25,7 +25,15 @@ targets:
       properties:
         UIBackgroundModes: [fetch, processing]
         BGTaskSchedulerPermittedIdentifiers: [app.autorenew.refresh, app.autorenew.processing]
-        NSLocalNetworkUsageDescription: Necessário para comunicar com o próprio dispositivo.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        "UISupportedInterfaceOrientations~ipad":
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
   AutoRenewInstaller:
     type: application
     platform: iOS
@@ -41,7 +49,15 @@ targets:
     info:
       path: Installer-Info.plist
       properties:
-        NSLocalNetworkUsageDescription: Necessário para comunicar com o próprio dispositivo.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        "UISupportedInterfaceOrientations~ipad":
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
   AutoRenewTests:
     type: bundle.unit-test
     platform: iOS
