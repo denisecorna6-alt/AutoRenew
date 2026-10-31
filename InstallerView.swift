@@ -91,20 +91,22 @@ private final class InstallerCatalog: ObservableObject {
             var request = URLRequest(url: asset.browserDownloadURL)
             request.setValue("application/octet-stream", forHTTPHeaderField: "Accept")
             let (temporaryURL, response) = try await URLSession.shared.download(for: request)
-            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-                throw URLError(.badServerResponse)
-            }
+            let values = try temporaryURL.resourceValues(forKeys: [.fileSizeKey])
+            let safeName = try InstallerDownloadPolicy.validatedReleaseFilename(
+                sourceURL: asset.browserDownloadURL,
+                response: response,
+                assetName: asset.name,
+                fileSize: values.fileSize ?? 0
+            )
+            // Check the actual downloaded archive before it enters the library.
+            _ = try IPAInspector.inspect(fileURL: temporaryURL)
 
             let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("DownloadedIPAs", isDirectory: true)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            let safeName = URL(fileURLWithPath: asset.name).lastPathComponent
-            let destination = directory.appendingPathComponent(safeName)
-            if FileManager.default.fileExists(atPath: destination.path) {
-                try FileManager.default.removeItem(at: destination)
-            }
+            let destination = InstallerDownloadPolicy.uniqueDestination(in: directory, filename: safeName)
             try FileManager.default.moveItem(at: temporaryURL, to: destination)
-            statusMessage = "Download concluído: \(safeName). O arquivo foi salvo no AutoRenew."
+            statusMessage = "Download concluído: \(destination.lastPathComponent). O arquivo foi salvo; ainda precisa de assinatura válida para instalação."
             refreshDownloadedFiles()
         } catch {
             errorMessage = "Falha ao baixar \(asset.name): \(error.localizedDescription)"
@@ -181,12 +183,14 @@ private final class InstallerCatalog: ObservableObject {
         let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("DownloadedIPAs", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let destination = directory.appendingPathComponent(source.lastPathComponent)
-        if FileManager.default.fileExists(atPath: destination.path) {
-            try FileManager.default.removeItem(at: destination)
+        let filename = URL(fileURLWithPath: source.lastPathComponent).lastPathComponent
+        guard filename.lowercased().hasSuffix(".ipa"), filename != ".ipa" else {
+            throw NSError(domain: "AutoRenew.Installer", code: 5,
+                          userInfo: [NSLocalizedDescriptionKey: "O nome do arquivo IPA é inválido."])
         }
+        let destination = InstallerDownloadPolicy.uniqueDestination(in: directory, filename: filename)
         try FileManager.default.copyItem(at: source, to: destination)
-        statusMessage = "IPA importado: \(destination.lastPathComponent)."
+        statusMessage = "IPA importado sem sobrescrever arquivos existentes: \(destination.lastPathComponent)."
         refreshDownloadedFiles()
     }
 
