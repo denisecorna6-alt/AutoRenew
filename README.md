@@ -38,7 +38,7 @@ xcrun devicectl list devices
 ./tools/install-to-iphone.sh <identificador-do-iphone> /caminho/para/app-assinado.ipa
 ```
 
-Requisitos: Mac com Xcode instalado, iPhone pareado/confiado pelo computador, Developer Mode quando exigido e IPA assinado com certificado/perfil compatíveis com esse dispositivo. O helper extrai o IPA, exige um único app principal, verifica a assinatura com `codesign`, verifica a assinatura CMS do perfil e confere Bundle ID/Team ID e solicita a instalação pelo `devicectl`.
+Requisitos: Mac com Xcode instalado, iPhone pareado/confiado pelo computador, Developer Mode quando exigido e IPA assinado com certificado/perfil compatíveis com esse dispositivo. O helper extrai o IPA, exige um único app principal, verifica a assinatura com `codesign`, verifica a assinatura CMS do perfil, confere Bundle ID/Team ID, validade e se o UDID do iPhone está autorizado no perfil antes de solicitar a instalação pelo `devicectl`.
 
 O helper não cria certificados, não registra dispositivos, não assina IPAs e não contorna o provisionamento. O sucesso do comando também não comprova que o app abriu corretamente no iPhone.
 
