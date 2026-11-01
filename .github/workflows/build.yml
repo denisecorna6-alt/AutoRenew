@@ -2,7 +2,7 @@ name: Build IPA
 on:
   workflow_dispatch:
   pull_request:
-    branches: [main]
+    branches: [main, beta]
   push:
     branches: [main]
 permissions:
@@ -12,12 +12,34 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - run: brew install xcodegen && xcodegen generate
-      - run: |
-          xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew -configuration Release \
-            -sdk iphoneos -derivedDataPath build \
+      - name: Generate Xcode project
+        run: brew install xcodegen && xcodegen generate
+      - name: Run unit tests (or compile the test bundle if no simulator is available)
+        run: |
+          set -euo pipefail
+          if xcrun simctl list devices available | grep -q 'iPhone'; then
+            DEVICE_ID="$(xcrun simctl list devices available | sed -nE 's/.*iPhone[^()]* \\(([0-9A-F-]+)\\).*/\\1/p' | head -n 1)"
+            if [[ -n "$DEVICE_ID" ]]; then
+              xcodebuild test -project AutoRenew.xcodeproj -scheme AutoRenew \\
+                -destination "platform=iOS Simulator,id=$DEVICE_ID" \\
+                CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+            else
+              xcodebuild build-for-testing -project AutoRenew.xcodeproj -scheme AutoRenew \\
+                -destination 'generic/platform=iOS Simulator' \\
+                CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+            fi
+          else
+            xcodebuild build-for-testing -project AutoRenew.xcodeproj -scheme AutoRenew \\
+              -destination 'generic/platform=iOS Simulator' \\
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          fi
+      - name: Build unsigned iOS app
+        run: |
+          xcodebuild -project AutoRenew.xcodeproj -scheme AutoRenew -configuration Release \\
+            -sdk iphoneos -derivedDataPath build \\
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
-      - run: |
+      - name: Package unsigned IPA
+        run: |
           mkdir Payload
           cp -R build/Build/Products/Release-iphoneos/AutoRenew.app Payload/
           zip -qr AutoRenew.ipa Payload
