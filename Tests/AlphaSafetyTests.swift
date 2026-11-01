@@ -540,7 +540,7 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertEqual(request.value(forHTTPHeaderField: "X-Apple-I-MD-LU")?.count, 64)
         XCTAssertEqual(request.value(forHTTPHeaderField: "X-Apple-I-TimeZone"), "UTC")
         XCTAssertEqual(request.value(forHTTPHeaderField: "X-Apple-Locale"), "en_US")
-        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Apple-I-Client-Time"), "1970-01-01T00:00:00+00:00")
+        XCTAssertEqual(ISO8601DateFormatter().date(from: try XCTUnwrap(request.value(forHTTPHeaderField: "X-Apple-I-Client-Time"))), Date(timeIntervalSince1970: 0))
     }
 
     func testAnisetteV3AppleRequestRejectsNonAppleHostsAndInvalidIdentity() {
