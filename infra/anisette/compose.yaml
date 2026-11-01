@@ -18,7 +18,7 @@ services:
     restart: unless-stopped
     environment:
       ANISETTE_DOMAIN: ${ANISETTE_DOMAIN:?Set ANISETTE_DOMAIN to a domain you control}
-      ACME_EMAIL: ${ACME_EMAIL:-}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL to a valid contact email}
     ports:
       - "80:80"
       - "443:443"
