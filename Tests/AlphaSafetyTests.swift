@@ -467,4 +467,101 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertThrowsError(try AnisetteV3ProvisioningReply.finish(ptm: "", tk: "tk").jsonData())
     }
 
+
+    func testAnisetteV3AppleRequestUsesSecureAppleEndpointAndDerivedIdentityHeaders() throws {
+        let identifier = Data((0..<16).map { UInt8($0) })
+        let clientInfo = AnisetteV3AppleClientInfo(clientInfo: "test-client", userAgent: "Xcode")
+        let request = try AnisetteV3AppleProvisioningClient.makeAppleRequest(
+            url: URL(string: "https://gsa.apple.com/grandslam/GsService2/lookup")!,
+            method: "GET",
+            body: nil,
+            identifier: identifier,
+            clientInfo: clientInfo,
+            now: Date(timeIntervalSince1970: 0)
+        )
+
+        XCTAssertEqual(request.httpMethod, "GET")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Mme-Client-Info"), "test-client")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), "Xcode")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "text/x-xml-plist")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Mme-Device-Id"), "00010203-0405-0607-0809-0A0B0C0D0E0F")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Apple-I-MD-LU")?.count, 64)
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Apple-I-TimeZone"), "UTC")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Apple-Locale"), "en_US")
+        XCTAssertEqual(ISO8601DateFormatter().date(from: try XCTUnwrap(request.value(forHTTPHeaderField: "X-Apple-I-Client-Time"))), Date(timeIntervalSince1970: 0))
+    }
+
+    func testAnisetteV3AppleRequestRejectsNonAppleHostsAndInvalidIdentity() {
+        let clientInfo = AnisetteV3AppleClientInfo(clientInfo: "test-client", userAgent: "Xcode")
+        for rawURL in ["http://gsa.apple.com/lookup", "https://apple.com.attacker.example/lookup"] {
+            XCTAssertThrowsError(try AnisetteV3AppleProvisioningClient.makeAppleRequest(
+                url: URL(string: rawURL)!,
+                method: "GET",
+                body: nil,
+                identifier: Data(repeating: 1, count: 16),
+                clientInfo: clientInfo
+            ))
+        }
+        XCTAssertThrowsError(try AnisetteV3AppleProvisioningClient.makeAppleRequest(
+            url: URL(string: "https://gsa.apple.com/lookup")!,
+            method: "GET",
+            body: nil,
+            identifier: Data([1, 2, 3]),
+            clientInfo: clientInfo
+        ))
+    }
+
+    func testAnisetteV3AppleProvisioningPlistsUseHeaderAndRequestDictionaries() throws {
+        let startData = try AnisetteV3AppleProvisioningClient.makeProvisioningPlist(cpim: nil)
+        let start = try XCTUnwrap(PropertyListSerialization.propertyList(from: startData, options: [], format: nil) as? [String: Any])
+        XCTAssertNotNil(start["Header"] as? [String: Any])
+        XCTAssertEqual((start["Request"] as? [String: Any])?.count, 0)
+
+        let finishData = try AnisetteV3AppleProvisioningClient.makeProvisioningPlist(cpim: "cpim-value")
+        let finish = try XCTUnwrap(PropertyListSerialization.propertyList(from: finishData, options: [], format: nil) as? [String: Any])
+        XCTAssertEqual((finish["Request"] as? [String: String])?["cpim"], "cpim-value")
+    }
+
+    func testAnisetteV3AppleProvisioningParsesAppleURLBagAndSPIM() throws {
+        let plist: [String: Any] = [
+            "urls": [
+                "midStartProvisioning": "https://gsa.apple.com/start",
+                "midFinishProvisioning": "https://gsa.apple.com/finish"
+            ]
+        ]
+        let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+        let urls = try AnisetteV3AppleProvisioningClient.parseProvisioningURLs(data)
+        XCTAssertEqual(urls.start.absoluteString, "https://gsa.apple.com/start")
+        XCTAssertEqual(urls.finish.absoluteString, "https://gsa.apple.com/finish")
+
+        let spimPlist: [String: Any] = ["Response": ["spim": "server-metadata"]]
+        let spimData = try PropertyListSerialization.data(fromPropertyList: spimPlist, format: .xml, options: 0)
+        XCTAssertEqual(try AnisetteV3AppleProvisioningClient.parseSPIM(spimData), "server-metadata")
+    }
+
+    func testAnisetteV3AppleProvisioningParsesPTMAndTK() throws {
+        let plist: [String: Any] = ["Response": ["ptm": "persistent-token", "tk": "trust-key"]]
+        let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+        XCTAssertEqual(
+            try AnisetteV3AppleProvisioningClient.parseFinishData(data),
+            AnisetteV3AppleFinishData(ptm: "persistent-token", tk: "trust-key")
+        )
+    }
+
+    func testAnisetteV3AppleProvisioningRejectsInvalidURLsAndMalformedPlists() throws {
+        let unsafe: [String: Any] = [
+            "urls": [
+                "midStartProvisioning": "https://gsa.apple.com/start",
+                "midFinishProvisioning": "https://apple.com.attacker.example/finish"
+            ]
+        ]
+        let unsafeData = try PropertyListSerialization.data(fromPropertyList: unsafe, format: .xml, options: 0)
+        XCTAssertThrowsError(try AnisetteV3AppleProvisioningClient.parseProvisioningURLs(unsafeData))
+        XCTAssertThrowsError(try AnisetteV3AppleProvisioningClient.parseSPIM(Data("not a plist".utf8)))
+        XCTAssertThrowsError(try AnisetteV3AppleProvisioningClient.parseFinishData(
+            try PropertyListSerialization.data(fromPropertyList: ["Response": ["ptm": "only-one"]], format: .xml, options: 0)
+        ))
+        XCTAssertThrowsError(try AnisetteV3AppleProvisioningClient.makeProvisioningPlist(cpim: ""))
+    }
+
 }
