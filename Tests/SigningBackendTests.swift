@@ -19,7 +19,7 @@ final class SigningBackendTests: XCTestCase {
         } catch let error as RefreshError {
             XCTAssertEqual(error, .integrationUnavailable)
         } catch {
-            XCTFail("Unexpected error: \\(error)")
+            XCTFail("Unexpected error: \(error)")
         }
 
         XCTAssertEqual(app.expiresAt, expiry)

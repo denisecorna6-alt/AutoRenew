@@ -14,7 +14,7 @@ actor RefreshCoordinator {
         let clock = ContinuousClock()
         let deadline = clock.now + budget
         let (apps, settings) = await MainActor.run {
-            (AppStore.shared.apps.filter(\\.isActive), AppStore.shared.settings)
+            (AppStore.shared.apps.filter(\.isActive), AppStore.shared.settings)
         }
         let due = apps.filter { force || $0.expiresAt.timeIntervalSinceNow < settings.thresholdHours * 3600 }
                       .sorted { $0.expiresAt < $1.expiresAt }
@@ -44,7 +44,7 @@ actor RefreshCoordinator {
                     await fail(app, trigger, "Assinatura real indisponível: integração SideSign/Minimuxer pendente")
                     break outer
                 } catch {
-                    if attempt == 2 { await fail(app, trigger, "Falha: \\(error)") }
+                    if attempt == 2 { await fail(app, trigger, "Falha: \(error)") }
                     else { try? await Task.sleep(for: .seconds(pow(2, Double(attempt + 1)))) }
                 }
             }
