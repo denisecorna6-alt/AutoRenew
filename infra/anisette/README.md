@@ -9,7 +9,7 @@ Esta pasta contém uma implantação Docker opcional para um servidor Anisette V
 - Volume Docker: mantém os dados locais de provisionamento do servidor.
 - A porta do serviço Anisette não é publicada diretamente na internet.
 
-O Compose exige que `ANISETTE_IMAGE` seja uma referência imutável por digest. Não use `:latest` em produção.
+O Compose exige que as duas imagens sejam referenciadas por digest imutável. Não use tags mutáveis como `:latest` em produção.
 
 ## Requisitos
 
@@ -17,11 +17,12 @@ O Compose exige que `ANISETTE_IMAGE` seja uma referência imutável por digest. 
 - Domínio próprio com registro DNS A/AAAA apontando para o host.
 - Portas TCP 80 e 443 liberadas para o Caddy.
 - Um digest de imagem obtido do registry upstream e revisado por você.
+- Um endereço de e-mail válido que você controla para a conta ACME do Caddy.
 
-## Preparar e iniciar
+## Preparar (não executar automaticamente)
 
 1. Copie `.env.example` para `.env`.
-2. Defina `ANISETTE_DOMAIN` com seu domínio.
+2. Substitua `ANISETTE_DOMAIN` pelo seu domínio e `ACME_EMAIL` por um e-mail válido que você controla. Os valores de exemplo não são operacionais.
 3. Obtenha a imagem upstream e confira o digest:
 
 ```sh
@@ -29,16 +30,8 @@ docker pull dadoum/anisette-v3-server
 docker image inspect --format '{{index .RepoDigests 0}}' dadoum/anisette-v3-server
 ```
 
-4. Coloque a referência completa retornada (incluindo `@sha256:...`) em `ANISETTE_IMAGE` no `.env`.
-5. Inicie:
-
-```sh
-docker compose up -d
-docker compose ps
-docker compose logs -f anisette caddy
-```
-
-6. Quando o Caddy emitir o certificado, o endpoint base será `https://SEU_DOMINIO`. Preserve o caminho/rotas do protocolo upstream; não acrescente autenticação HTTP, pois clientes SideStore não oferecem um fluxo genérico de login para esse servidor.
+4. Coloque a referência completa retornada (incluindo `@sha256:...`) em `ANISETTE_IMAGE` no `.env`. Faça o mesmo para Caddy.
+5. Só depois de revisar domínio, host, imagens e política de dados, um operador autorizado poderá decidir se executa o Compose. Esta PR não implanta o serviço.
 
 ## Segurança operacional
 
@@ -53,9 +46,9 @@ docker compose logs -f anisette caddy
 
 ## Integração com AutoRenew
 
-O AutoRenew ainda precisa receber o endereço HTTPS do servidor escolhido e de uma aprovação explícita antes de enviar qualquer identifier/ADI. Esta infraestrutura não configura automaticamente o app e não muda o provedor Anisette usado pelo SideStore.
+O AutoRenew não configura automaticamente o app e não muda o provedor Anisette usado pelo SideStore. Não envie identifier/ADI para este serviço por automação.
 
-Mesmo com o servidor ativo, ainda faltam integração completa com o Router, backend de assinatura real e validação end-to-end em iPhone físico. O `StubSigningBackend` deve continuar fail-closed até esses requisitos serem atendidos.
+Mesmo com um servidor ativo, ainda faltam backend de assinatura real e validação end-to-end em iPhone físico. O `StubSigningBackend` deve continuar fail-closed até esses requisitos serem atendidos.
 
 ## Referências upstream
 
