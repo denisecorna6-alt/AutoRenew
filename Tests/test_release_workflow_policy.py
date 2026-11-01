@@ -16,11 +16,11 @@ class ReleaseSafetyPolicy(unittest.TestCase):
 
     def test_main_build_artifact_is_explicitly_unsigned(self):
         self.assertIn("CODE_SIGNING_ALLOWED=NO", BUILD)
-        self.assertIn("AutoRenew.ipa", BUILD)
-        self.assertIn("AutoRenew-Installer.ipa", BUILD)
+        self.assertIn("AutoRenew-unsigned.ipa", BUILD)
+        self.assertIn("AutoRenew-Installer-unsigned.ipa", BUILD)
         self.assertIn("AutoRenew-ipa-unsigned", BUILD)
         self.assertIn("AutoRenew-Installer-ipa-unsigned", BUILD)
-        self.assertIn("retention-days: 30", BUILD)
+        self.assertIn("retention-days: 14", BUILD)
         self.assertNotIn("name: AutoRenew-ipa,", BUILD)
 
     def test_no_tag_trigger_can_publish_a_release(self):

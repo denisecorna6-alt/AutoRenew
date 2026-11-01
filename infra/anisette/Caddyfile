@@ -1,0 +1,8 @@
+{
+	 email {$ACME_EMAIL}
+}
+
+{$ANISETTE_DOMAIN} {
+	 encode zstd gzip
+	 reverse_proxy anisette:6969
+}

@@ -1,0 +1,44 @@
+services:
+  anisette:
+    image: ${ANISETTE_IMAGE:?Set ANISETTE_IMAGE to an immutable upstream image digest}
+    container_name: autorenew-anisette
+    restart: unless-stopped
+    expose:
+      - "6969"
+    volumes:
+      - anisette-data:/home/Alcoholic/.config/anisette-v3/lib/
+    networks:
+      - anisette-internal
+    security_opt:
+      - no-new-privileges:true
+
+  caddy:
+    image: ${CADDY_IMAGE:?Set CADDY_IMAGE to an immutable Caddy image digest}
+    container_name: autorenew-anisette-caddy
+    restart: unless-stopped
+    environment:
+      ANISETTE_DOMAIN: ${ANISETTE_DOMAIN:?Set ANISETTE_DOMAIN to a domain you control}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL to a valid contact email}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - anisette-internal
+    depends_on:
+      - anisette
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  anisette-internal:
+    driver: bridge
+
+volumes:
+  anisette-data:
+  caddy-data:
+  caddy-config:
