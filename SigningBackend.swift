@@ -1,28 +1,22 @@
 import Foundation
 
-/// Ponto de integração com AltSign + minimuxer.
+/// Boundary between the scheduler and the real signing/reinstallation engine.
 protocol SigningBackend {
-    func login(appleID: String, password: String, anisette: AnisetteData,
-               twoFactorCode: @escaping () async -> String?) async throws
-    /// Reassina/reinstala o app e retorna a nova data de expiração.
-    func refresh(app: ManagedApp, anisette: AnisetteData) async throws -> Date
+    var isAvailable: Bool { get }
+    func refresh(app: ManagedApp) async throws -> Date
 }
 
-/// Backend simulado para testar agendamento, notificações e UI.
-struct StubSigningBackend: SigningBackend {
-    func login(appleID: String, password: String, anisette: AnisetteData,
-               twoFactorCode: @escaping () async -> String?) async throws {}
-    func refresh(app: ManagedApp, anisette: AnisetteData) async throws -> Date {
-        try await Task.sleep(for: .milliseconds(400))
-        return Date(timeIntervalSinceNow: 7 * 86_400)
+/// Safe default until the official integrations and their prerequisites are reviewed.
+/// This implementation never returns a replacement expiry date.
+struct UnavailableSigningBackend: SigningBackend {
+    let isAvailable = false
+
+    func refresh(app: ManagedApp) async throws -> Date {
+        throw RefreshError.integrationUnavailable
     }
 }
 
 /*
- TODO backend real (AltSignBackend):
-  1. ALTAppleAPI.shared.authenticate(...) -> ALTAccount + ALTAppleAPISession (persistir no Keychain)
-  2. fetchTeams -> fetchCertificates; reutilizar certificado se o serial local existir, senão recriar
-  3. fetchAppIDs (reutilizar) -> fetchProvisioningProfile(for:team:)
-  4. ALTSigner(team:certificate:).signApp(at:provisioningProfiles:)
-  5. minimuxer: instalar o IPA via loopback (VPN ativa + pairing file)
+SideSign and Minimuxer are intentionally not wired in this branch yet.
+Their API, licensing and device prerequisites are documented in CONTRIBUTING.md.
 */

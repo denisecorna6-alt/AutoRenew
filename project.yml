@@ -13,7 +13,7 @@ targets:
     sources:
       - path: .
         includes: ["*.swift"]
-        excludes: ["PacketTunnelProvider.swift"]
+        excludes: ["PacketTunnelProvider.swift", "Tests/**"]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.autorenew.AutoRenew
@@ -25,3 +25,14 @@ targets:
         UIBackgroundModes: [fetch, processing]
         BGTaskSchedulerPermittedIdentifiers: [app.autorenew.refresh, app.autorenew.processing]
         NSLocalNetworkUsageDescription: Necessário para comunicar com o próprio dispositivo.
+  AutoRenewTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: AutoRenew
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.autorenew.AutoRenewTests
+        GENERATE_INFOPLIST_FILE: YES
