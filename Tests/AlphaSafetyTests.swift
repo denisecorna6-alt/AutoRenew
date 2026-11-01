@@ -33,21 +33,32 @@ final class AlphaSafetyTests: XCTestCase {
         XCTAssertTrue(AnisetteData(headers: headers, fetched: Date().addingTimeInterval(-30)).isValid)
     }
 
-    func testRemoteAnisetteV3ProviderFailsClosedUntilProvisioningExists() async {
-        let provider = RemoteAnisetteProvider(url: URL(string: "https://ani.sidestore.io")!)
+    func testRemoteAnisetteRequestsRequireExplicitConsent() async {
+        let router = AnisetteRouter(
+            urls: [AppSettings.sideStoreAnisetteURL],
+            remoteRequestsEnabled: false
+        )
         do {
-            _ = try await provider.fetch()
-            XCTFail("A root GET must not be treated as an Anisette V3 implementation")
+            _ = try await router.fetch()
+            XCTFail("Remote Anisette must remain disabled until the user opts in")
         } catch let error as RefreshError {
             XCTAssertEqual(error, .anisetteUnavailable)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
-        XCTAssertTrue(AppSettings().anisetteURLs.isEmpty)
+        XCTAssertFalse(AppSettings().allowRemoteAnisette)
+        XCTAssertEqual(AppSettings().anisetteURLs, [AppSettings.sideStoreAnisetteURL])
+    }
+
+    func testLegacyAppSettingsDecodeWithRemoteAnisetteDisabled() throws {
+        let legacy = Data("{\"anisetteURLs\":[],\"thresholdHours\":48}".utf8)
+        let settings = try JSONDecoder().decode(AppSettings.self, from: legacy)
+        XCTAssertFalse(settings.allowRemoteAnisette)
+        XCTAssertEqual(settings.anisetteURLs, [AppSettings.sideStoreAnisetteURL])
     }
 
     func testRouterRejectsNonHTTPSProviders() async {
-        let router = AnisetteRouter(urls: ["http://example.invalid/anisette"])
+        let router = AnisetteRouter(urls: ["http://example.invalid/anisette"], remoteRequestsEnabled: true)
         do {
             _ = try await router.fetch()
             XCTFail("Non-HTTPS Anisette endpoints must be rejected")
@@ -209,6 +220,25 @@ final class AlphaSafetyTests: XCTestCase {
         }
     }
 
+    func testAnisetteRouterPreservesTaskCancellation() async {
+        let router = AnisetteRouter(providers: [], remoteRequestsEnabled: true)
+        let task = Task {
+            withUnsafeCurrentTask { currentTask in
+                currentTask?.cancel()
+            }
+            try await router.fetch()
+        }
+
+        do {
+            _ = try await task.value
+            XCTFail("Anisette routing must propagate task cancellation")
+        } catch is CancellationError {
+            // Expected: cancellation must not be converted to an ordinary provider failure.
+        } catch {
+            XCTFail("Expected CancellationError, got: \(error)")
+        }
+    }
+
     private func makeProvisioningProfilePayload(
         applicationIdentifier: String,
         expirationDate: Date
@@ -296,6 +326,21 @@ final class AlphaSafetyTests: XCTestCase {
         ))
     }
 
+    func testAnisetteV3HeadersRedirectGuardRejectsCrossHostAndInsecureRedirects() {
+        XCTAssertTrue(AnisetteV3SameHostRedirectDelegate.allows(
+            URL(string: "https://ani.sidestore.io/v3/get_headers")!,
+            host: "ani.sidestore.io"
+        ))
+        XCTAssertFalse(AnisetteV3SameHostRedirectDelegate.allows(
+            URL(string: "https://attacker.example/collect")!,
+            host: "ani.sidestore.io"
+        ))
+        XCTAssertFalse(AnisetteV3SameHostRedirectDelegate.allows(
+            URL(string: "http://ani.sidestore.io/v3/get_headers")!,
+            host: "ani.sidestore.io"
+        ))
+    }
+
     func testAnisetteV3HeadersRequestUsesPOSTAndBase64ProvisioningState() throws {
         let state = AnisetteV3ProvisioningState(
             identifier: Data([0x01, 0x02, 0x03]),
@@ -353,6 +398,13 @@ final class AlphaSafetyTests: XCTestCase {
             Data("not-json".utf8)
         ] {
             XCTAssertThrowsError(try AnisetteV3HeadersClient.decodeResponse(payload))
+        }
+    }
+
+    func testAnisetteV3HeadersRecognizesExpiredProvisioningError() {
+        let payload = Data(#"{"result":"GetHeadersError","message":"AnisetteNotProvisioned -45061"}"#.utf8)
+        XCTAssertThrowsError(try AnisetteV3HeadersClient.decodeResponse(payload)) { error in
+            XCTAssertEqual(error as? RefreshError, .anisetteNeedsProvisioning)
         }
     }
 

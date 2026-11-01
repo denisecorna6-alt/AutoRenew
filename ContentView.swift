@@ -199,6 +199,8 @@ struct SettingsView: View {
     @State private var showingProfileImporter = false
     @State private var profileImportMessage: String?
     @State private var notificationMessage: String?
+    @State private var anisetteMessage: String?
+    @State private var testingAnisette = false
 
     private var mobileProvisionType: UTType {
         UTType(filenameExtension: "mobileprovision", conformingTo: .data) ?? .data
@@ -208,10 +210,50 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Privacidade e integração") {
-                    Text("Esta Alpha não solicita nem armazena senha Apple ID, código 2FA ou sessão da Apple. A integração real de assinatura ainda não foi implementada.")
+                    Text("Esta Alpha não solicita nem armazena senha Apple ID, código 2FA ou sessão da Apple.")
                     Text("Não informe credenciais Apple nesta versão.")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
+                }
+                Section("Anisette oficial do SideStore") {
+                    Toggle("Permitir uso do servidor Anisette", isOn: $store.settings.allowRemoteAnisette)
+                    Text("Desativado por padrão. Se você ativar, o AutoRenew poderá enviar o identificador Anisette e o ADI do dispositivo para https://ani.sidestore.io e fazer as solicitações de provisionamento necessárias à Apple. Esses dados são usados para obter os cabeçalhos Anisette; não incluem sua senha Apple ID nem o código 2FA.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("Servidor configurado: https://ani.sidestore.io. Você pode continuar usando o SideStore manualmente sem ativar esta opção.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button {
+                        guard store.settings.allowRemoteAnisette else {
+                            anisetteMessage = "Ative a autorização acima antes de testar o servidor."
+                            return
+                        }
+                        testingAnisette = true
+                        Task {
+                            defer { testingAnisette = false }
+                            do {
+                                let data = try await RemoteAnisetteProvider(
+                                    url: URL(string: AppSettings.sideStoreAnisetteURL)!
+                                ).fetch()
+                                anisetteMessage = data.isValid
+                                    ? "Servidor respondeu com cabeçalhos Anisette válidos. Isso não renova nem assina aplicativos."
+                                    : "O servidor não retornou dados Anisette válidos."
+                            } catch {
+                                anisetteMessage = "Não foi possível obter Anisette: \(error.localizedDescription)"
+                            }
+                        }
+                    } label: {
+                        Label(
+                            testingAnisette ? "Testando servidor…" : "Testar Anisette",
+                            systemImage: "network"
+                        )
+                    }
+                    .disabled(!store.settings.allowRemoteAnisette || testingAnisette)
+                    if let anisetteMessage {
+                        Text(anisetteMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Section("Perfis de provisionamento importados") {
                     Text("Importe um arquivo .mobileprovision para manter uma cópia privada no app e registrar seu hash SHA-256. Nesta etapa, o conteúdo CMS ainda não é decodificado; validade, equipe, UDID e revogação permanecem desconhecidos.")
@@ -265,7 +307,7 @@ struct SettingsView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Section("Integração em desenvolvimento") {
-                    Text("Login Apple, Anisette, inventário de certificados e assinatura ainda não estão conectados. Esta versão não lê os apps instalados.")
+                    Text("O provisionamento Anisette está em integração Alpha. Inventário de certificados e assinatura ainda não estão conectados. Esta versão não lê os apps instalados.")
                         .font(.caption).foregroundStyle(.secondary)
                     Text("O bloqueio de domínios por VPN também não está implementado e exigiria permissões específicas.")
                         .font(.caption).foregroundStyle(.secondary)
