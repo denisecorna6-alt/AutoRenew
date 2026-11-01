@@ -151,6 +151,7 @@ struct LogsView: View {
 
 struct SettingsView: View {
     @EnvironmentObject var store: AppStore
+    @State private var notificationMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -161,11 +162,30 @@ struct SettingsView: View {
                     Text("Os avisos locais são programados para 48h, 24h e 6h antes da validade cadastrada. O iOS pode limitar a execução de tarefas em segundo plano.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                Section("Lembretes") {
+                    Button("Ativar lembretes") {
+                        Notifier.requestAuthorization { granted in
+                            Task { @MainActor in
+                                notificationMessage = granted
+                                    ? "Permissão concedida. Os lembretes foram programados quando possível."
+                                    : "Permissão não concedida. Você pode alterá-la nos Ajustes do iOS."
+                                if granted { Notifier.reschedule(store.apps) }
+                            }
+                        }
+                    }
+                    if let notificationMessage {
+                        Text(notificationMessage).font(.caption).foregroundStyle(.secondary)
+                    }
+                    Text("A permissão só é solicitada depois que você toca neste botão.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Section("Integração em desenvolvimento") {
                     Text("Login Apple, Anisette, certificados e assinatura ainda não estão conectados. Por segurança, esta versão não solicita nem armazena sua senha Apple.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     Text("O bloqueio de domínios OCSP/PPQ por VPN não está ativo nesta build e exige uma extensão Network Extension com permissões específicas.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("Ajustes")

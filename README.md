@@ -10,7 +10,7 @@
 
 - Interface SwiftUI para cadastrar apps manualmente com nome, Bundle ID e data de expiração.
 - Persistência local dos apps e do histórico.
-- Alertas locais programados antes da expiração.
+- Alertas locais de expiração, solicitados somente após ação explícita do usuário.
 - Histórico de verificações e falhas.
 - Agendamento de tarefas em segundo plano (sujeito às regras do iOS; o sistema não garante execução em horário exato).
 - Nenhuma credencial Apple, senha, código 2FA, token, certificado privado ou pairing file é solicitado ou armazenado.
@@ -28,7 +28,7 @@
 1. Gere um build de CI na branch de desenvolvimento.
 2. Instale usando SideStore/AltStore.
 3. Abra o AutoRenew e cadastre o nome, Bundle ID e validade exibida pelo seu instalador.
-4. Permita notificações para receber alertas antes do vencimento.
+4. Em Ajustes, toque em **Ativar lembretes** se quiser permitir notificações.
 
 O IPA da CI é empacotado sem assinatura de desenvolvimento. A instalação deve ser feita por um instalador de sideloading compatível.
 

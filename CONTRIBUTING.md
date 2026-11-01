@@ -29,8 +29,9 @@ Fonte oficial: https://github.com/jkcoxson/minimuxer
 
 - O projeto é Rust e expõe funções via `swift-bridge`; o README descreve a geração de biblioteca estática/XCFramework.
 - A FFI atual inclui `start(pairing_file, log_path)`, `yeet_app_afc(bundle_id, ipa_bytes)`, `install_ipa(bundle_id)` e `install_provisioning_profile(profile)`.
-- O transporte depende de um pairing record válido e de uma conexão real do dispositivo pelo mecanismo usado pelo SideStore (em_proxy/LocalDevVPN).
+- O transporte depende de um pairing record válido e de uma conexão real do dispositivo pelo mecanismo em_proxy usado pelo SideStore.
 - O repositório declara licença AGPL-3.0.
+- O wrapper SwiftPM `SideStore/MinimuxerPackage` existe, mas seu último commit é de 2024-08-13 e ele embute um XCFramework binário; é necessário reconciliar esse binário/API com o código Rust upstream antes de adotá-lo.
 
 Nenhum pairing file, UDID, certificado privado ou dado de dispositivo será solicitado ou armazenado nesta etapa. Sem um dispositivo pareado e sem decisão de licença, não é seguro ligar a FFI nem afirmar que uma instalação ocorreu.
 
@@ -38,6 +39,7 @@ Nenhum pairing file, UDID, certificado privado ou dado de dispositivo será soli
 
 - Nunca abra PR contendo Apple ID/senha, cookies, tokens, códigos 2FA, certificados privados, provisioning profiles privados, pairing files ou dados pessoais.
 - Não registre segredos nos logs nem os envie para serviços remotos.
+- Solicite permissão de notificações somente após uma ação explícita do usuário; nunca no primeiro lançamento.
 - Não interprete resposta de rede, assinatura local ou cópia de IPA como confirmação de instalação.
 - Não declare renovação bem-sucedida até a instalação e a validação terem sido confirmadas no dispositivo.
 - Mantenha o acompanhamento manual utilizável quando o backend de assinatura estiver indisponível.

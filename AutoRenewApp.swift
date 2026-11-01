@@ -11,7 +11,6 @@ struct AutoRenewApp: App {
         WindowGroup {
             ContentView().environmentObject(store)
                 .task {
-                    Notifier.requestAuth()
                     Notifier.reschedule(store.apps)
                     BackgroundScheduler.schedule()
                 }
