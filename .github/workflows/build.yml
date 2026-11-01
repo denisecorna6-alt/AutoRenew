@@ -67,17 +67,17 @@ jobs:
           mkdir -p AutoRenewPayload/Payload InstallerPayload/Payload
           cp -R build/Build/Products/Release-iphoneos/AutoRenew.app AutoRenewPayload/Payload/
           cp -R build/Build/Products/Release-iphoneos/AutoRenewInstaller.app InstallerPayload/Payload/
-          (cd AutoRenewPayload && zip -qr ../AutoRenew.ipa Payload)
-          (cd InstallerPayload && zip -qr ../AutoRenew-Installer.ipa Payload)
+          (cd AutoRenewPayload && zip -qr ../AutoRenew-unsigned.ipa Payload)
+          (cd InstallerPayload && zip -qr ../AutoRenew-Installer-unsigned.ipa Payload)
       - name: Upload AutoRenew unsigned IPA
         uses: actions/upload-artifact@v7.0.2
         with:
           name: AutoRenew-ipa-unsigned
-          path: AutoRenew.ipa
-          retention-days: 30
+          path: AutoRenew-unsigned.ipa
+          retention-days: 14
       - name: Upload Installer unsigned IPA
         uses: actions/upload-artifact@v7.0.2
         with:
           name: AutoRenew-Installer-ipa-unsigned
-          path: AutoRenew-Installer.ipa
-          retention-days: 30
+          path: AutoRenew-Installer-unsigned.ipa
+          retention-days: 14
